@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>心畫室 MindCanvas — 兒童心理學繪畫情緒探索</title>
-  <meta name="description" content="心畫室 MindCanvas：免費互動式兒童心理學繪畫情緒探索工具，依據 Buck 屋樹人（HTP）、Koppitz 情緒指標、Lowenfeld 與 Malchiodi 藝術治療框架，從色彩、筆觸動力與空間構圖溫柔解讀畫中情緒。" />
+  <title>心畫室 MindCanvas v2.0 — 完整圖形 × 兒童心理學雙引擎探索</title>
+  <meta name="description" content="心畫室 MindCanvas v2.0：免費互動式兒童心理學繪畫情緒探索工具，採用完整圖形與表情優先引擎（支援單色鉛筆去偏），並支援選填個人 Gemini API Key 啟用多模態視覺深度解讀。" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%233A6B7C%27/%3E%3Cpath d=%27M9 22l3.5-1 10-10-2.5-2.5-10 10L9 22z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -21,6 +21,7 @@
       --primary-foreground: #FFFFFF;
       --secondary: #ECE8DF;
       --secondary-foreground: #2D2E33;
+      --success: #3B8C6E;
       --warning: #C88A2E;
       --error: #C94038;
     }
@@ -38,6 +39,7 @@
         --primary-foreground: #0F1417;
         --secondary: #2F343D;
         --secondary-foreground: #E6E8EC;
+        --success: #4BAE89;
         --warning: #E0A44A;
         --error: #E5645B;
       }
@@ -63,6 +65,13 @@
       height: 100%;
       touch-action: none;
       cursor: crosshair;
+    }
+    #overlayCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
     }
     .tool-btn {
       transition: transform 0.14s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -105,160 +114,19 @@
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Custom subtle scrollbar */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 999px;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-
-    /* Zero-dependency layout & utility fallback when opened outside Antigravity */
-    .min-h-screen { min-height: 100vh; }
-    .max-w-\[1440px\] { max-width: 1440px; }
-    .max-w-2xl { max-width: 42rem; }
-    .max-w-xs { max-width: 20rem; }
-    .mx-auto { margin-left: auto; margin-right: auto; }
-    .px-4 { padding-left: 1rem; padding-right: 1rem; }
-    .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
-    .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
-    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-    .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
-    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-    .py-5 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
-    .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-    .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
-    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-    .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
-    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-    .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
-    .p-5 { padding: 1.25rem; }
-    .p-4 { padding: 1rem; }
-    .p-3\.5 { padding: 0.875rem; }
-    .p-3 { padding: 0.75rem; }
-    .p-2\.5 { padding: 0.625rem; }
-    .p-1\.5 { padding: 0.375rem; }
-    .p-1 { padding: 0.25rem; }
-    .pt-2\.5 { padding-top: 0.625rem; }
-    .pt-2 { padding-top: 0.5rem; }
-    .pt-1 { padding-top: 0.25rem; }
-    .pb-1 { padding-bottom: 0.25rem; }
-    .mt-1\.5 { margin-top: 0.375rem; }
-    .mt-1 { margin-top: 0.25rem; }
-    .mt-0\.5 { margin-top: 0.125rem; }
-    .mr-1 { margin-right: 0.25rem; }
-    .flex { display: flex; }
-    .inline-flex { display: inline-flex; }
-    .grid { display: grid; }
-    .hidden { display: none !important; }
-    .block { display: block; }
-    .inline-block { display: inline-block; }
-    .flex-col { flex-direction: column; }
-    .flex-wrap { flex-wrap: wrap; }
-    .flex-1 { flex: 1 1 0%; }
-    .shrink-0 { flex-shrink: 0; }
-    .items-center { align-items: center; }
-    .items-start { align-items: flex-start; }
-    .items-baseline { align-items: baseline; }
-    .justify-between { justify-content: space-between; }
-    .justify-center { justify-content: center; }
-    .gap-5 { gap: 1.25rem; }
-    .gap-4 { gap: 1rem; }
-    .gap-3\.5 { gap: 0.875rem; }
-    .gap-3 { gap: 0.75rem; }
-    .gap-2\.5 { gap: 0.625rem; }
-    .gap-2 { gap: 0.5rem; }
-    .gap-1\.5 { gap: 0.375rem; }
-    .gap-1 { gap: 0.25rem; }
-    .space-y-4 > * + * { margin-top: 1rem; }
-    .space-y-3\.5 > * + * { margin-top: 0.875rem; }
-    .space-y-3 > * + * { margin-top: 0.75rem; }
-    .space-y-2\.5 > * + * { margin-top: 0.625rem; }
-    .space-y-2 > * + * { margin-top: 0.5rem; }
-    .space-y-1\.5 > * + * { margin-top: 0.375rem; }
-    .space-y-1 > * + * { margin-top: 0.25rem; }
-    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .w-full { width: 100%; }
-    .w-64 { width: 16rem; }
-    .w-32 { width: 8rem; }
-    .w-28 { width: 7rem; }
-    .w-9 { width: 2.25rem; }
-    .w-6 { width: 1.5rem; }
-    .w-5 { width: 1.25rem; }
-    .h-full { height: 100%; }
-    .h-24 { height: 6rem; }
-    .h-16 { height: 4rem; }
-    .h-9 { height: 2.25rem; }
-    .h-6 { height: 1.5rem; }
-    .h-5 { height: 1.25rem; }
-    .h-3\.5 { height: 0.875rem; }
-    .h-2 { height: 0.5rem; }
-    .h-1\.5 { height: 0.375rem; }
-    .aspect-\[16\/11\] { aspect-ratio: 16 / 11; }
-    .rounded-2xl { border-radius: 1rem; }
-    .rounded-xl { border-radius: 0.75rem; }
-    .rounded-lg { border-radius: 0.5rem; }
-    .rounded-md { border-radius: 0.375rem; }
-    .rounded-full { border-radius: 9999px; }
-    .border { border: 1px solid var(--border); }
-    .border-b { border-bottom: 1px solid var(--border); }
-    .border-t { border-top: 1px solid var(--border); }
-    .border-l-4 { border-left: 4px solid var(--primary); }
-    .bg-\[var\(--background\)\] { background-color: var(--background); }
-    .bg-\[var\(--card\)\] { background-color: var(--card); }
-    .bg-\[var\(--content\)\] { background-color: var(--content); }
-    .bg-\[var\(--primary\)\] { background-color: var(--primary); }
-    .bg-\[var\(--secondary\)\] { background-color: var(--secondary); }
-    .text-\[var\(--foreground\)\] { color: var(--foreground); }
-    .text-\[var\(--muted-foreground\)\] { color: var(--muted-foreground); }
-    .text-\[var\(--primary-foreground\)\] { color: var(--primary-foreground); }
-    .text-\[var\(--primary\)\] { color: var(--primary); }
-    .text-\[var\(--warning\)\] { color: var(--warning); }
-    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
-    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-    .text-base { font-size: 1rem; line-height: 1.5rem; }
-    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-    .text-xs { font-size: 0.75rem; line-height: 1.1rem; }
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .font-medium { font-weight: 500; }
-    .text-left { text-align: left; }
-    .text-right { text-align: right; }
-    .text-center { text-align: center; }
-    .sticky { position: sticky; }
-    .fixed { position: fixed; }
-    .absolute { position: absolute; }
-    .relative { position: relative; }
-    .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-    .top-0 { top: 0; }
-    .right-0 { right: 0; }
-    .bottom-2\.5 { bottom: 0.625rem; }
-    .left-3 { left: 0.75rem; }
-    .right-3 { right: 0.75rem; }
-    .z-30 { z-index: 30; }
-    .z-40 { z-index: 40; }
-    .z-50 { z-index: 50; }
-    .overflow-hidden { overflow: hidden; }
-    .overflow-x-auto { overflow-x: auto; }
-    .overflow-y-auto { overflow-y: auto; }
-    .pointer-events-none { pointer-events: none; }
-    .cursor-pointer { cursor: pointer; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-    button { cursor: pointer; font-family: inherit; }
-    input[type="text"] { font-family: inherit; }
-    @media (min-width: 640px) {
-      .sm\:flex-row { flex-direction: row; }
-      .sm\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-      .sm\:col-span-5 { grid-column: span 5 / span 5; }
-      .sm\:col-span-7 { grid-column: span 7 / span 7; }
-      .sm\:inline-flex { display: inline-flex; }
-    }
-    @media (min-width: 1024px) {
-      .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-      .lg\:col-span-7 { grid-column: span 7 / span 7; }
-      .lg\:col-span-5 { grid-column: span 5 / span 5; }
-    }
   </style>
 </head>
 <body class="bg-[var(--background)] text-[var(--foreground)] antialiased min-h-screen">
@@ -277,31 +145,51 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-base sm:text-lg font-semibold tracking-tight leading-snug text-[var(--foreground)] truncate">
-            心畫室 MindCanvas
+            心畫室 MindCanvas <span class="text-xs font-medium text-[var(--muted-foreground)]">v2.0</span>
           </h1>
           <p class="text-xs text-[var(--muted-foreground)] truncate">
-            自由繪畫 × 兒童心理學與藝術治療視角情緒探索
+            完整圖形與表情優先 × 兒童心理學雙引擎探索（支援單色鉛筆去偏）
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Engine Mode Button (A / B Dual Engine Switch) -->
+        <button id="openEngineBtn" type="button" class="tool-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--secondary)]" title="切換本地圖形引擎（方案 A）或 Gemini 視覺深度模式（方案 B）">
+          <span id="engineStatusDot" class="w-2 h-2 rounded-full inline-block bg-[var(--success)]"></span>
+          <span id="engineModeLabel">本地圖形引擎 A</span>
+        </button>
+
+        <!-- Presets Dropdown -->
         <div class="relative">
           <button id="presetMenuBtn" type="button" class="tool-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--secondary)]">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span>心理範例畫作</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div id="presetDropdown" class="hidden absolute right-0 mt-1.5 w-64 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-lg py-1.5 z-40">
+          <div id="presetDropdown" class="hidden absolute right-0 mt-1.5 w-72 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-lg py-1.5 z-40">
             <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] border-b border-[var(--card-border)]">
-              模擬繪製並立即體驗心理分析
+              圖形優先與單色去偏測試範例
             </div>
+            <button type="button" data-preset="black_happy" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
+              <span class="font-medium">黑筆笑臉與太陽（單色）</span>
+              <span class="text-[var(--muted-foreground)]">愉悅與活力</span>
+            </button>
+            <button type="button" data-preset="yellow_cry" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
+              <span class="font-medium">暖黃筆哭泣落淚臉</span>
+              <span class="text-[var(--muted-foreground)]">傷心與低落</span>
+            </button>
+            <button type="button" data-preset="house_calm" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
+              <span class="font-medium">黑筆有門窗房屋（HTP）</span>
+              <span class="text-[var(--muted-foreground)]">平靜與安全</span>
+            </button>
+            <div class="my-1 border-t border-[var(--card-border)]"></div>
             <button type="button" data-preset="anger" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
-              <span>暴風雨與閃電</span>
+              <span>怒眉臉與打叉風暴</span>
               <span class="text-[var(--muted-foreground)]">憤怒與挫敗</span>
             </button>
             <button type="button" data-preset="sadness" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
-              <span>低垂烏雲與落雨</span>
+              <span>烏雲落雨與難過臉</span>
               <span class="text-[var(--muted-foreground)]">傷心與低落</span>
             </button>
             <button type="button" data-preset="anxiety" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
@@ -309,16 +197,12 @@
               <span class="text-[var(--muted-foreground)]">焦慮與壓力</span>
             </button>
             <button type="button" data-preset="loneliness" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
-              <span>角落裡的小小背影</span>
+              <span>角落裡的小小人物</span>
               <span class="text-[var(--muted-foreground)]">孤單與渴望</span>
             </button>
             <button type="button" data-preset="joy" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
-              <span>暖陽下的花與草地</span>
+              <span>暖陽、愛心與草地</span>
               <span class="text-[var(--muted-foreground)]">愉悅與活力</span>
-            </button>
-            <button type="button" data-preset="calm" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--secondary)] flex items-center justify-between gap-2">
-              <span>靜謐湖面與微風</span>
-              <span class="text-[var(--muted-foreground)]">平靜與安全</span>
             </button>
           </div>
         </div>
@@ -335,19 +219,18 @@
   <main class="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 sm:py-5">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-      <!-- LEFT COLUMN: Freehand Drawing Atelier (7 cols on lg) -->
+      <!-- LEFT COLUMN: Freehand Drawing Atelier -->
       <section class="lg:col-span-7 flex flex-col gap-3.5" aria-label="自由繪畫畫布區">
 
         <!-- Tool & Brush Control Bar -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2.5">
-            <!-- Brush Types -->
             <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="畫筆工具">
               <button type="button" class="tool-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)]" data-tool="crayon" aria-pressed="true" title="蠟筆（自然顆粒感）">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 <span>蠟筆</span>
               </button>
-              <button type="button" class="tool-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)]" data-tool="pencil" aria-pressed="false" title="彩色鉛筆（細緻線條）">
+              <button type="button" class="tool-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)]" data-tool="pencil" aria-pressed="false" title="鉛筆（細緻線條・適合單色素描）">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                 <span>鉛筆</span>
               </button>
@@ -365,7 +248,6 @@
               </button>
             </div>
 
-            <!-- Stroke Size + Actions -->
             <div class="flex flex-wrap items-center gap-2">
               <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--content)] border border-[var(--border)]" title="筆刷粗細">
                 <span class="text-xs text-[var(--muted-foreground)] mr-0.5">粗細</span>
@@ -400,14 +282,14 @@
             </div>
           </div>
 
-          <!-- Curated 16-Color Affective Palette + Paper Tone -->
+          <!-- Palette + Paper Tone -->
           <div class="pt-2.5 border-t border-[var(--card-border)] flex flex-wrap items-center justify-between gap-3">
             <div id="colorPalette" class="flex flex-wrap items-center gap-1.5" role="group" aria-label="情緒調色盤"></div>
 
             <div class="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
               <label class="inline-flex items-center gap-1.5 cursor-pointer" title="自訂色彩">
                 <span>自訂</span>
-                <input id="customColorInput" type="color" value="#2B59C3" class="w-6 h-6 rounded-md border border-[var(--border)] bg-transparent cursor-pointer p-0" />
+                <input id="customColorInput" type="color" value="#2A2B30" class="w-6 h-6 rounded-md border border-[var(--border)] bg-transparent cursor-pointer p-0" />
               </label>
               <span class="opacity-30">|</span>
               <div class="inline-flex items-center gap-1" title="畫紙底色">
@@ -420,29 +302,35 @@
           </div>
         </div>
 
-        <!-- Drawing Canvas Stage -->
+        <!-- Drawing Canvas Stage + Non-Destructive Figure Recognition Overlay -->
         <div class="canvas-stage border border-[var(--border)] aspect-[16/11] w-full" id="canvasStage">
           <canvas id="drawingCanvas"></canvas>
-          <!-- Subtle Empty State Hint Overlay -->
+          <canvas id="overlayCanvas"></canvas>
+
           <div id="canvasHint" class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center px-6 transition-opacity duration-300">
-            <div class="px-4 py-3 rounded-xl bg-white/75 backdrop-blur-sm border border-stone-300/60 text-stone-700 max-w-xs">
-              <p class="text-sm font-medium">在這裡自由畫下你此刻的心情</p>
-              <p class="text-xs text-stone-500 mt-1">不需要畫得像什麼，隨意塗鴉、線條、天氣、房子或人物都可以</p>
+            <div class="px-4 py-3 rounded-xl bg-white/80 backdrop-blur-sm border border-stone-300/60 text-stone-700 max-w-sm">
+              <p class="text-sm font-medium">自由畫下你此刻的心情或任何圖案</p>
+              <p class="text-xs text-stone-500 mt-1">支援單色鉛筆畫！系統會優先辨識臉部表情（笑臉／哭臉／怒眉）、房子、太陽、雨雲、愛心、人物與打叉符號</p>
             </div>
           </div>
-          <!-- Subtle Live Telemetry Pill -->
-          <div class="pointer-events-none absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs">
+
+          <div class="pointer-events-none absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 text-xs">
             <span id="telemetryReadout" class="px-2.5 py-1 rounded-md bg-black/55 text-white/95 backdrop-blur-sm tabular-nums">
               尚未落筆・可自由創作
             </span>
-            <span id="activeBrushBadge" class="px-2.5 py-1 rounded-md bg-black/55 text-white/95 backdrop-blur-sm hidden sm:inline-flex items-center gap-1.5">
-              <span id="brushColorDot" class="w-2.5 h-2.5 rounded-full inline-block border border-white/50" style="background:#2A2B30"></span>
-              <span id="brushNameText">蠟筆 · 中</span>
-            </span>
+            <div class="flex items-center gap-1.5 pointer-events-auto">
+              <button id="toggleOverlayBtn" type="button" class="hidden px-2.5 py-1 rounded-md bg-black/65 text-white/95 backdrop-blur-sm hover:bg-black/80 text-xs">
+                隱藏圖形標示框
+              </button>
+              <span id="activeBrushBadge" class="pointer-events-none px-2.5 py-1 rounded-md bg-black/55 text-white/95 backdrop-blur-sm hidden sm:inline-flex items-center gap-1.5">
+                <span id="brushColorDot" class="w-2.5 h-2.5 rounded-full inline-block border border-white/50" style="background:#2A2B30"></span>
+                <span id="brushNameText">蠟筆 · 中</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- Spontaneous Verbalization + Optional Motif Tags + Analyze Action -->
+        <!-- Context & Analyze Bar -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3.5 space-y-3">
           <div class="flex flex-col sm:flex-row gap-2.5">
             <div class="flex-1">
@@ -452,9 +340,11 @@
                 class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[var(--content)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
             </div>
             <button id="analyzeBtn" type="button"
-              class="tool-btn shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-              <span>解析畫作心理狀態</span>
+              class="tool-btn shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm disabled:opacity-60">
+              <span id="analyzeBtnIcon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+              </span>
+              <span id="analyzeBtnText">解析畫作心理狀態</span>
             </button>
           </div>
 
@@ -472,71 +362,67 @@
         </div>
       </section>
 
-      <!-- RIGHT COLUMN: Child Psychology Analysis Panel (5 cols on lg) -->
+      <!-- RIGHT COLUMN: Psychological Insight Panel -->
       <aside class="lg:col-span-5 flex flex-col gap-4" aria-label="兒童心理學分析報告區">
 
-        <!-- Empty / Welcome Guide State -->
+        <!-- Welcome Guide -->
         <div id="welcomePanel" class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-4">
           <div class="space-y-1.5">
-            <h2 class="text-base font-semibold text-[var(--foreground)]">畫筆會替還說不出口的心情發聲</h2>
+            <h2 class="text-base font-semibold text-[var(--foreground)]">從「完整圖形與表情」溫柔讀懂畫中情緒</h2>
             <p class="text-xs sm:text-sm text-[var(--muted-foreground)] leading-relaxed">
-              兒童與成人在自由繪畫時，往往透過色彩選擇、落筆力道、線條轉折與畫面空間，自然投射當下的內在狀態。完成塗鴉後點擊「解析畫作心理狀態」，系統將從四個心理學維度為你溫柔解讀。
+              v2.0 升級為<strong>圖形結構優先</strong>引擎：系統不再單靠顏色猜情緒，而是優先辨識多筆組成的完整圖形（笑臉、哭臉淚滴、生氣皺眉、有／無門窗房屋、太陽、雨雲、愛心、打叉否定與角落人物），即使全程用黑筆素描也不會誤判。
             </p>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5 pt-1">
             <div class="p-3 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
-              <div class="text-xs font-semibold text-[var(--foreground)]">色彩與情感投射</div>
-              <p class="text-xs text-[var(--muted-foreground)] mt-1">參考 Burkitt 等人（2003）色彩明度、冷暖與飽和度心理對應。</p>
+              <div class="text-xs font-semibold text-[var(--foreground)]">方案 A（預設免 Key）</div>
+              <p class="text-xs text-[var(--muted-foreground)] mt-1">本地完整圖形拓樸辨識＋單色鉛筆去偏，0.1 秒出報告，畫作不離機。</p>
             </div>
             <div class="p-3 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
-              <div class="text-xs font-semibold text-[var(--foreground)]">線條與筆觸動力</div>
-              <p class="text-xs text-[var(--muted-foreground)] mt-1">追蹤尖銳折角、流暢弧線、速度與重複塗抹張力（Lowenfeld / Malchiodi）。</p>
-            </div>
-            <div class="p-3 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
-              <div class="text-xs font-semibold text-[var(--foreground)]">空間構圖九宮格</div>
-              <p class="text-xs text-[var(--muted-foreground)] mt-1">依據 Buck 屋樹人（HTP）與 Koppitz 比例指標判讀內外重心。</p>
-            </div>
-            <div class="p-3 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
-              <div class="text-xs font-semibold text-[var(--foreground)]">繪畫歷程與口語</div>
-              <p class="text-xs text-[var(--muted-foreground)] mt-1">整合擦除修改次數、幾何象徵與自發敘說，捕捉潛在的情緒訊號。</p>
+              <div class="text-xs font-semibold text-[var(--foreground)]">方案 B（選用 AI 視覺）</div>
+              <p class="text-xs text-[var(--muted-foreground)] mt-1">可於上方自填個人 Gemini API Key，解讀複雜故事情境、動物與人物互動。</p>
             </div>
           </div>
 
           <div class="pt-2 border-t border-[var(--card-border)] space-y-2">
-            <div class="text-xs font-medium text-[var(--muted-foreground)]">不知道從何下筆？點選下方心理範例畫作立即體驗：</div>
+            <div class="text-xs font-medium text-[var(--muted-foreground)]">立即體驗「圖形優先於色彩」測試範例：</div>
             <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-preset="black_happy" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
+                <div class="text-xs font-semibold text-[var(--foreground)]">黑筆笑臉與太陽</div>
+                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">單色黑筆也能判「愉悅」</div>
+              </button>
+              <button type="button" data-preset="yellow_cry" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
+                <div class="text-xs font-semibold text-[var(--foreground)]">暖黃筆哭泣落淚臉</div>
+                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">暖色也優先判「傷心」</div>
+              </button>
+              <button type="button" data-preset="house_calm" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
+                <div class="text-xs font-semibold text-[var(--foreground)]">黑筆有門窗房屋</div>
+                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Buck HTP 安全結構</div>
+              </button>
               <button type="button" data-preset="anger" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
-                <div class="text-xs font-semibold text-[var(--foreground)]">暴風雨與閃電</div>
-                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">高張力紅黑折線 · 憤怒</div>
-              </button>
-              <button type="button" data-preset="sadness" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
-                <div class="text-xs font-semibold text-[var(--foreground)]">低垂烏雲與落雨</div>
-                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">冷藍下垂線條 · 傷心低落</div>
-              </button>
-              <button type="button" data-preset="loneliness" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
-                <div class="text-xs font-semibold text-[var(--foreground)]">角落裡的小小背影</div>
-                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">大片留白縮角 · 孤單渴望</div>
-              </button>
-              <button type="button" data-preset="joy" class="tool-btn text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:bg-[var(--secondary)]">
-                <div class="text-xs font-semibold text-[var(--foreground)]">暖陽下的花與草地</div>
-                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">暖色舒展弧線 · 愉悅活力</div>
+                <div class="text-xs font-semibold text-[var(--foreground)]">怒眉臉與打叉否定</div>
+                <div class="text-xs text-[var(--muted-foreground)] mt-0.5">皺眉＋✕ 判「憤怒」</div>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Inline Toast Alert (for empty canvas notice) -->
-        <div id="inlineAlert" class="hidden rounded-xl px-3.5 py-2.5 text-xs bg-[var(--card)] border border-[var(--warning)] text-[var(--foreground)]"></div>
+        <!-- Inline Alert / Fallback Notice -->
+        <div id="inlineAlert" class="hidden rounded-xl px-3.5 py-2.5 text-xs bg-[var(--card)] border border-[var(--warning)] text-[var(--foreground)] leading-relaxed"></div>
 
         <!-- Analysis Report Container -->
         <div id="reportPanel" class="hidden space-y-4 fade-in">
 
-          <!-- 1. Primary State + Inner Voice -->
+          <!-- 1. Primary State + Recognized Complete Figures + Inner Voice -->
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="text-xs text-[var(--muted-foreground)]">主要心理狀態傾向</div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs text-[var(--muted-foreground)]">主要心理狀態傾向</span>
+                  <span id="reportEngineBadge" class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--content)] border border-[var(--card-border)] text-[var(--muted-foreground)]">本地圖形引擎 A</span>
+                  <span id="monoBadge" class="hidden px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--secondary)] text-[var(--foreground)]">單色鉛筆去偏</span>
+                </div>
                 <div class="flex flex-wrap items-baseline gap-2 mt-1">
                   <h2 id="primaryEmotionTitle" class="text-xl font-bold tracking-tight text-[var(--foreground)]">—</h2>
                   <span id="primaryValenceTag" class="px-2 py-0.5 rounded-md text-xs font-medium bg-[var(--secondary)] text-[var(--secondary-foreground)]">—</span>
@@ -549,6 +435,15 @@
               </div>
             </div>
 
+            <!-- Recognized Complete Figures Summary Strip -->
+            <div id="recognizedFiguresBox" class="hidden p-3 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-[var(--foreground)]">辨識到的完整圖形與表情</span>
+                <span id="recognizedCountLabel" class="text-xs text-[var(--muted-foreground)]"></span>
+              </div>
+              <div id="recognizedFiguresChips" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
             <!-- Inner Voice Quote -->
             <div class="p-3.5 rounded-xl bg-[var(--content)] border-l-4 border-[var(--primary)] space-y-1.5">
               <div class="text-xs font-semibold text-[var(--muted-foreground)]">這幅畫內心可能想表達的話</div>
@@ -556,18 +451,18 @@
               <p id="innerThoughtsDesc" class="text-xs text-[var(--muted-foreground)] leading-relaxed pt-1">—</p>
             </div>
 
-            <!-- Verbal-Visual Incongruence Alert (only shown when detected) -->
+            <!-- Verbal-Visual Incongruence Alert -->
             <div id="incongruenceBox" class="hidden p-3 rounded-xl bg-[var(--content)] border border-[var(--warning)] space-y-1">
               <div class="text-xs font-semibold text-[var(--warning)]">言畫對照觀察（可能的情緒掩飾）</div>
               <p id="incongruenceText" class="text-xs text-[var(--foreground)] leading-relaxed"></p>
             </div>
           </div>
 
-          <!-- 2. Six-Dimension Emotional Spectrum (Radar + Bars) -->
+          <!-- 2. Six-Dimension Emotional Spectrum -->
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 space-y-3.5">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold text-[var(--foreground)]">六大情緒光譜分佈</h3>
-              <span class="text-xs text-[var(--muted-foreground)]">多維度綜合權重</span>
+              <span class="text-xs text-[var(--muted-foreground)]">圖形結構優先加權</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
@@ -578,34 +473,24 @@
             </div>
           </div>
 
-          <!-- 3. Four-Pillar Psychological Evidence Tabs -->
+          <!-- 3. Four-Pillar Evidence Tabs (Figures/Process first!) -->
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 space-y-3.5">
             <div class="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-[var(--content)] border border-[var(--card-border)]" role="tablist">
-              <button type="button" role="tab" data-tab="color" aria-selected="true" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">色彩心理</button>
-              <button type="button" role="tab" data-tab="strokes" aria-selected="false" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">筆觸動力</button>
+              <button type="button" role="tab" data-tab="process" aria-selected="true" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">圖形象徵</button>
               <button type="button" role="tab" data-tab="spatial" aria-selected="false" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">構圖空間</button>
-              <button type="button" role="tab" data-tab="process" aria-selected="false" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">象徵歷程</button>
+              <button type="button" role="tab" data-tab="strokes" aria-selected="false" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">筆觸動力</button>
+              <button type="button" role="tab" data-tab="color" aria-selected="false" class="tab-btn flex-1 px-2.5 py-1.5 rounded-lg text-xs text-[var(--muted-foreground)]">色彩輔助</button>
             </div>
 
-            <!-- Tab: Color -->
-            <div id="tab-color" class="tab-panel space-y-3">
+            <!-- Tab: Figures & Process (Default Tab!) -->
+            <div id="tab-process" class="tab-panel space-y-3">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-medium text-[var(--foreground)]" id="colorDominantLabel">—</span>
-                <span class="text-[var(--muted-foreground)]" id="colorCitation">Burkitt et al. (2003)</span>
+                <span class="font-medium text-[var(--foreground)]">完整圖形、表情與繪畫歷程</span>
+                <span class="text-[var(--muted-foreground)]">Buck HTP; Koppitz</span>
               </div>
-              <div id="colorStackBar" class="h-3.5 w-full rounded-full overflow-hidden flex bg-[var(--content)] border border-[var(--card-border)]"></div>
-              <div id="colorLegend" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)]"></div>
-              <p id="colorInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
-            </div>
-
-            <!-- Tab: Strokes -->
-            <div id="tab-strokes" class="tab-panel hidden space-y-3">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-medium text-[var(--foreground)]">線條幾何與落筆動力學</span>
-                <span class="text-[var(--muted-foreground)]">Lowenfeld; Malchiodi</span>
-              </div>
-              <div id="strokeMetricsGrid" class="grid grid-cols-2 gap-2.5"></div>
-              <p id="strokeInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
+              <div id="motifsList" class="space-y-2"></div>
+              <div id="processSummaryRow" class="flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)] pt-1"></div>
+              <p id="processInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
             </div>
 
             <!-- Tab: Spatial -->
@@ -621,19 +506,29 @@
               <p id="spatialInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
             </div>
 
-            <!-- Tab: Process & Motifs -->
-            <div id="tab-process" class="tab-panel hidden space-y-3">
+            <!-- Tab: Strokes -->
+            <div id="tab-strokes" class="tab-panel hidden space-y-3">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-medium text-[var(--foreground)]">偵測到的幾何象徵與繪畫歷程</span>
-                <span class="text-[var(--muted-foreground)]">Koppitz EIs; Kellogg</span>
+                <span class="font-medium text-[var(--foreground)]">線條幾何與落筆動力學</span>
+                <span class="text-[var(--muted-foreground)]">Lowenfeld; Malchiodi</span>
               </div>
-              <div id="motifsList" class="space-y-2"></div>
-              <div id="processSummaryRow" class="flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)] pt-1"></div>
-              <p id="processInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
+              <div id="strokeMetricsGrid" class="grid grid-cols-2 gap-2.5"></div>
+              <p id="strokeInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
+            </div>
+
+            <!-- Tab: Color -->
+            <div id="tab-color" class="tab-panel hidden space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-medium text-[var(--foreground)]" id="colorDominantLabel">—</span>
+                <span class="text-[var(--muted-foreground)]">Burkitt et al. (2003)</span>
+              </div>
+              <div id="colorStackBar" class="h-3.5 w-full rounded-full overflow-hidden flex bg-[var(--content)] border border-[var(--card-border)]"></div>
+              <div id="colorLegend" class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)]"></div>
+              <p id="colorInsight" class="text-xs text-[var(--foreground)] leading-relaxed pt-1 border-t border-[var(--card-border)]"></p>
             </div>
           </div>
 
-          <!-- 4. Gentle Art-Therapy Dialogue Prompts -->
+          <!-- 4. Gentle Care Prompts -->
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 space-y-2.5">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold text-[var(--foreground)]">溫柔陪伴與自我對話提問</h3>
@@ -645,7 +540,7 @@
             </p>
           </div>
 
-          <!-- 5. Session Drawing History Strip -->
+          <!-- 5. Session History Strip -->
           <div id="historySection" class="hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 space-y-2.5">
             <div class="flex items-center justify-between">
               <h3 class="text-xs font-semibold text-[var(--foreground)]">本次情緒畫作足跡（點擊回顧）</h3>
@@ -658,6 +553,79 @@
       </aside>
     </div>
   </main>
+
+  <!-- Dual-Engine & Security Settings Modal (Engine A / Engine B BYOK) -->
+  <div id="engineModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="engineModalTitle">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
+      <div class="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div>
+          <h2 id="engineModalTitle" class="text-base font-semibold text-[var(--foreground)]">心理分析引擎設定（A + B 雙引擎）</h2>
+          <p class="text-xs text-[var(--muted-foreground)] mt-0.5">選擇純本地零外傳模式，或自備 Gemini Key 開啟深度視覺解讀</p>
+        </div>
+        <button id="closeEngineBtn" type="button" class="p-1.5 rounded-lg hover:bg-[var(--secondary)] text-[var(--muted-foreground)]" aria-label="關閉">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <!-- Option A -->
+        <label class="block p-3.5 rounded-xl bg-[var(--content)] border border-[var(--border)] cursor-pointer space-y-1">
+          <div class="flex items-center gap-2">
+            <input type="radio" name="engineChoice" value="local" id="radioEngineLocal" checked class="accent-[var(--primary)]" />
+            <span class="text-sm font-semibold text-[var(--foreground)]">方案 A：本地完整圖形與表情引擎（預設・免費）</span>
+          </div>
+          <p class="text-xs text-[var(--muted-foreground)] pl-5 leading-relaxed">
+            免 API Key、毫秒完成、畫作 100% 不離開瀏覽器。支援笑臉／哭臉／怒眉、房屋門窗、太陽、雨雲、愛心、打叉、角落小人辨識與單色鉛筆去偏。
+          </p>
+        </label>
+
+        <!-- Option B -->
+        <div class="p-3.5 rounded-xl bg-[var(--content)] border border-[var(--border)] space-y-3">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input type="radio" name="engineChoice" value="gemini" id="radioEngineGemini" class="accent-[var(--primary)] mt-1" />
+            <div>
+              <div class="text-sm font-semibold text-[var(--foreground)]">方案 B：Gemini 多模態視覺深度解讀（選用・BYOK）</div>
+              <p class="text-xs text-[var(--muted-foreground)] mt-0.5 leading-relaxed">
+                將畫布影像結合方案 A 的筆觸速度與塗改歷程，加密直連 Google Gemini Vision 解讀複雜故事情境、動物與人物互動。
+              </p>
+            </div>
+          </label>
+
+          <div id="geminiConfigArea" class="pl-5 space-y-2.5 pt-1 border-t border-[var(--card-border)]">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <label for="geminiKeyInput" class="font-medium text-[var(--foreground)]">您的 Google Gemini API Key</label>
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="text-[var(--primary)] hover:underline">免費申請金鑰 ↗</a>
+              </div>
+              <input id="geminiKeyInput" type="password" autocomplete="off" spellcheck="false"
+                placeholder="貼上個人 API Key（僅暫存於此分頁，關閉即自動清除）"
+                class="w-full px-3 py-2 rounded-lg text-xs bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <label for="geminiModelSelect" class="text-[var(--muted-foreground)]">視覺模型</label>
+              <select id="geminiModelSelect" class="px-2.5 py-1.5 rounded-lg text-xs bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">
+                <option value="gemini-2.5-flash" selected>gemini-2.5-flash（推薦・快速精準）</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash（備援）</option>
+              </select>
+            </div>
+
+            <div class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+              安全保證：本網頁原始碼不含任何金鑰；您輸入的金鑰只存於瀏覽器分頁暫存區（<code class="font-mono">sessionStorage</code>），關閉分頁即自動銷毀，且透過 Header 加密直連 Google 官方 API。若金鑰無效或網路異常將自動降級回方案 A。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 border-t border-[var(--border)] bg-[var(--content)] flex items-center justify-between gap-2">
+        <button id="clearGeminiKeyBtn" type="button" class="tool-btn px-3 py-1.5 rounded-lg text-xs border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--error)]">
+          清除金鑰並切回本地
+        </button>
+        <button id="saveEngineBtn" type="button" class="tool-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-[var(--primary-foreground)]">
+          儲存設定
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Academic References Modal -->
   <div id="refsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="refsModalTitle">
@@ -683,57 +651,45 @@
     "use strict";
 
     // =========================================================================
-    // 1. CHILD PSYCHOLOGY KNOWLEDGE BASE (Mirrors backend/knowledge_base.py)
+    // 1. KNOWLEDGE BASE
     // =========================================================================
     const EMOTION_KEYS = ["sadness", "anger", "anxiety", "loneliness", "joy", "calm"];
 
     const EMOTION_PROFILES = {
       sadness: {
-        key: "sadness",
-        label: "傷心與低落",
-        shortLabel: "傷心低落",
-        enLabel: "Sadness & Melancholy",
-        valence: "內收・低能量",
-        accentHex: "#4A78A8",
+        key: "sadness", label: "傷心與低落", shortLabel: "傷心低落", enLabel: "Sadness & Melancholy",
+        valence: "內收・低能量", accentHex: "#4A78A8",
         summary: "畫面透露出較為沉重、緩慢或內收的情緒氛圍，可能正經歷委屈、失落、疲憊，或有說不出口的難過。",
         innerVoices: [
           "「心裡好像有點沉重，提不起勁，只想安靜待在屬於自己的小角落。」",
-          "「有些委屈或難過卡在心裡，不知道該怎麼開口，只好透過顏色和線條慢慢流出來。」",
+          "「有些委屈或難過卡在心裡，不知道該怎麼開口，只好透過線條和圖案慢慢流出來。」",
           "「我覺得有點累，好希望能被溫柔抱抱，不需要馬上堅強也沒關係。」"
         ],
         carePrompts: [
-          "這幅畫裡哪一個地方感覺最重或最冷？如果可以替它加上一樣溫暖的東西，你會想畫什麼？",
-          "如果畫裡的世界正在下小雨，畫面中的主角最希望現在誰能陪在身邊？",
-          "畫完這張畫之後，心裡有沒有比剛剛輕鬆了一點點？"
+          "這幅畫裡哪一個地方感覺最沉重？如果可以替它加上一樣溫暖的東西，你會想畫什麼？",
+          "如果畫裡的主角現在需要一點陪伴，他最希望誰能坐在身邊聽他說話？",
+          "把這份心情畫出來之後，心裡有沒有比剛剛輕鬆了一點點？"
         ]
       },
       anger: {
-        key: "anger",
-        label: "憤怒與挫敗",
-        shortLabel: "憤怒挫敗",
-        enLabel: "Anger & Frustration",
-        valence: "外放・高張力",
-        accentHex: "#D9483B",
-        summary: "筆觸與色彩展現高度能量與張力，可能蘊含生氣、挫折、不被理解的煩躁，或是急切想要衝破束縛、宣洩壓力的衝動。",
+        key: "anger", label: "憤怒與挫敗", shortLabel: "憤怒挫敗", enLabel: "Anger & Frustration",
+        valence: "外放・高張力", accentHex: "#D9483B",
+        summary: "圖形表情、筆觸與線條張力展現高度衝突能量，可能蘊含生氣、挫折、不被理解的煩躁，或想衝破束縛的衝動。",
         innerVoices: [
           "「我心裡塞滿了氣和不甘心，好想用力把這些煩躁全部畫出來、甩出去！」",
           "「我覺得很不公平或不被尊重，有好多話想大聲喊出來卻沒人聽見。」",
           "「內在的能量快要滿出來了，我正在找一個安全的出口釋放這股張力。」"
         ],
         carePrompts: [
-          "這些最有力的線條，如果發出聲音的話，聽起來會像雷聲、吼叫，還是什麼聲音？",
+          "畫裡最有力的線條或表情，如果發出聲音的話，聽起來會像什麼聲音？",
           "最近有沒有一件事讓你覺得『好生氣』或『好不公平』，很想幫自己說句話？",
           "如果這股強大的力量能變成一種超能力，你想用它來保護什麼？"
         ]
       },
       anxiety: {
-        key: "anxiety",
-        label: "焦慮與壓力",
-        shortLabel: "焦慮壓力",
-        enLabel: "Anxiety & Tension",
-        valence: "緊繃・防禦性",
-        accentHex: "#C88A2E",
-        summary: "線條呈現較多停頓、塗抹、反覆修正或包圍緊縮感，常對應內心的擔憂、緊張、對犯錯的害怕，或面對環境變化的不安。",
+        key: "anxiety", label: "焦慮與壓力", shortLabel: "焦慮壓力", enLabel: "Anxiety & Tension",
+        valence: "緊繃・防禦性", accentHex: "#C88A2E",
+        summary: "畫面出現較多塗抹遮蓋、反覆修正、封閉框線或停頓，常對應內心的擔憂、緊張、對犯錯的害怕，或面對壓力的不安。",
         innerVoices: [
           "「我心裡緊繃繃的，一直在想這樣做對不對、會不會不夠好。」",
           "「腦袋裡有好多纏在一起的念頭，不知道該從哪裡整理起，有點害怕出錯。」",
@@ -746,13 +702,9 @@
         ]
       },
       loneliness: {
-        key: "loneliness",
-        label: "孤單與渴望連結",
-        shortLabel: "孤單渴望",
-        enLabel: "Loneliness & Seeking Connection",
-        valence: "疏離・期盼陪伴",
-        accentHex: "#6E65A3",
-        summary: "畫面留白比例偏高、元素較小或彼此疏離，反映出孤單感、覺得自己被忽略，內心深處其實渴望被看見、被理解與建立連結。",
+        key: "loneliness", label: "孤單與渴望連結", shortLabel: "孤單渴望", enLabel: "Loneliness & Seeking Connection",
+        valence: "疏離・期盼陪伴", accentHex: "#6E65A3",
+        summary: "畫面主體偏小縮在角落、留白極大或呈現封閉隔絕感，反映孤單與覺得被忽略，內心深處其實渴望被看見與理解。",
         innerVoices: [
           "「周圍看起來好寬、好安靜，我好像一個人待在邊邊，有點希望有人能走過來看看我。」",
           "「我想靠近大家，但又有點不確定自己是不是受歡迎，所以先靜靜待在原地。」",
@@ -760,18 +712,14 @@
         ],
         carePrompts: [
           "畫裡這個小小的空間看起來很安靜，如果可以邀請一個朋友或動物進來，你想邀請誰？",
-          "你覺得畫裡面的人或主角，現在最想聽到別人對他說哪一句話？",
+          "你覺得畫裡面的主角，現在最想聽到別人對他說哪一句話？",
           "在日常生活中，什麼時候最會讓你覺得『有人懂我、陪著我』？"
         ]
       },
       joy: {
-        key: "joy",
-        label: "愉悅與活力",
-        shortLabel: "愉悅活力",
-        enLabel: "Joy & Vitality",
-        valence: "開展・正向能量",
-        accentHex: "#E09128",
-        summary: "明亮的暖色系與舒展流暢的筆觸顯示出充沛的心理能量、好奇心與正向情感，內心處於開放、樂於表達與分享的狀態。",
+        key: "joy", label: "愉悅與活力", shortLabel: "愉悅活力", enLabel: "Joy & Vitality",
+        valence: "開展・正向能量", accentHex: "#E09128",
+        summary: "正向的圖形表情、明亮或舒展的筆觸顯示出充沛的心理能量、好奇心與正向情感，內心處於開放且樂於分享的狀態。",
         innerVoices: [
           "「現在心裡亮亮的、很有活力，想把眼前好玩或溫暖的感覺自由地畫出來！」",
           "「我覺得自己可以自在表現，對周圍的世界充滿好奇與期待。」",
@@ -784,13 +732,9 @@
         ]
       },
       calm: {
-        key: "calm",
-        label: "平靜與安全感",
-        shortLabel: "平靜安全",
-        enLabel: "Calm & Groundedness",
-        valence: "穩定・和諧平衡",
-        accentHex: "#3B8C6E",
-        summary: "色彩和諧、構圖穩重居中且線條連貫從容，反映出內在情緒平穩、具有安全感，處於能專注沉澱與自我安頓的狀態。",
+        key: "calm", label: "平靜與安全感", shortLabel: "平靜安全", enLabel: "Calm & Groundedness",
+        valence: "穩定・和諧平衡", accentHex: "#3B8C6E",
+        summary: "構圖穩重居中、結構完整（如有門窗屋舍或平和曲線）且筆觸連貫從容，反映內在情緒平穩、具有安全感。",
         innerVoices: [
           "「現在的心境很安穩，不急不躁，正用自己舒服的節奏感受這個當下。」",
           "「我覺得這裡是安全的，可以慢慢整理思緒，享受專注創作的寧靜。」",
@@ -798,49 +742,19 @@
         ],
         carePrompts: [
           "這幅畫散發出很安靜舒服的感覺，是什麼讓你現在能這麼平靜專注？",
-          "畫面裡哪一個顏色或形狀最能代表你此刻的『安心感』？",
+          "畫面裡哪一個形狀或角落最能代表你此刻的『安心感』？",
           "當以後遇到忙碌或煩躁的日子，你會想如何把今天這份平靜帶回身邊？"
         ]
       }
     };
 
     const PSYCHOLOGY_REFERENCES = [
-      {
-        author: "John N. Buck (1948)",
-        title: "屋樹人繪畫投射測驗（House-Tree-Person, HTP）",
-        focus: "空間構圖、畫面比例、封閉邊界與象徵意義",
-        description: "提出畫面位置（中央、偏下、角落、邊界溢出）、圖形大小與塗抹修正，可反映個體的安全感、內外在界線與心理能量狀態。"
-      },
-      {
-        author: "Elizabeth M. Koppitz (1968)",
-        title: "兒童人物畫情緒指標（Emotional Indicators on HFDs）",
-        focus: "重度塗黑陰影、極小構圖、斷續線條、高頻擦除",
-        description: "系統整理 30 項兒童繪畫情緒指標，指出重度塗抹／陰影與反覆塗改常與焦慮有關，極小縮在角落的構圖常對應退縮、低落與不安全感。"
-      },
-      {
-        author: "Viktor Lowenfeld (1947 / 1987)",
-        title: "創造力與心智成長（Creative and Mental Growth）",
-        focus: "兒童藝術發展階段與線條情緒表現力",
-        description: "探討線條流暢度、銳利轉折、重複圖樣與自我表達自由度如何隨情感狀態與認知發展而變化。"
-      },
-      {
-        author: "Esther Burkitt, Martyn Barrett & Alyson Davis (2003–2005)",
-        title: "兒童繪畫中色彩與尺寸的情感表徵實證研究",
-        focus: "暖明色 vs. 暗沉／非偏好色彩與主題尺寸效應",
-        description: "實證指出兒童在描繪正向情感主題時傾向畫得較大且選用偏愛與明亮色彩；面對負向情緒時則顯著增加暗色、低飽和色與尺寸退縮。"
-      },
-      {
-        author: "Cathy A. Malchiodi (1998)",
-        title: "讀懂孩子的畫（Understanding Children's Drawings）",
-        focus: "藝術治療視角、整體脈絡與自發性口語敘說",
-        description: "強調單一筆觸或顏色不可斷章取義，應綜合色彩、線條、構圖與創作者自身口語敘說（Spontaneous Verbalization），以溫柔提問開啟對話。"
-      },
-      {
-        author: "Rose H. Alschuler & La Berta W. Hattwick (1947)",
-        title: "繪畫與人格（Painting and Personality）",
-        focus: "線條動力學（曲線 vs. 尖角）與色彩喚起度",
-        description: "觀察幼兒與兒童的色彩與線條偏好，發現強烈紅黑搭配與急促尖角常關聯高喚起衝動或挫敗感，而圓弧與平衡色調較多出現於情緒和諧時。"
-      }
+      { author: "John N. Buck (1948)", title: "屋樹人繪畫投射測驗（House-Tree-Person, HTP）", focus: "門窗開放度、空間構圖、畫面比例與安全邊界", description: "提出屋舍門窗有無、圖形大小、空間重心與塗抹修正，可反映個體對家庭與外界的安全感、開放度與心理防衛；原始測驗即採單色鉛筆施測。" },
+      { author: "Elizabeth M. Koppitz (1968)", title: "兒童人物畫情緒指標（Emotional Indicators on HFDs）", focus: "臉部表情／塗黑遮臉、微小角落人物、五官省略、高頻擦除", description: "系統整理 30 項兒童人物畫情緒指標，強調圖形與表情結構（而非單純色彩）對焦慮、退縮、低落與攻擊張力的辨別價值。" },
+      { author: "Viktor Lowenfeld (1947 / 1987)", title: "創造力與心智成長（Creative and Mental Growth）", focus: "兒童藝術發展階段與線條情緒表現力", description: "探討線條流暢度、銳利轉折、圖式發展與自我表達自由度如何隨情感狀態而變化。" },
+      { author: "Esther Burkitt, Martyn Barrett & Alyson Davis (2003–2005)", title: "兒童繪畫中色彩與尺寸的情感表徵實證研究", focus: "多色繪畫時暖明色 vs. 冷暗色之輔助情感調節", description: "實證指出在多色情境下，兒童對正向主題傾向畫得較大且選用偏愛暖色，負向主題則較常伴隨冷暗色與尺寸變化。" },
+      { author: "Cathy A. Malchiodi (1998)", title: "讀懂孩子的畫（Understanding Children's Drawings）", focus: "藝術治療整體脈絡、天氣象徵與自發口語敘說", description: "強調不可單靠顏色或單一筆觸斷章取義，應整合完整圖形、創作歷程與創作者口語敘說，並以溫柔開放提問展開對話。" },
+      { author: "Rose H. Alschuler & La Berta W. Hattwick (1947)", title: "繪畫與人格（Painting and Personality）", focus: "線條動力學（圓弧 vs. 尖角）與高喚起衝動", description: "觀察幼兒與兒童的線條動力偏好，發現強烈尖角折線與急促重筆常關聯高喚起衝動或挫敗感。" }
     ];
 
     const VERBAL_LEXICON = {
@@ -864,6 +778,7 @@
     };
 
     const CURATED_COLORS = [
+      { hex: "#2A2B30", name: "炭墨黑（單色素描推薦）" },
       { hex: "#F5C43D", name: "暖陽黃" },
       { hex: "#F08A3C", name: "晨曦橘" },
       { hex: "#F28BA8", name: "蜜桃粉" },
@@ -878,7 +793,6 @@
       { hex: "#8E7DBE", name: "淡薰紫" },
       { hex: "#7C5A43", name: "暖棕土" },
       { hex: "#8D95A0", name: "迷霧灰" },
-      { hex: "#2A2B30", name: "炭墨黑" },
       { hex: "#FFFFFF", name: "純白" }
     ];
 
@@ -893,7 +807,7 @@
     };
 
     // =========================================================================
-    // 2. MULTI-DIMENSIONAL PSYCHOLOGY ANALYSIS ENGINE (Exact JS Mirror)
+    // 2. ENGINE A (v2.0 SHAPE-FIRST TOPOLOGY & MONOCHROME-DEBIASED ANALYZER)
     // =========================================================================
     const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 
@@ -916,54 +830,37 @@
         else if (max === gf) h = ((bf - rf) / d + 2) / 6;
         else h = ((rf - gf) / d + 4) / 6;
       }
-      const s = max === 0 ? 0 : d / max;
-      const v = max;
-      return [h, s, v];
+      return [h, max === 0 ? 0 : d / max, max];
     }
 
     function classifyRgbBucket(r, g, b) {
       const [h, s, v] = rgbToHsv(r, g, b);
       const hueDeg = h * 360;
       const lum = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
-
       if (v < 0.24 || (lum < 0.20 && s < 0.45)) return { bucket: "darkMuted", s, lum };
       if (s < 0.14) return { bucket: v < 0.48 ? "darkMuted" : "neutralGrey", s, lum };
       if (v < 0.40 && (hueDeg < 48 || hueDeg >= 255)) return { bucket: "darkMuted", s, lum };
       if ((hueDeg <= 14 || hueDeg >= 342) && s >= 0.48 && v >= 0.35) {
-        if (v >= 0.72 && s < 0.65) return { bucket: "gentlePinkPurple", s, lum };
-        return { bucket: "intenseRed", s, lum };
+        return { bucket: (v >= 0.72 && s < 0.65) ? "gentlePinkPurple" : "intenseRed", s, lum };
       }
-      if (hueDeg > 14 && hueDeg <= 68) {
-        if (v < 0.48 && s < 0.65) return { bucket: "darkMuted", s, lum };
-        return { bucket: "warmBright", s, lum };
-      }
-      if (hueDeg > 68 && hueDeg <= 165) {
-        if (v < 0.34) return { bucket: "darkMuted", s, lum };
-        return { bucket: "freshGreen", s, lum };
-      }
+      if (hueDeg > 14 && hueDeg <= 68) return { bucket: (v < 0.48 && s < 0.65) ? "darkMuted" : "warmBright", s, lum };
+      if (hueDeg > 68 && hueDeg <= 165) return { bucket: v < 0.34 ? "darkMuted" : "freshGreen", s, lum };
       if (hueDeg > 165 && hueDeg <= 255) return { bucket: "coolBlue", s, lum };
-      if (hueDeg > 255 && hueDeg < 342) {
-        if (v < 0.42) return { bucket: "darkMuted", s, lum };
-        return { bucket: "gentlePinkPurple", s, lum };
-      }
+      if (hueDeg > 255 && hueDeg < 342) return { bucket: v < 0.42 ? "darkMuted" : "gentlePinkPurple", s, lum };
       return { bucket: "neutralGrey", s, lum };
     }
 
-    function resamplePoints(points, step = 12) {
+    function resamplePoints(points, step = 10) {
       if (!points || points.length === 0) return [];
       const out = [[points[0].x, points[0].y]];
-      let acc = 0;
-      let prevX = points[0].x, prevY = points[0].y;
+      let acc = 0, prevX = points[0].x, prevY = points[0].y;
       for (let i = 1; i < points.length; i++) {
         const cx = points[i].x, cy = points[i].y;
-        let dx = cx - prevX, dy = cy - prevY;
-        let dist = Math.hypot(dx, dy);
+        let dx = cx - prevX, dy = cy - prevY, dist = Math.hypot(dx, dy);
         if (dist < 1e-6) continue;
         while (acc + dist >= step) {
-          const rem = step - acc;
-          const t = rem / dist;
-          const nx = prevX + dx * t;
-          const ny = prevY + dy * t;
+          const t = (step - acc) / dist;
+          const nx = prevX + dx * t, ny = prevY + dy * t;
           out.push([nx, ny]);
           prevX = nx; prevY = ny;
           dx = cx - prevX; dy = cy - prevY;
@@ -973,72 +870,59 @@
         acc += dist;
         prevX = cx; prevY = cy;
       }
-      const last = points[points.length - 1];
-      const tail = out[out.length - 1];
-      if (Math.hypot(last.x - tail[0], last.y - tail[1]) > step * 0.35) {
-        out.push([last.x, last.y]);
-      }
+      const last = points[points.length - 1], tail = out[out.length - 1];
+      if (Math.hypot(last.x - tail[0], last.y - tail[1]) > step * 0.35) out.push([last.x, last.y]);
       return out;
     }
 
     function rdpSimplify(pts, epsilon = 5.5) {
       if (pts.length <= 2) return pts;
-      const [x1, y1] = pts[0];
-      const [x2, y2] = pts[pts.length - 1];
-      const dx = x2 - x1, dy = y2 - y1;
-      const segLen = Math.hypot(dx, dy);
+      const [x1, y1] = pts[0], [x2, y2] = pts[pts.length - 1];
+      const dx = x2 - x1, dy = y2 - y1, segLen = Math.hypot(dx, dy);
       let maxDist = -1, maxIdx = 0;
       for (let i = 1; i < pts.length - 1; i++) {
         const [px, py] = pts[i];
-        const d = segLen < 1e-6
-          ? Math.hypot(px - x1, py - y1)
-          : Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / segLen;
+        const d = segLen < 1e-6 ? Math.hypot(px - x1, py - y1) : Math.abs(dy * px - dx * py + x2 * y1 - y2 * x1) / segLen;
         if (d > maxDist) { maxDist = d; maxIdx = i; }
       }
       if (maxDist > epsilon) {
-        const left = rdpSimplify(pts.slice(0, maxIdx + 1), epsilon);
-        const right = rdpSimplify(pts.slice(maxIdx), epsilon);
-        return left.slice(0, -1).concat(right);
+        return rdpSimplify(pts.slice(0, maxIdx + 1), epsilon).slice(0, -1).concat(rdpSimplify(pts.slice(maxIdx), epsilon));
       }
       return [pts[0], pts[pts.length - 1]];
     }
 
+    function segmentsIntersect(a1, a2, b1, b2) {
+      const ccw = (p1, p2, p3) => (p3[1] - p1[1]) * (p2[0] - p1[0]) - (p2[1] - p1[1]) * (p3[0] - p1[0]);
+      return (ccw(a1, a2, b1) * ccw(a1, a2, b2) < 0) && (ccw(b1, b2, a1) * ccw(b1, b2, a2) < 0);
+    }
+
     function extractCanvasPixelStats(canvasEl, bgHex) {
       const sampleW = 160;
-      const ratio = sampleW / Math.max(1, canvasEl.width);
-      const sampleH = Math.max(60, Math.round(canvasEl.height * ratio));
+      const sampleH = Math.max(60, Math.round(canvasEl.height * (sampleW / Math.max(1, canvasEl.width))));
       const tmp = document.createElement("canvas");
-      tmp.width = sampleW;
-      tmp.height = sampleH;
+      tmp.width = sampleW; tmp.height = sampleH;
       const tctx = tmp.getContext("2d", { willReadFrequently: true });
       tctx.drawImage(canvasEl, 0, 0, sampleW, sampleH);
       const data = tctx.getImageData(0, 0, sampleW, sampleH).data;
       const [bgR, bgG, bgB] = hexToRgb(bgHex);
-
       const totalPx = sampleW * sampleH;
-      let inkCount = 0;
+      let inkCount = 0, satSum = 0, lumSum = 0, sumX = 0, sumY = 0;
       const grid = new Array(9).fill(0);
       const buckets = { warmBright: 0, intenseRed: 0, gentlePinkPurple: 0, freshGreen: 0, coolBlue: 0, darkMuted: 0, neutralGrey: 0 };
-      let satSum = 0, lumSum = 0, sumX = 0, sumY = 0;
 
       for (let i = 0; i < totalPx; i++) {
         const off = i * 4;
         const r = data[off], g = data[off + 1], b = data[off + 2];
         if (Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) < 26) continue;
-        const x = i % sampleW;
-        const y = Math.floor(i / sampleW);
+        const x = i % sampleW, y = Math.floor(i / sampleW);
         inkCount++;
         sumX += x / Math.max(1, sampleW - 1);
         sumY += y / Math.max(1, sampleH - 1);
-        const col = Math.min(2, Math.floor((x / sampleW) * 3));
-        const row = Math.min(2, Math.floor((y / sampleH) * 3));
-        grid[row * 3 + col]++;
+        grid[Math.min(2, Math.floor((y / sampleH) * 3)) * 3 + Math.min(2, Math.floor((x / sampleW) * 3))]++;
         const cls = classifyRgbBucket(r, g, b);
         buckets[cls.bucket]++;
-        satSum += cls.s;
-        lumSum += cls.lum;
+        satSum += cls.s; lumSum += cls.lum;
       }
-
       if (inkCount === 0) return null;
       const hist = {};
       Object.keys(buckets).forEach(k => { hist[k] = Number((buckets[k] / inkCount).toFixed(4)); });
@@ -1050,6 +934,316 @@
         meanLuminance: Number((lumSum / inkCount).toFixed(4)),
         pixelCenter: [Number((sumX / inkCount).toFixed(4)), Number((sumY / inkCount).toFixed(4))]
       };
+    }
+
+    function detectCompositeFigures(prims, width, height) {
+      const figures = [];
+      const boosts = {};
+      EMOTION_KEYS.forEach(k => { boosts[k] = 0; });
+      const foundCodes = new Set();
+      const usedFaceIds = new Set();
+      const canvasArea = Math.max(1, width * height);
+
+      function addFig(code, label, category, theory, meaning, bbox, emoDelta) {
+        foundCodes.add(code);
+        const [x0, y0, x1, y1] = bbox;
+        figures.push({
+          code, label, category, theory, meaning,
+          bbox: {
+            x: Number(Math.max(0, x0).toFixed(1)),
+            y: Number(Math.max(0, y0).toFixed(1)),
+            w: Number(Math.max(8, x1 - x0).toFixed(1)),
+            h: Number(Math.max(8, y1 - y0).toFixed(1))
+          }
+        });
+        Object.entries(emoDelta).forEach(([e, d]) => { boosts[e] = (boosts[e] || 0) + d; });
+      }
+
+      function isInside(inner, outer, margin = 0.10) {
+        const mw = outer.w * margin, mh = outer.h * margin;
+        return inner.cx >= outer.minX - mw && inner.cx <= outer.maxX + mw &&
+          inner.cy >= outer.minY - mh && inner.cy <= outer.maxY + mh &&
+          inner.diag < outer.diag * 0.92;
+      }
+
+      // 1. HEART
+      for (const p of prims) {
+        if (!p.isClosed || p.diag < 34 || p.isScribble) continue;
+        const aspect = p.w / Math.max(1, p.h);
+        if (aspect < 0.65 || aspect > 1.55 || p.resamp.length < 12) continue;
+        const topBandY = p.minY + p.h * 0.38, botBandY = p.minY + p.h * 0.72;
+        const topLeft = p.resamp.filter(pt => pt[1] <= topBandY && pt[0] < p.cx - p.w * 0.08);
+        const topRight = p.resamp.filter(pt => pt[1] <= topBandY && pt[0] > p.cx + p.w * 0.08);
+        const topMid = p.resamp.filter(pt => Math.abs(pt[0] - p.cx) <= p.w * 0.14 && pt[1] < p.cy);
+        const botPts = p.resamp.filter(pt => pt[1] >= botBandY);
+        if (topLeft.length && topRight.length && topMid.length && botPts.length) {
+          const lobeTop = Math.max(Math.min(...topLeft.map(x => x[1])), Math.min(...topRight.map(x => x[1])));
+          const cleftY = Math.max(...topMid.map(x => x[1]));
+          const botXs = botPts.map(x => x[0]);
+          const botSpan = Math.max(...botXs) - Math.min(...botXs);
+          if ((cleftY - lobeTop) > p.h * 0.12 && botSpan < p.w * 0.56) {
+            addFig("heart_figure", "愛心符號", "正向心靈符號", "兒童情感依附與正向象徵",
+              "畫面描繪了愛心圖案，直接表達善意、被愛的需求、珍惜或溫暖的情感連結。",
+              [p.minX, p.minY, p.maxX, p.maxY], { joy: 0.68, calm: -0.06, anger: -0.14, sadness: -0.08 });
+            usedFaceIds.add(p.idx);
+            break;
+          }
+        }
+      }
+
+      // 2. SUN (Color-independent)
+      for (const p of prims) {
+        if (usedFaceIds.has(p.idx) || !p.isSmoothLoop || p.diag < 26) continue;
+        const rEst = (p.w + p.h) * 0.25;
+        const rays = [], rayAngles = new Set();
+        for (const q of prims) {
+          if (q.idx === p.idx || !q.isStraight || q.len < 12 || q.len > rEst * 3.8) continue;
+          const dStart = Math.hypot(q.x0 - p.cx, q.y0 - p.cy);
+          const dEnd = Math.hypot(q.x1 - p.cx, q.y1 - p.cy);
+          const dNear = Math.min(dStart, dEnd), dFar = Math.max(dStart, dEnd);
+          if (dNear >= rEst * 0.55 && dNear <= rEst * 2.1 && dFar > dNear + 8) {
+            const vx = dStart < dEnd ? q.x1 - q.x0 : q.x0 - q.x1;
+            const vy = dStart < dEnd ? q.y1 - q.y0 : q.y0 - q.y1;
+            const rx = q.cx - p.cx, ry = q.cy - p.cy;
+            const denom = Math.hypot(vx, vy) * Math.hypot(rx, ry);
+            if (denom > 1e-4 && (vx * rx + vy * ry) / denom > 0.62) {
+              rays.push(q);
+              rayAngles.add(Math.floor(((Math.atan2(ry, rx) * 180) / Math.PI + 180) / 45));
+            }
+          }
+        }
+        if (rays.length >= 4 && rayAngles.size >= 3) {
+          const xs = [p.minX, p.maxX, ...rays.map(q => q.minX), ...rays.map(q => q.maxX)];
+          const ys = [p.minY, p.maxY, ...rays.map(q => q.minY), ...rays.map(q => q.maxY)];
+          addFig("sun_figure", "太陽與光芒", "自然正向象徵", "Buck HTP 與 Malchiodi 正向依附象徵",
+            "辨識出圓體與周圍放射光線構成的太陽（不限色彩），象徵內心的溫暖、希望感、正向能量或渴望被照亮。",
+            [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], { joy: 0.36, calm: 0.14, sadness: -0.14 });
+          usedFaceIds.add(p.idx);
+          break;
+        }
+      }
+
+      // 3. FACE & FACIAL EXPRESSIONS
+      const faceCandidates = prims
+        .filter(p => !usedFaceIds.has(p.idx) && p.isClosed && !p.isScribble && p.diag >= 38 && (p.w / Math.max(1, p.h)) >= 0.58 && (p.w / Math.max(1, p.h)) <= 1.65)
+        .sort((a, b) => b.diag - a.diag);
+
+      const detectedFaces = [];
+      for (const face of faceCandidates) {
+        if (detectedFaces.some(ex => isInside(face, ex, 0.02))) continue;
+        const inner = prims.filter(q => q.idx !== face.idx && isInside(q, face, 0.06));
+        if (inner.length === 0) continue;
+
+        const innerScribbles = inner.filter(q => q.isScribble || q.len > face.diag * 2.2);
+        const innerTotLen = inner.reduce((s, q) => s + q.len, 0);
+        if (innerScribbles.length && innerTotLen > face.diag * 3.0) {
+          addFig("face_shaded", "被塗抹遮蓋的臉孔／圓體", "Koppitz 情緒指標", "Koppitz (1968) 臉部塗黑陰影指標（Shading of Face）",
+            "圓形臉孔內部出現密集塗黑或反覆遮蓋，常對應強烈的焦慮、自我否定、羞愧或想把真實情緒藏起來。",
+            [face.minX, face.minY, face.maxX, face.maxY], { anxiety: 0.38, sadness: 0.20, anger: 0.16, joy: -0.25 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx); continue;
+        }
+
+        let eyesL = 0, eyesR = 0, angryLBrow = false, angryRBrow = false;
+        let hasSmile = false, hasFrown = false, hasJaggedMouth = false, hasFlatMouth = false, tearCount = 0;
+
+        for (const q of inner) {
+          const rx = (q.cx - face.minX) / Math.max(1, face.w);
+          const ry = (q.cy - face.minY) / Math.max(1, face.h);
+
+          if (ry >= 0.10 && ry <= 0.58) {
+            if (q.isStraight && q.w >= face.w * 0.08 && q.w <= face.w * 0.45) {
+              const dx = q.x1 - q.x0, dy = q.y1 - q.y0;
+              if (Math.abs(dx) > 4) {
+                const slope = dy / dx;
+                if (rx < 0.48 && slope > 0.22) angryLBrow = true;
+                else if (rx > 0.52 && slope < -0.22) angryRBrow = true;
+              }
+            }
+            if (q.diag <= face.diag * 0.24) {
+              if (rx < 0.48) eyesL++; else if (rx > 0.52) eyesR++;
+            }
+          }
+          if (ry >= 0.42 && ry <= 0.92 && (rx < 0.44 || rx > 0.56)) {
+            if ((q.h >= Math.max(6, q.w * 1.25) && q.h <= face.h * 0.42) || (q.diag <= face.diag * 0.11 && ry >= 0.48)) {
+              tearCount++;
+            }
+          }
+          if (ry >= 0.48 && ry <= 0.92 && rx >= 0.22 && rx <= 0.78 && q.w >= face.w * 0.14) {
+            if (q.sharpTurns >= 2 && q.sharpRatio > 0.35) hasJaggedMouth = true;
+            else if (q.arcSagRatio >= 0.13) hasSmile = true;
+            else if (q.arcSagRatio <= -0.13) hasFrown = true;
+            else if (q.isStraight && q.w > q.h * 2.2) hasFlatMouth = true;
+          }
+        }
+
+        // Tears below chin/cheek edge
+        for (const q of prims) {
+          if (q.idx === face.idx || inner.includes(q)) continue;
+          if (q.cx >= face.minX && q.cx <= face.maxX && q.minY >= face.maxY - face.h * 0.1 && q.minY <= face.maxY + face.h * 0.35 &&
+              q.h > q.w * 1.4 && q.h >= 8 && q.h <= face.h * 0.45 && Math.abs(q.cx - face.cx) > face.w * 0.10) {
+            tearCount++;
+          }
+        }
+
+        const hasEyes = (eyesL >= 1 && eyesR >= 1) || (eyesL + eyesR >= 2);
+        const angryBrows = angryLBrow && angryRBrow;
+
+        if (angryBrows || (hasJaggedMouth && (angryLBrow || angryRBrow || hasEyes))) {
+          addFig("face_angry", "生氣皺眉臉孔", "臉部表情辨識", "Koppitz HFD 表情與攻擊張力特徵",
+            "辨識出圓形臉孔內帶有向內斜壓的八字眉或緊繃鋸齒嘴型，直接呈現憤怒、不滿、委屈抗議或高度防衛情緒。",
+            [face.minX, face.minY, face.maxX, face.maxY], { anger: 0.56, anxiety: 0.16, joy: -0.32, calm: -0.24 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx);
+        } else if ((hasFrown && tearCount >= 1) || (hasEyes && tearCount >= 2 && !hasSmile)) {
+          addFig("face_sad_crying", "哭泣落淚臉孔", "臉部表情辨識", "Koppitz HFD 與 Malchiodi 悲傷表情指標",
+            "辨識出下垂嘴角與眼下淚痕／淚滴，明確指向傷心、難過、委屈想哭或亟需被溫柔安慰的心理狀態。",
+            [face.minX, face.minY, face.maxX, face.maxY], { sadness: 0.72, loneliness: 0.12, joy: -0.36, calm: -0.26 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx);
+        } else if (hasFrown && (hasEyes || inner.length >= 2)) {
+          addFig("face_sad", "嘴角下垂的難過臉孔", "臉部表情辨識", "Koppitz HFD 與兒童表情投射",
+            "辨識出臉孔下半部呈現明顯下垂的倒弧線嘴型，透露失落、不開心、沮喪或提不起勁的內在心情。",
+            [face.minX, face.minY, face.maxX, face.maxY], { sadness: 0.48, loneliness: 0.14, joy: -0.30, calm: -0.20 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx);
+        } else if (hasSmile) {
+          addFig("face_happy", "微笑開朗臉孔", "臉部表情辨識", "Malchiodi 正向臉部情感投射",
+            "辨識出臉孔內帶有明顯上揚的微笑弧線，顯示當下心情正向開朗、保有希望感或願意友善互動（不受單色畫筆影響）。",
+            [face.minX, face.minY, face.maxX, face.maxY], { joy: 0.54, calm: 0.16, sadness: -0.28, anger: -0.24 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx);
+        } else if (hasEyes && hasFlatMouth) {
+          addFig("face_tense_neutral", "抿嘴緊繃／沉默臉孔", "臉部表情辨識", "Koppitz HFD 情緒壓抑特徵",
+            "臉孔呈現平直緊閉的嘴型，可能反映壓抑想法、無奈、緊張或一時不知如何說出口的狀態。",
+            [face.minX, face.minY, face.maxX, face.maxY], { anxiety: 0.24, sadness: 0.16, loneliness: 0.14 });
+          detectedFaces.push(face); usedFaceIds.add(face.idx);
+        }
+      }
+
+      // 4. HTP HOUSE (Single-stroke or 4-line box + Roof + Door/Window)
+      const boxCandidates = prims.filter(p => !usedFaceIds.has(p.idx) && p.isClosed && p.sharpTurns >= 3 && p.w >= 55 && p.h >= 45);
+      const hLines = prims.filter(p => p.isStraight && p.w > p.h * 2.5 && p.w >= 50);
+      const vLines = prims.filter(p => p.isStraight && p.h > p.w * 2.5 && p.h >= 40);
+      if (boxCandidates.length === 0 && hLines.length >= 2 && vLines.length >= 2) {
+        const hs = [...hLines].sort((a, b) => a.cy - b.cy);
+        const vs = [...vLines].sort((a, b) => a.cx - b.cx);
+        const topL = hs[0], botL = hs[hs.length - 1], leftL = vs[0], rightL = vs[vs.length - 1];
+        if (botL.cy - topL.cy >= 45 && rightL.cx - leftL.cx >= 50 &&
+            Math.abs(topL.minX - leftL.cx) < 38 && Math.abs(topL.maxX - rightL.cx) < 38 &&
+            Math.abs(botL.minX - leftL.cx) < 38 && Math.abs(botL.maxX - rightL.cx) < 38) {
+          const bw = rightL.cx - leftL.cx, bh = botL.cy - topL.cy;
+          boxCandidates.push({
+            idx: -100, minX: leftL.cx, maxX: rightL.cx, minY: topL.cy, maxY: botL.cy,
+            cx: (leftL.cx + rightL.cx) * 0.5, cy: (topL.cy + botL.cy) * 0.5, w: bw, h: bh, diag: Math.hypot(bw, bh),
+            compIds: new Set([topL.idx, botL.idx, leftL.idx, rightL.idx])
+          });
+        }
+      }
+
+      for (const box of boxCandidates) {
+        const compIds = box.compIds || new Set([box.idx]);
+        const roofStrokes = prims.filter(q => !compIds.has(q.idx) && q.maxY <= box.minY + box.h * 0.28 && q.minY < box.minY - 14 && q.maxX >= box.minX - 30 && q.minX <= box.maxX + 30);
+        if (roofStrokes.length) {
+          const roofIds = new Set(roofStrokes.map(q => q.idx));
+          const innerHouse = prims.filter(q => !compIds.has(q.idx) && !roofIds.has(q.idx) && isInside(q, box, -0.02));
+          const innerScrib = innerHouse.some(q => q.isScribble);
+          const xs = [box.minX, box.maxX, ...roofStrokes.map(q => q.minX), ...roofStrokes.map(q => q.maxX)];
+          const ys = [box.minY, box.maxY, ...roofStrokes.map(q => q.minY), ...roofStrokes.map(q => q.maxY)];
+          const hb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+          if (innerHouse.length && !innerScrib) {
+            addFig("house_open", "有門窗的完整房屋（HTP）", "屋樹人 HTP 結構", "Buck (1948) 屋樹人測驗：門窗象徵對外溝通與安全感",
+              "辨識出具備屋頂、牆體及內部門窗的房屋結構，象徵家庭或內在安全基地穩固，對外界維持開放與聯繫意願。",
+              hb, { calm: 0.36, joy: 0.18, loneliness: -0.14 });
+          } else {
+            addFig("house_closed", "無門窗／緊閉的房屋（HTP）", "屋樹人 HTP 結構", "Buck (1948) 屋樹人測驗：省略門窗反映防衛與孤立感",
+              "辨識出房屋外框但內部缺少門窗（或充滿塗抹），常反映較高的心理防衛、緊繃或覺得難以被人走近。",
+              hb, { anxiety: 0.28, loneliness: 0.26, calm: -0.14 });
+          }
+          break;
+        }
+      }
+
+      // 5. CLOUD + FALLING RAIN (Color-independent)
+      const downLines = prims.filter(p => p.isDownward && p.h >= 28);
+      if (downLines.length >= 3) {
+        const minDY = Math.min(...downLines.map(p => p.minY)), maxDY = Math.max(...downLines.map(p => p.maxY));
+        const minDX = Math.min(...downLines.map(p => p.minX)), maxDX = Math.max(...downLines.map(p => p.maxX));
+        const upperCloud = prims.filter(p => !p.isDownward && !usedFaceIds.has(p.idx) && p.w >= 70 && p.cy <= minDY + 35 && p.maxX >= minDX - 30 && p.minX <= maxDX + 30);
+        if (upperCloud.length) {
+          const xs = [minDX, maxDX, ...upperCloud.map(c => c.minX), ...upperCloud.map(c => c.maxX)];
+          const ys = [minDY, maxDY, ...upperCloud.map(c => c.minY), ...upperCloud.map(c => c.maxY)];
+          addFig("rain_cloud_figure", "烏雲與落雨景象", "天氣情境象徵", "Malchiodi (1998) 天氣隱喻與悲傷投射",
+            "辨識出上方雲團結合正下方多道雨絲（不論色彩），在兒童畫中常隱喻低落、委屈、心事沉重或想哭釋放情緒。",
+            [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], { sadness: 0.42, loneliness: 0.14, joy: -0.22, calm: -0.20 });
+        }
+      }
+
+      // 6. CROSS-OUT (✕)
+      const diagPos = prims.filter(p => p.isStraight && p.len >= 48 && Math.abs(p.x1 - p.x0) >= 20 && Math.abs(p.y1 - p.y0) >= 20 && (p.x1 - p.x0) * (p.y1 - p.y0) > 0);
+      const diagNeg = prims.filter(p => p.isStraight && p.len >= 48 && Math.abs(p.x1 - p.x0) >= 20 && Math.abs(p.y1 - p.y0) >= 20 && (p.x1 - p.x0) * (p.y1 - p.y0) < 0);
+      let crossFound = false;
+      for (const a of diagPos) {
+        for (const b of diagNeg) {
+          if (segmentsIntersect([a.x0, a.y0], [a.x1, a.y1], [b.x0, b.y0], [b.x1, b.y1])) {
+            if (Math.hypot(a.cx - b.cx, a.cy - b.cy) < Math.max(a.len, b.len) * 0.42) {
+              addFig("cross_out_figure", "打叉否定標記（✕）", "衝突與否定符號", "藝術治療塗銷與拒絕指標",
+                "辨識出交叉的大打叉（✕），常代表強烈抗拒、對某件事感到氣憤挫折、自我否定或想把煩心的事情劃掉。",
+                [Math.min(a.minX, b.minX), Math.min(a.minY, b.minY), Math.max(a.maxX, b.maxX), Math.max(a.maxY, b.maxY)],
+                { anger: 0.40, anxiety: 0.22, sadness: 0.12, joy: -0.24, calm: -0.22 });
+              crossFound = true; break;
+            }
+          }
+        }
+        if (crossFound) break;
+      }
+
+      // 7. CAGE / PARALLEL BARS
+      const vertBars = prims.filter(p => p.isStraight && p.h > p.w * 3.0 && p.h >= 65);
+      if (vertBars.length >= 4 && !foundCodes.has("rain_cloud_figure")) {
+        const ysTop = vertBars.map(b => b.minY), ysBot = vertBars.map(b => b.maxY);
+        const hasFrame = prims.some(p => p.isStraight && p.w > p.h * 2.5 && p.w >= 70);
+        if (hasFrame && (Math.max(...ysTop) - Math.min(...ysTop)) < 45 && (Math.max(...ysBot) - Math.min(...ysBot)) < 45) {
+          addFig("cage_bars_figure", "柵欄／受困格線結構", "空間界線與受困指標", "Buck HTP 與藝術治療空間束縛象徵",
+            "辨識出整齊排列的柵欄或格柵框線，常呼應內在感到受限、壓力沉重、需要自我保護或覺得被困住的心情。",
+            [Math.min(...vertBars.map(b => b.minX)), Math.min(...ysTop), Math.max(...vertBars.map(b => b.maxX)), Math.max(...ysBot)],
+            { anxiety: 0.36, loneliness: 0.24, calm: -0.20, joy: -0.18 });
+        }
+      }
+
+      // 8. HUMAN PERSON & TINY CORNER ISOLATED PERSON
+      const headCands = prims.filter(p => p.isClosed && !p.isScribble && p.diag >= 16 && p.diag <= 190 && (p.w / Math.max(1, p.h)) >= 0.6 && (p.w / Math.max(1, p.h)) <= 1.5);
+      for (const head of headCands) {
+        const torso = prims.filter(q => q.idx !== head.idx && Math.abs(q.cx - head.cx) <= head.w * 0.65 && q.minY >= head.cy && q.minY <= head.maxY + head.h * 0.6 && q.maxY > head.maxY + head.h * 0.4);
+        if (torso.length) {
+          const parts = [head, ...torso];
+          const tMinY = Math.min(...torso.map(t => t.minY)), tMaxY = Math.max(...torso.map(t => t.maxY));
+          for (const q of prims) {
+            if (!parts.includes(q) && Math.abs(q.cx - head.cx) <= head.w * 2.4 && q.cy >= tMinY - head.h * 0.4 && q.cy <= tMaxY + head.h * 1.4 && q.diag <= head.diag * 2.8) {
+              parts.push(q);
+            }
+          }
+          const px0 = Math.min(...parts.map(x => x.minX)), py0 = Math.min(...parts.map(x => x.minY));
+          const px1 = Math.max(...parts.map(x => x.maxX)), py1 = Math.max(...parts.map(x => x.maxY));
+          const pAreaRatio = ((px1 - px0) * (py1 - py0)) / canvasArea;
+          const pDist = Math.hypot(((px0 + px1) * 0.5) / width - 0.5, ((py0 + py1) * 0.5) / height - 0.5) / 0.7071;
+
+          if (pAreaRatio < 0.11 && pDist > 0.30) {
+            addFig("person_tiny_isolated", "角落中的微小人物", "Koppitz 人物畫指標", "Koppitz (1968) 微小人物指標（Tiny Figure）",
+              "辨識出縮在畫紙角落的微小人物，周圍伴隨大片留白，在兒童人物畫中常反映孤單感、害羞退縮或希望被看見。",
+              [px0, py0, px1, py1], { loneliness: 0.46, sadness: 0.18, joy: -0.18 });
+          } else if (!foundCodes.has("face_sad") && !foundCodes.has("face_sad_crying") && !foundCodes.has("face_angry")) {
+            const headInner = prims.filter(q => q.idx !== head.idx && isInside(q, head, 0.05));
+            if (headInner.length === 0 && head.diag >= 38) {
+              addFig("person_blank_face", "五官留白的人物輪廓", "Koppitz 人物畫指標", "Koppitz (1968) 五官省略指標",
+                "人物頭部保留空白未畫五官，可能呈現逃避對視、不知如何表達心情或防備心較高。",
+                [px0, py0, px1, py1], { loneliness: 0.22, anxiety: 0.16 });
+            } else {
+              addFig("person_figure", "人物輪廓", "Koppitz 人物畫結構", "Koppitz HFD 與 Buck HTP 人物投射",
+                "辨識出頭身完整的人物圖形，反映創作者以自我或重要他人作為畫面的情感聚焦中心。",
+                [px0, py0, px1, py1], { calm: 0.10, joy: 0.08 });
+            }
+          }
+          break;
+        }
+      }
+
+      return { figures, boosts };
     }
 
     function analyzeDrawing(payload) {
@@ -1080,64 +1274,53 @@
       let downwardStrokes = 0, upwardStrokes = 0;
       let closedLoops = 0, smoothLoops = 0, angularLoops = 0;
       let edgeTouchStrokes = 0, shortFragmentStrokes = 0, scribbleStrokes = 0;
-
       let minX = width, maxX = 0, minY = height, maxY = 0;
       let weightedXSum = 0, weightedYSum = 0, totalWeight = 0;
 
       const vecGrid = new Array(9).fill(0);
       const cellOcc = new Map();
       const vecBuckets = { warmBright: 0, intenseRed: 0, gentlePinkPurple: 0, freshGreen: 0, coolBlue: 0, darkMuted: 0, neutralGrey: 0 };
+      const colorInkByHex = new Map();
       let satWeighted = 0, lumWeighted = 0;
       const radiatingCandidates = [];
-
+      const strokePrims = [];
       const toolMult = { pencil: 0.65, crayon: 1.15, marker: 1.3, watercolor: 1.65 };
 
-      for (const stroke of drawStrokes) {
+      drawStrokes.forEach((stroke, sIdx) => {
         const pts = stroke.points;
+        const colorHex = String(stroke.color || "#2A2B30").toLowerCase();
         const size = Number(stroke.size || 7);
         const effWidth = size * (toolMult[stroke.tool] || 1.0);
         widths.push(effWidth);
 
-        const [r, g, b] = hexToRgb(stroke.color || "#2A2B30");
+        const [r, g, b] = hexToRgb(colorHex);
         const cls = classifyRgbBucket(r, g, b);
 
-        let sLen = 0;
-        let sMinX = width, sMaxX = 0, sMinY = height, sMaxY = 0;
-        let touchesEdge = false;
-
+        let sLen = 0, sMinX = width, sMaxX = 0, sMinY = height, sMaxY = 0, touchesEdge = false;
         for (let i = 0; i < pts.length; i++) {
-          const x = Number(pts[i].x || 0);
-          const y = Number(pts[i].y || 0);
-          const p = clamp(Number(pts[i].p ?? 0.5), 0.05, 1.0);
-          pressures.push(p);
-
+          const x = Number(pts[i].x || 0), y = Number(pts[i].y || 0);
+          pressures.push(clamp(Number(pts[i].p ?? 0.5), 0.05, 1.0));
           if (x < minX) minX = x; if (x > maxX) maxX = x;
           if (y < minY) minY = y; if (y > maxY) maxY = y;
           if (x < sMinX) sMinX = x; if (x > sMaxX) sMaxX = x;
           if (y < sMinY) sMinY = y; if (y > sMaxY) sMaxY = y;
-
-          if (x < width * 0.055 || x > width * 0.945 || y < height * 0.055 || y > height * 0.945) {
-            touchesEdge = true;
-          }
+          if (x < width * 0.055 || x > width * 0.945 || y < height * 0.055 || y > height * 0.945) touchesEdge = true;
           if (i > 0) {
-            const px = Number(pts[i - 1].x || x);
-            const py = Number(pts[i - 1].y || y);
+            const px = Number(pts[i - 1].x || x), py = Number(pts[i - 1].y || y);
             const dt = Math.max(4, Number(pts[i].t || 0) - Number(pts[i - 1].t || 0));
             const segD = Math.hypot(x - px, y - py);
             sLen += segD;
-            if (segD > 0.5 && dt < 1500) {
-              velocities.push(Math.min(4.5, segD / dt));
-            }
+            if (segD > 0.5 && dt < 1500) velocities.push(Math.min(4.5, segD / dt));
           }
         }
         if (sLen < 1) sLen = effWidth * 1.2;
-
         const inkArea = sLen * Math.max(2, effWidth);
         totalDrawnInkArea += inkArea;
+        colorInkByHex.set(colorHex, (colorInkByHex.get(colorHex) || 0) + inkArea);
         if (touchesEdge) edgeTouchStrokes++;
         if (sLen < width * 0.065) shortFragmentStrokes++;
 
-        const resamp = resamplePoints(pts, 12);
+        const resamp = resamplePoints(pts, 10);
         const ptWeight = Math.max(1, effWidth) * (sLen / Math.max(1, resamp.length));
         for (const [rx, ry] of resamp) {
           const col = Math.min(2, Math.max(0, Math.floor((rx / width) * 3)));
@@ -1146,58 +1329,67 @@
           weightedXSum += (rx / width) * ptWeight;
           weightedYSum += (ry / height) * ptWeight;
           totalWeight += ptWeight;
-          const key = `${Math.floor(rx / 14)},${Math.floor(ry / 14)}`;
-          cellOcc.set(key, (cellOcc.get(key) || 0) + 1);
+          const k = `${Math.floor(rx / 14)},${Math.floor(ry / 14)}`;
+          cellOcc.set(k, (cellOcc.get(k) || 0) + 1);
         }
-
         vecBuckets[cls.bucket] += inkArea;
         satWeighted += cls.s * inkArea;
         lumWeighted += cls.lum * inkArea;
 
-        // Scale-adaptive RDP simplification for exact sharpness vs smoothness
-        const strokeBboxDiag = Math.hypot(sMaxX - sMinX, sMaxY - sMinY);
-        const rdpEps = Math.min(5.5, Math.max(1.6, strokeBboxDiag * 0.055));
-        const simp = rdpSimplify(resamp, rdpEps);
-
+        const sw = Math.max(1, sMaxX - sMinX), sh = Math.max(1, sMaxY - sMinY);
+        const strokeBboxDiag = Math.hypot(sw, sh);
+        const simp = rdpSimplify(resamp, Math.min(5.5, Math.max(1.6, strokeBboxDiag * 0.055)));
         let sSharp = 0, sSmooth = 0, sTurns = 0;
         for (let i = 1; i < simp.length - 1; i++) {
-          const v1x = simp[i][0] - simp[i - 1][0];
-          const v1y = simp[i][1] - simp[i - 1][1];
-          const v2x = simp[i + 1][0] - simp[i][0];
-          const v2y = simp[i + 1][1] - simp[i][1];
+          const v1x = simp[i][0] - simp[i - 1][0], v1y = simp[i][1] - simp[i - 1][1];
+          const v2x = simp[i + 1][0] - simp[i][0], v2y = simp[i + 1][1] - simp[i][1];
           const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
           if (m1 < 1e-4 || m2 < 1e-4) continue;
-          const cosA = clamp((v1x * v2x + v1y * v2y) / (m1 * m2), -1, 1);
-          const angleDeg = (Math.acos(cosA) * 180) / Math.PI;
+          const angleDeg = (Math.acos(clamp((v1x * v2x + v1y * v2y) / (m1 * m2), -1, 1)) * 180) / Math.PI;
           if (angleDeg < 6) continue;
           sTurns++; totalTurns++;
           if (angleDeg >= 62) { sSharp++; sharpTurns++; }
           else if (angleDeg >= 8 && angleDeg <= 54) { sSmooth++; smoothTurns++; }
         }
 
-        const startPt = pts[0], endPt = pts[pts.length - 1];
-        const dxTot = endPt.x - startPt.x, dyTot = endPt.y - startPt.y;
-        const chord = Math.hypot(dxTot, dyTot);
+        const x0 = Number(pts[0].x), y0 = Number(pts[0].y);
+        const x1 = Number(pts[pts.length - 1].x), y1 = Number(pts[pts.length - 1].y);
+        const dxTot = x1 - x0, dyTot = y1 - y0, chord = Math.hypot(dxTot, dyTot);
+        const straightness = chord / Math.max(1, sLen);
+        const isStraight = sLen > 10 && straightness > 0.74;
+        const isDownward = isStraight && dyTot > Math.abs(dxTot) * 1.15 && dyTot > 36;
+        const isUpward = isStraight && -dyTot > Math.abs(dxTot) * 1.15 && -dyTot > 36;
+        const isClosed = strokeBboxDiag > 16 && chord < strokeBboxDiag * 0.45 && sLen > strokeBboxDiag * 1.85;
+        const sharpRatio = sSharp / Math.max(1, sTurns);
+        const isSmoothLoop = isClosed && (sTurns === 0 || sharpRatio < 0.28);
+        const isScribble = sTurns >= 4 && sharpRatio > 0.35 && sLen > strokeBboxDiag * 2.2;
 
-        if (sLen > 18) {
-          const straightness = chord / Math.max(1, sLen);
-          if (straightness > 0.72) {
-            if (dyTot > Math.abs(dxTot) * 1.15 && dyTot > 36) downwardStrokes++;
-            else if (-dyTot > Math.abs(dxTot) * 1.15 && -dyTot > 36) upwardStrokes++;
-            radiatingCandidates.push([startPt.x, startPt.y, endPt.x, endPt.y, cls.bucket]);
-          }
-          if (strokeBboxDiag > 24 && chord < strokeBboxDiag * 0.42 && sLen > strokeBboxDiag * 1.9) {
-            closedLoops++;
-            if (sTurns > 0 && sSharp / sTurns < 0.25) smoothLoops++;
-            else if (sSharp >= 2) angularLoops++;
-          }
-          if (sTurns >= 4 && sSharp / Math.max(1, sTurns) > 0.35 && sLen > strokeBboxDiag * 2.2) {
-            scribbleStrokes++;
-          }
+        if (isDownward) downwardStrokes++; else if (isUpward) upwardStrokes++;
+        if (isStraight && sLen > 18) radiatingCandidates.push([x0, y0, x1, y1, cls.bucket]);
+        if (isClosed && strokeBboxDiag > 24) {
+          closedLoops++;
+          if (isSmoothLoop) smoothLoops++; else if (sSharp >= 2) angularLoops++;
         }
-      }
+        if (isScribble) scribbleStrokes++;
 
-      // Combine with real pixel stats when available
+        let arcSagRatio = 0;
+        if (!isClosed && resamp.length >= 3 && sw >= sh * 0.75 && Math.abs(x1 - x0) >= sw * 0.45) {
+          const yChordMid = (y0 + y1) * 0.5;
+          const innerSlice = resamp.slice(1, -1);
+          const yInnerMean = innerSlice.reduce((s, p) => s + p[1], 0) / Math.max(1, innerSlice.length);
+          arcSagRatio = (yInnerMean - yChordMid) / Math.max(1, sw);
+        }
+
+        strokePrims.push({
+          idx: sIdx, minX: sMinX, maxX: sMaxX, minY: sMinY, maxY: sMaxY,
+          cx: (sMinX + sMaxX) * 0.5, cy: (sMinY + sMaxY) * 0.5,
+          w: sw, h: sh, diag: strokeBboxDiag, len: sLen,
+          x0, y0, x1, y1, bucket: cls.bucket,
+          isStraight, isDownward, isClosed, isSmoothLoop, isScribble,
+          sharpTurns: sSharp, sharpRatio, arcSagRatio, resamp
+        });
+      });
+
       const pStats = payload.clientImageStats || null;
       const vecAreaTot = Math.max(1, Object.values(vecBuckets).reduce((a, b) => a + b, 0));
       const vecHist = {};
@@ -1207,30 +1399,31 @@
 
       let colorHist, grid3x3, inkCoverage, meanSat, meanLum, cx, cy;
       if (pStats && pStats.inkCoverageRatio > 0.0005) {
-        colorHist = pStats.colorHistogram;
-        grid3x3 = pStats.grid3x3;
-        inkCoverage = pStats.inkCoverageRatio;
-        meanSat = pStats.meanSaturation;
-        meanLum = pStats.meanLuminance;
-        cx = pStats.pixelCenter[0];
-        cy = pStats.pixelCenter[1];
+        colorHist = pStats.colorHistogram; grid3x3 = pStats.grid3x3; inkCoverage = pStats.inkCoverageRatio;
+        meanSat = pStats.meanSaturation; meanLum = pStats.meanLuminance;
+        cx = pStats.pixelCenter[0]; cy = pStats.pixelCenter[1];
       } else {
-        colorHist = vecHist;
-        grid3x3 = normVecGrid;
+        colorHist = vecHist; grid3x3 = normVecGrid;
         inkCoverage = clamp((cellOcc.size * 196) / canvasArea, 0.002, 0.95);
-        meanSat = satWeighted / vecAreaTot;
-        meanLum = lumWeighted / vecAreaTot;
-        cx = weightedXSum / Math.max(1e-6, totalWeight);
-        cy = weightedYSum / Math.max(1e-6, totalWeight);
+        meanSat = satWeighted / vecAreaTot; meanLum = lumWeighted / vecAreaTot;
+        cx = weightedXSum / Math.max(1e-6, totalWeight); cy = weightedYSum / Math.max(1e-6, totalWeight);
       }
 
+      // Monochrome Debiasing
+      let meaningfulColorCount = 0;
+      colorInkByHex.forEach(area => { if (area / Math.max(1, totalDrawnInkArea) >= 0.05) meaningfulColorCount++; });
+      const isMonochromeSketch = meaningfulColorCount <= 1;
+      const colorScale = isMonochromeSketch ? 0.20 : 0.52;
+      const monoDarkPen = isMonochromeSketch ? 0.0 : 1.0;
+
+      // Composite Figure & Expression Recognition (Shape-First!)
+      const { figures: recognizedFigures, boosts: figBoosts } = detectCompositeFigures(strokePrims, width, height);
+      const figCodes = new Set(recognizedFigures.map(f => f.code));
+
       const coveredPxEst = Math.max(150, inkCoverage * canvasArea);
-      const rawOverlapRatio = totalDrawnInkArea / coveredPxEst;
       let multiHitCells = 0;
       cellOcc.forEach(c => { if (c >= 3) multiHitCells++; });
-      const cellOverlapRatio = multiHitCells / Math.max(1, cellOcc.size);
-      const overlapIndex = clamp(((rawOverlapRatio - 1) / 3.2) * 0.65 + cellOverlapRatio * 0.55);
-
+      const overlapIndex = clamp((((totalDrawnInkArea / coveredPxEst) - 1) / 3.2) * 0.65 + (multiHitCells / Math.max(1, cellOcc.size)) * 0.55);
       const sharpnessIndex = clamp((sharpTurns / Math.max(1, totalTurns)) * 1.15);
       const smoothnessIndex = clamp((smoothTurns / Math.max(1, totalTurns)) * 1.15);
       const meanVel = velocities.length ? velocities.reduce((a, b) => a + b, 0) / velocities.length : 0.55;
@@ -1238,252 +1431,134 @@
       const meanWidth = widths.reduce((a, b) => a + b, 0) / Math.max(1, widths.length);
       const meanPress = pressures.reduce((a, b) => a + b, 0) / Math.max(1, pressures.length);
       const weightIndex = clamp((meanWidth / 22) * 0.65 + meanPress * 0.35);
-
-      const fragmentationIndex = clamp(
-        (shortFragmentStrokes / Math.max(1, drawStrokes.length)) * 0.75 + clamp(pauseCount / 6) * 0.25
-      );
-
+      const fragmentationIndex = clamp((shortFragmentStrokes / Math.max(1, drawStrokes.length)) * 0.75 + clamp(pauseCount / 6) * 0.25);
       const revisionEvents = undoCount + eraserCount;
-      const revisionRatio = revisionEvents / Math.max(1, drawStrokes.length + revisionEvents);
-      const revisionIndex = clamp(revisionRatio * 1.8 + clamp(revisionEvents / 8) * 0.45);
-
-      const bboxW = clamp((maxX - minX) / width);
-      const bboxH = clamp((maxY - minY) / height);
-      const bboxAreaRatio = clamp(bboxW * bboxH);
+      const revisionIndex = clamp((revisionEvents / Math.max(1, drawStrokes.length + revisionEvents)) * 1.8 + clamp(revisionEvents / 8) * 0.45);
+      const bboxAreaRatio = clamp(clamp((maxX - minX) / width) * clamp((maxY - minY) / height));
       const centerDist = Math.hypot(cx - 0.5, cy - 0.5) / 0.7071;
       const edgeTouchRatio = edgeTouchStrokes / Math.max(1, drawStrokes.length);
 
-      const warmBright = colorHist.warmBright || 0;
-      const intenseRed = colorHist.intenseRed || 0;
-      const pinkPurple = colorHist.gentlePinkPurple || 0;
-      const freshGreen = colorHist.freshGreen || 0;
-      const coolBlue = colorHist.coolBlue || 0;
-      const darkMuted = colorHist.darkMuted || 0;
-      const neutralGrey = colorHist.neutralGrey || 0;
-
+      const warmBright = colorHist.warmBright || 0, intenseRed = colorHist.intenseRed || 0;
+      const pinkPurple = colorHist.gentlePinkPurple || 0, freshGreen = colorHist.freshGreen || 0;
+      const coolBlue = colorHist.coolBlue || 0, darkMuted = colorHist.darkMuted || 0, neutralGrey = colorHist.neutralGrey || 0;
       const positiveWarmPalette = warmBright + freshGreen * 0.75 + pinkPurple * 0.65;
       const darkHeavyPalette = darkMuted + neutralGrey * 0.5;
       const activeBuckets = Object.values(colorHist).filter(v => v >= 0.06).length;
 
-      // Algorithmic Geometric Motifs
-      const detectedMotifs = [];
-      const motifCodes = new Set();
+      // Combine Recognized Figures + Geometric Motifs
+      const detectedMotifs = recognizedFigures.map(f => ({ code: f.code, label: f.label, theory: f.theory, meaning: f.meaning }));
+      const motifCodes = new Set(figCodes);
 
       if (scribbleStrokes >= 2 || (overlapIndex > 0.48 && sharpnessIndex > 0.35)) {
         motifCodes.add("dense_scribble_knot");
-        detectedMotifs.push({
-          code: "dense_scribble_knot",
-          label: "密集交織／情緒塗抹筆觸",
-          theory: "Koppitz (1968) 重度陰影與反覆塗抹指標",
-          meaning: "重複來回交疊的強烈筆觸，常代表內心積聚張力、煩躁、焦慮或試圖覆蓋某種不安感受。"
-        });
+        detectedMotifs.push({ code: "dense_scribble_knot", label: "密集交織／情緒塗抹筆觸", theory: "Koppitz (1968) 重度陰影與反覆塗抹指標", meaning: "重複來回交疊的強烈筆觸，常代表內心積聚張力、煩躁、焦慮或試圖覆蓋不安感受。" });
       }
-      if (downwardStrokes >= 4 || (downwardStrokes >= 3 && (coolBlue + darkMuted + neutralGrey) > 0.45)) {
+      if (!motifCodes.has("rain_cloud_figure") && (downwardStrokes >= 4 || (downwardStrokes >= 3 && (coolBlue + darkMuted + neutralGrey) > 0.45))) {
         motifCodes.add("downward_streaks");
-        detectedMotifs.push({
-          code: "downward_streaks",
-          label: "向下垂落／雨絲般的線條",
-          theory: "Malchiodi (1998) 動態線條方向象徵",
-          meaning: "多道朝下延展的線條宛如雨滴或垂落感，常見於情緒低落、委屈、悲傷或內在沉重時。"
-        });
+        detectedMotifs.push({ code: "downward_streaks", label: "向下垂落／雨絲般的線條", theory: "Malchiodi (1998) 動態線條方向象徵", meaning: "多道朝下延展的線條宛如雨滴或垂落感，常見於情緒低落、委屈或悲傷時。" });
       }
-
-      let radiatingWarm = false, radiatingTense = false;
-      if (radiatingCandidates.length >= 5) {
-        const bins = new Set();
-        let wRad = 0, tRad = 0;
+      let radiatingWarm = motifCodes.has("sun_figure"), radiatingTense = false;
+      if (!motifCodes.has("sun_figure") && radiatingCandidates.length >= 5) {
+        const bins = new Set(); let wRad = 0, tRad = 0;
         for (const [sx, sy, ex, ey, bkt] of radiatingCandidates) {
-          const deg = (Math.atan2(ey - sy, ex - sx) * 180) / Math.PI;
-          bins.add(Math.floor((deg + 180) / 45));
+          bins.add(Math.floor(((Math.atan2(ey - sy, ex - sx) * 180) / Math.PI + 180) / 45));
           if (bkt === "warmBright" || bkt === "gentlePinkPurple") wRad++;
           else if (bkt === "intenseRed" || bkt === "darkMuted") tRad++;
         }
         if (bins.size >= 4) {
-          if (wRad >= 3) {
-            radiatingWarm = true;
-            motifCodes.add("radiating_warm_burst");
-            detectedMotifs.push({
-              code: "radiating_warm_burst",
-              label: "向外綻放的暖色光芒",
-              theory: "Buck HTP 與兒童正向象徵（太陽／光線）",
-              meaning: "以暖色朝多方向開展的放射筆觸，常呼應對溫暖、希望、活力與被關愛的感受。"
-            });
-          } else if (tRad >= 3) {
-            radiatingTense = true;
-            motifCodes.add("radiating_tense_burst");
-            detectedMotifs.push({
-              code: "radiating_tense_burst",
-              label: "尖銳放射張力線條",
-              theory: "Alschuler & Hattwick (1947) 高喚起衝動線條",
-              meaning: "強烈的紅黑放射或急劃線條，呈現內在能量爆發、憤怒或渴望掙脫束縛的張力。"
-            });
-          }
+          if (wRad >= 3) { radiatingWarm = true; motifCodes.add("radiating_warm_burst"); detectedMotifs.push({ code: "radiating_warm_burst", label: "向外綻放的暖色光芒", theory: "Buck HTP 正向象徵", meaning: "暖色放射筆觸呼應對溫暖、希望與活力的感受。" }); }
+          else if (tRad >= 3) { radiatingTense = true; motifCodes.add("radiating_tense_burst"); detectedMotifs.push({ code: "radiating_tense_burst", label: "尖銳放射張力線條", theory: "Alschuler & Hattwick (1947)", meaning: "強烈放射或急劃線條呈現內在能量爆發與張力。" }); }
         }
       }
-
-      if (angularLoops >= 1 || (closedLoops >= 2 && sharpnessIndex > 0.28)) {
+      if (!motifCodes.has("house_open") && !motifCodes.has("house_closed") && (angularLoops >= 1 || (closedLoops >= 2 && sharpnessIndex > 0.28))) {
         motifCodes.add("enclosed_shelter_or_barrier");
-        detectedMotifs.push({
-          code: "enclosed_shelter_or_barrier",
-          label: "包覆結構／屋舍或界線框",
-          theory: "Buck (1948) 屋樹人（HTP）邊界與庇護象徵",
-          meaning: "封閉方形或圍欄般的輪廓，反映對安全基地與保護的重視，或感受到某種框架與壓力。"
-        });
+        detectedMotifs.push({ code: "enclosed_shelter_or_barrier", label: "包覆結構／界線框", theory: "Buck (1948) 屋樹人邊界象徵", meaning: "封閉方形或圍欄輪廓反映對安全基地的重視，或感受到框架壓力。" });
       }
-      if (smoothLoops >= 1) {
-        motifCodes.add("circular_organic_forms");
-        detectedMotifs.push({
-          code: "circular_organic_forms",
-          label: "圓潤封閉形體（太陽／臉龐／包覆感）",
-          theory: "Kellogg & Lowenfeld 圓形核心圖式",
-          meaning: "流暢的圓弧封閉線條常見於描繪人臉、太陽或柔和物件，偏向表達完整感、親和力或情感連結。"
-        });
-      }
-      if (bboxAreaRatio < 0.16 || (bboxAreaRatio < 0.24 && centerDist > 0.34)) {
+      if (!motifCodes.has("person_tiny_isolated") && (bboxAreaRatio < 0.065 || (bboxAreaRatio < 0.20 && centerDist > 0.26))) {
         motifCodes.add("tiny_corner_cluster");
-        detectedMotifs.push({
-          code: "tiny_corner_cluster",
-          label: "微小／偏向一隅的構圖比例",
-          theory: "Koppitz (1968) 微小圖形情緒指標（Tiny Figure）",
-          meaning: "主體僅佔畫紙一小角且周圍大片留白，常與退縮、害羞、孤單感或覺得自己聲音微弱有關。"
-        });
+        detectedMotifs.push({ code: "tiny_corner_cluster", label: "微小／偏向一隅的構圖比例", theory: "Koppitz (1968) 微小圖形情緒指標", meaning: "主體僅佔畫紙一小角且周圍大片留白，常與退縮、害羞或孤單感有關。" });
       }
       if (edgeTouchRatio >= 0.30 || bboxAreaRatio > 0.80) {
         motifCodes.add("edge_overflow");
-        detectedMotifs.push({
-          code: "edge_overflow",
-          label: "突破畫紙邊界的擴張構圖",
-          theory: "Buck (1948) 邊界溢出與情緒外放指標",
-          meaning: "筆觸大量延伸至畫布邊緣，顯示高漲的情緒張力、強烈表達欲或難以被框住的衝動能量。"
-        });
+        detectedMotifs.push({ code: "edge_overflow", label: "突破畫紙邊界的擴張構圖", theory: "Buck (1948) 邊界溢出指標", meaning: "筆觸大幅延伸至邊緣，顯示高漲的情緒張力或強烈表達欲。" });
       }
       if (revisionEvents >= 3 || revisionIndex > 0.36) {
         motifCodes.add("heavy_revision");
-        detectedMotifs.push({
-          code: "heavy_revision",
-          label: "反覆擦除與修正歷程",
-          theory: "Koppitz (1968) 與 Buck HTP 擦除焦慮指標",
-          meaning: "多次撤銷或塗改可能代表對自我表現的猶豫、要求完美、緊張，或在思考該如何表達內心想法。"
-        });
+        detectedMotifs.push({ code: "heavy_revision", label: "反覆擦除與修正歷程", theory: "Koppitz (1968) 擦除焦慮指標", meaning: "多次撤銷或塗改常反映自我要求高、緊張或猶豫。" });
       }
 
-      // Spontaneous Verbalization
-      const verbalScores = {};
-      const matchedWords = {};
+      // Verbalization
+      const verbalScores = {}, matchedWords = {};
       EMOTION_KEYS.forEach(k => { verbalScores[k] = 0; matchedWords[k] = []; });
       if (titleOrNote) {
         const lower = titleOrNote.toLowerCase();
         EMOTION_KEYS.forEach(emo => {
           const hits = VERBAL_LEXICON[emo].filter(w => lower.includes(w));
-          if (hits.length) {
-            matchedWords[emo] = hits;
-            verbalScores[emo] = clamp(0.18 + 0.08 * (hits.length - 1), 0, 0.36);
-          }
+          if (hits.length) { matchedWords[emo] = hits; verbalScores[emo] = clamp(0.18 + 0.08 * (hits.length - 1), 0, 0.36); }
         });
       }
 
-      // Six-Dimension Calibrated Scoring
+      // Shape-First 6-Dimension Scoring
       const scores = {};
-      EMOTION_KEYS.forEach(k => { scores[k] = 0.08; });
+      EMOTION_KEYS.forEach(k => { scores[k] = 0.10 + (figBoosts[k] || 0); });
 
       scores.anger +=
-        intenseRed * 0.44 +
-        darkMuted * (sharpnessIndex > 0.28 || velocityIndex > 0.55 ? 0.24 : 0.06) +
-        sharpnessIndex * 0.34 +
-        velocityIndex * 0.22 +
-        weightIndex * 0.16 +
-        overlapIndex * (intenseRed + darkMuted > 0.35 ? 0.18 : 0.05) +
+        sharpnessIndex * 0.34 + velocityIndex * 0.22 + weightIndex * 0.14 +
+        overlapIndex * (sharpnessIndex > 0.3 || intenseRed > 0.15 ? 0.20 : 0.06) +
         edgeTouchRatio * 0.16 +
-        (motifCodes.has("dense_scribble_knot") && (intenseRed > 0.15 || velocityIndex > 0.5) ? 0.16 : 0) +
-        (radiatingTense ? 0.14 : 0) -
-        smoothnessIndex * 0.12 -
-        (warmBright + freshGreen) * 0.12;
+        (motifCodes.has("dense_scribble_knot") && (velocityIndex > 0.48 || intenseRed > 0.15) ? 0.22 : 0) +
+        (radiatingTense ? 0.14 : 0) +
+        colorScale * (intenseRed * 0.50 + darkMuted * (sharpnessIndex > 0.28 || velocityIndex > 0.55 ? 0.24 : 0.04) * monoDarkPen - (warmBright + freshGreen) * 0.12) -
+        smoothnessIndex * 0.12;
 
       const bottomWeight = grid3x3[6] + grid3x3[7] + grid3x3[8];
       const downwardRatio = downwardStrokes / Math.max(1, drawStrokes.length);
-      const lowSpeed = 1 - velocityIndex;
       const melancholicCool = (coolBlue + neutralGrey * 0.9) * (meanLum < 0.52 ? 1.25 : 0.85);
       scores.sadness +=
-        melancholicCool * 0.38 +
-        darkMuted * (velocityIndex < 0.58 ? 0.26 : 0.08) +
-        downwardRatio * 0.36 +
-        lowSpeed * 0.18 +
-        (1 - meanLum) * 0.18 +
+        downwardRatio * 0.34 + (1 - velocityIndex) * 0.16 +
         clamp((bottomWeight - 0.33) * 1.4) * 0.18 +
-        (motifCodes.has("downward_streaks") ? 0.20 : 0) +
-        (motifCodes.has("tiny_corner_cluster") ? 0.12 : 0) -
-        warmBright * 0.22 -
-        intenseRed * 0.14 -
-        freshGreen * 0.14;
+        (motifCodes.has("downward_streaks") ? 0.22 : 0) +
+        (motifCodes.has("tiny_corner_cluster") ? 0.12 : 0) +
+        colorScale * (melancholicCool * 0.44 + darkMuted * (velocityIndex < 0.55 ? 0.24 : 0.06) * monoDarkPen + (1 - meanLum) * 0.16 * monoDarkPen - warmBright * 0.20 - freshGreen * 0.14);
 
       scores.anxiety +=
-        revisionIndex * 0.36 +
-        fragmentationIndex * 0.28 +
-        overlapIndex * 0.28 +
-        sharpnessIndex * 0.18 +
-        (darkMuted + neutralGrey) * 0.24 +
-        (motifCodes.has("heavy_revision") ? 0.15 : 0) +
-        (motifCodes.has("enclosed_shelter_or_barrier") && (darkMuted + neutralGrey + intenseRed) > 0.35 ? 0.14 : 0) +
-        (motifCodes.has("dense_scribble_knot") && intenseRed < 0.25 ? 0.12 : 0) +
-        clamp(pauseCount / 5) * 0.10 -
-        smoothnessIndex * 0.10 -
-        warmBright * 0.12;
+        revisionIndex * 0.38 + fragmentationIndex * 0.28 + overlapIndex * 0.28 + sharpnessIndex * 0.16 +
+        (motifCodes.has("heavy_revision") ? 0.18 : 0) +
+        (motifCodes.has("enclosed_shelter_or_barrier") && (overlapIndex > 0.30 || revisionEvents >= 2) ? 0.14 : 0) +
+        (motifCodes.has("dense_scribble_knot") && intenseRed < 0.25 ? 0.14 : 0) +
+        clamp(pauseCount / 5) * 0.10 +
+        colorScale * ((darkMuted + neutralGrey) * 0.24 * monoDarkPen - warmBright * 0.10) -
+        smoothnessIndex * 0.10;
 
-      const sparsity = clamp(1 - inkCoverage / 0.12);
-      const tinyFactor = clamp(1 - bboxAreaRatio / 0.26);
-      const monoCool = (activeBuckets <= 2 && (coolBlue + neutralGrey + darkMuted) > 0.55) ? 0.16 : 0;
+      const sparsity = clamp(1 - inkCoverage / 0.10);
+      const tinyFactor = clamp(1 - bboxAreaRatio / 0.22) * (0.35 + 0.65 * centerDist);
       scores.loneliness +=
-        tinyFactor * 0.34 +
-        sparsity * 0.22 +
-        centerDist * 0.28 +
-        monoCool +
-        (coolBlue + neutralGrey) * 0.18 +
-        (motifCodes.has("tiny_corner_cluster") ? 0.18 : 0) +
-        (drawStrokes.length <= 7 && bboxAreaRatio < 0.22 ? 0.10 : 0) -
-        (bboxAreaRatio > 0.55 ? 0.14 : 0) -
-        intenseRed * 0.14;
+        tinyFactor * 0.36 + sparsity * 0.16 + centerDist * 0.30 +
+        (motifCodes.has("tiny_corner_cluster") ? 0.22 : 0) +
+        (drawStrokes.length <= 7 && bboxAreaRatio < 0.16 && centerDist > 0.24 ? 0.10 : 0) +
+        colorScale * ((coolBlue + neutralGrey) * 0.24 - intenseRed * 0.14) -
+        (bboxAreaRatio > 0.55 ? 0.14 : 0);
 
       const generousBal = 1 - Math.abs(bboxAreaRatio - 0.50) / 0.50;
       const colorRichness = clamp((activeBuckets - 1) / 3.0);
-      const upwardRatio = upwardStrokes / Math.max(1, drawStrokes.length);
       scores.joy +=
-        warmBright * 0.54 +
-        pinkPurple * 0.36 +
-        freshGreen * 0.20 +
-        smoothnessIndex * 0.20 +
-        clamp(generousBal) * 0.16 +
-        colorRichness * 0.18 +
-        meanLum * 0.14 +
-        meanSat * 0.14 +
-        upwardRatio * 0.12 +
-        (radiatingWarm ? 0.20 : 0) +
-        (motifCodes.has("circular_organic_forms") && positiveWarmPalette > 0.35 ? 0.10 : 0) -
-        darkHeavyPalette * 0.28 -
-        sharpnessIndex * 0.18 -
-        overlapIndex * 0.14;
+        smoothnessIndex * 0.20 + clamp(generousBal) * 0.16 + (upwardStrokes / Math.max(1, drawStrokes.length)) * 0.12 +
+        (radiatingWarm && !motifCodes.has("sun_figure") ? 0.20 : 0) +
+        colorScale * (warmBright * 0.62 + pinkPurple * 0.42 + freshGreen * 0.22 + colorRichness * 0.24 + meanLum * 0.16 + meanSat * 0.16 - darkHeavyPalette * 0.28 * monoDarkPen) -
+        sharpnessIndex * 0.18 - overlapIndex * 0.14;
 
-      const centeredness = 1 - centerDist;
-      const sereneBlue = coolBlue * (meanLum >= 0.44 && !motifCodes.has("downward_streaks") ? 0.34 : 0.08);
-      const calmPalette = freshGreen * 0.48 + sereneBlue + warmBright * 0.04 + pinkPurple * 0.04;
       const steadyTempo = 1 - Math.abs(velocityIndex - 0.34) / 0.66;
       const lowTension = (1 - sharpnessIndex) * (1 - overlapIndex) * (1 - revisionIndex);
+      const sereneBlue = coolBlue * (meanLum >= 0.44 && !motifCodes.has("downward_streaks") && !motifCodes.has("rain_cloud_figure") ? 0.38 : 0.08);
       scores.calm +=
-        calmPalette +
-        smoothnessIndex * 0.24 +
-        centeredness * 0.20 +
-        clamp(steadyTempo) * 0.14 +
-        lowTension * 0.20 +
-        (1 - fragmentationIndex) * 0.06 -
-        intenseRed * 0.28 -
-        darkMuted * 0.24 -
-        neutralGrey * 0.18 -
+        smoothnessIndex * 0.24 + (1 - centerDist) * 0.20 + clamp(steadyTempo) * 0.14 + lowTension * 0.20 + (1 - fragmentationIndex) * 0.06 +
+        colorScale * (freshGreen * 0.56 + sereneBlue + warmBright * 0.04 + pinkPurple * 0.04 - intenseRed * 0.30 - darkMuted * 0.24 * monoDarkPen - neutralGrey * 0.18 * monoDarkPen) -
         downwardRatio * 0.24 -
-        (motifCodes.has("downward_streaks") ? 0.22 : 0) -
-        (motifCodes.has("tiny_corner_cluster") ? 0.18 : 0);
+        (motifCodes.has("downward_streaks") || motifCodes.has("rain_cloud_figure") ? 0.22 : 0) -
+        (motifCodes.has("tiny_corner_cluster") || motifCodes.has("person_tiny_isolated") ? 0.18 : 0);
 
       const visualSnap = {};
       EMOTION_KEYS.forEach(k => { visualSnap[k] = Math.max(0.02, scores[k]); });
-
       for (const tag of selectedMotifs) {
         const wMap = USER_MOTIF_WEIGHTS[tag];
         if (wMap) Object.entries(wMap).forEach(([e, w]) => { scores[e] += w; });
@@ -1499,93 +1574,77 @@
         const prof = EMOTION_PROFILES[k];
         const dominance = clampedScores[k] / Math.max(0.45, maxVal);
         const intensity = clamp(clampedScores[k] / 1.35, 0, 1);
-        const score = Math.round(clamp(dominance * 56 + intensity * 38, 6, 95));
         return {
-          key: k,
-          label: prof.label,
-          shortLabel: prof.shortLabel,
-          enLabel: prof.enLabel,
-          valence: prof.valence,
-          accentHex: prof.accentHex,
-          score,
+          key: k, label: prof.label, shortLabel: prof.shortLabel, enLabel: prof.enLabel,
+          valence: prof.valence, accentHex: prof.accentHex,
+          score: Math.round(clamp(dominance * 56 + intensity * 38, 6, 95)),
           sharePercent: Math.round((clampedScores[k] / totalVal) * 100)
         };
       }).sort((a, b) => b.score - a.score);
 
-      const primary = emotionResults[0];
-      const secondary = emotionResults[1];
+      const primary = emotionResults[0], secondary = emotionResults[1];
       const profPrimary = EMOTION_PROFILES[primary.key];
 
-      // Verbal-Visual Incongruence Check
       let incongruenceNote = null;
       if (titleOrNote) {
         const visualTop = EMOTION_KEYS.reduce((a, b) => (visualSnap[a] >= visualSnap[b] ? a : b));
-        const verbalPositive = (verbalScores.joy + verbalScores.calm) > 0.14;
-        const visualDistress = ["anger", "sadness", "anxiety", "loneliness"].includes(visualTop) &&
-          visualSnap[visualTop] > visualSnap.joy + 0.16;
-        if (verbalPositive && visualDistress) {
-          incongruenceNote = `你寫下的文字帶有正向或安撫語氣，但畫面的筆觸與色彩仍隱約呈現「${EMOTION_PROFILES[visualTop].label}」的張力。在兒童心理學中這常稱為『情緒掩飾』——有時嘴上說著沒事或開心，畫筆卻誠實替內心的疲憊或委屈留下了線索。`;
+        if ((verbalScores.joy + verbalScores.calm) > 0.14 && ["anger", "sadness", "anxiety", "loneliness"].includes(visualTop) && visualSnap[visualTop] > visualSnap.joy + 0.16) {
+          incongruenceNote = `你寫下的文字帶有正向或安撫語氣，但畫面的圖形、筆觸與構圖仍隱約呈現「${EMOTION_PROFILES[visualTop].label}」的張力。在兒童心理學中這常稱為『情緒掩飾』——有時嘴上說著沒事或開心，畫筆卻誠實替內心的疲憊或委屈留下了線索。`;
         }
       }
 
-      // 4-Pillar Narratives
       const domBucket = Object.keys(colorHist).reduce((a, b) => (colorHist[a] >= colorHist[b] ? a : b));
       let colorInsight;
-      if (intenseRed + darkMuted >= 0.55 && intenseRed >= 0.18) {
-        colorInsight = "畫面由高張力的紅與深暗色主導，參考 Alschuler & Hattwick 與 Burkitt 等人研究，這類高對比濃烈用色常對應憤怒、強烈挫敗或迫切的情感宣洩。";
+      if (isMonochromeSketch) {
+        colorInsight = "偵測到本次為單色線條作畫（類似經典鉛筆測驗）。系統已自動啟動「單色鉛筆去偏」，不因黑色或單一筆色給予負向扣分，改由完整圖形結構、臉部表情、構圖比例與筆觸動力作為主要判斷依據。";
+      } else if (intenseRed + darkMuted >= 0.55 && intenseRed >= 0.18) {
+        colorInsight = "色彩由高張力的紅與深暗色輔助主導，參考 Alschuler & Hattwick 與 Burkitt 研究，高對比濃烈用色常呼應憤怒、挫敗或迫切宣洩。";
       } else if (coolBlue + neutralGrey + darkMuted >= 0.58) {
-        colorInsight = "整體色調偏向冷色、低彩度或暗沉色系，依 Burkitt 等人（2003）色彩情感研究，低明度與冷暗色調常與低落、難過、退縮或深層內省情緒相連。";
+        colorInsight = "色調偏向冷色、低彩度或暗沉色系，依 Burkitt 等人（2003）研究常與低落、難過或深層內省情緒相伴（仍以完整圖形結構為主導）。";
       } else if (positiveWarmPalette >= 0.55) {
-        colorInsight = "暖明色與自然色系佔據主導，展現開放、溫暖與正向的情緒基調，顯示創作者當下願意向外探索並表達內在活力。";
+        colorInsight = "暖明色與自然色系帶來溫暖正向的氛圍基調，輔助強化作品的開放與活力感受。";
       } else {
-        colorInsight = "色彩冷暖交錯且具多層次變化，反映內心同時交織著多種細微感受，既有思考與自我保護，也保留著表達與連結的彈性。";
+        colorInsight = "色彩冷暖交錯具多層次變化，與畫面圖形共同映照出豐富細微的情緒層次。";
       }
 
       let strokeInsight;
-      if (sharpnessIndex >= 0.34 && velocityIndex >= 0.50) {
-        strokeInsight = "筆觸包含明顯的尖銳折角與較快劃動速度，呈現高度情緒喚起、防衛張力或想急切宣洩挫折感的動力特徵（Alschuler & Hattwick）。";
-      } else if (overlapIndex >= 0.44) {
-        strokeInsight = "多處出現反覆重疊與密集塗抹痕跡，對應 Koppitz（1968）所指的『重度陰影／塗黑』指標，常反映焦慮、緊繃或對某種感受的反覆思量。";
-      } else if (fragmentationIndex >= 0.45) {
-        strokeInsight = "線條偏短且較多斷續與停頓，顯示落筆時帶著小心翼翼、猶豫或能量偏低的心境，可能伴隨不安或對自我表現的不確定。";
-      } else if (smoothnessIndex >= 0.42) {
-        strokeInsight = "整體線條圓潤連貫、轉折柔和，在 Lowenfeld 與 Malchiodi 的觀點中代表情緒流動順暢、內在防禦較低且感到相對自在。";
-      } else {
-        strokeInsight = "筆觸兼具直線結構與柔和曲線，節奏平穩可控，反映創作者正以有條理的方式整理腦海中的想法與畫面。";
-      }
+      if (sharpnessIndex >= 0.34 && velocityIndex >= 0.50) strokeInsight = "筆觸包含明顯的尖銳折角與較快劃動速度，呈現高度情緒喚起、防衛張力或急切宣洩挫折感的動力特徵（Alschuler & Hattwick）。";
+      else if (overlapIndex >= 0.44) strokeInsight = "多處出現反覆重疊與密集塗抹痕跡，對應 Koppitz（1968）『重度陰影／塗黑』指標，常反映焦慮、緊繃或對某種感受的反覆思量。";
+      else if (fragmentationIndex >= 0.45) strokeInsight = "線條偏短且較多斷續與停頓，顯示落筆時帶著小心翼翼、猶豫或能量偏低的心境。";
+      else if (smoothnessIndex >= 0.42) strokeInsight = "整體線條圓潤連貫、轉折柔和，在 Lowenfeld 與 Malchiodi 的觀點中代表情緒流動順暢、內在防禦較低。";
+      else strokeInsight = "筆觸兼具直線結構與柔和曲線，節奏平穩可控，反映創作者正以有條理的方式組織畫面。";
 
       const horizPos = cx < 0.38 ? "偏左（內向回顧／尋求依附）" : (cx > 0.62 ? "偏右（面向外界／探索環境）" : "水平居中（平衡穩定）");
       const vertPos = cy < 0.38 ? "偏上（想像思緒／渴望抽離）" : (cy > 0.62 ? "偏下（尋求踏實／情緒沉重）" : "垂直居中（立足當下）");
       let spatialInsight;
-      if (bboxAreaRatio < 0.18) {
-        spatialInsight = `作品主體僅佔畫布約 ${Math.round(bboxAreaRatio * 100)}% 且重心${horizPos}、${vertPos}。依 Koppitz 微小圖形與 Buck HTP 空間觀點，偏小縮聚的構圖常暗示退縮、害羞、低落或孤單感。`;
-      } else if (edgeTouchRatio >= 0.30 || bboxAreaRatio > 0.78) {
-        spatialInsight = `畫面大幅延展至畫布邊緣（覆蓋範圍約 ${Math.round(bboxAreaRatio * 100)}%），呈現強烈外放與突破框限的能量，常出現於高張力情緒宣洩或高度興奮狀態。`;
-      } else {
-        spatialInsight = `畫面佔比約 ${Math.round(bboxAreaRatio * 100)}%，空間重心位於${horizPos}、${vertPos}，整體留白與主體比例協調，反映較穩定的自我空間感（Buck HTP）。`;
-      }
+      if (bboxAreaRatio < 0.18) spatialInsight = `作品主體僅佔畫布約 ${Math.round(bboxAreaRatio * 100)}% 且重心${horizPos}、${vertPos}。依 Koppitz 微小圖形與 Buck HTP 觀點，偏小縮聚構圖常暗示退縮、害羞或孤單感。`;
+      else if (edgeTouchRatio >= 0.30 || bboxAreaRatio > 0.78) spatialInsight = `畫面大幅延展至畫布邊緣（覆蓋範圍約 ${Math.round(bboxAreaRatio * 100)}%），呈現強烈外放與突破框限的能量。`;
+      else spatialInsight = `畫面佔比約 ${Math.round(bboxAreaRatio * 100)}%，空間重心位於${horizPos}、${vertPos}，整體留白與主體比例協調（Buck HTP）。`;
 
       let processInsight;
-      if (revisionEvents >= 3) {
-        processInsight = `繪畫過程中進行了 ${revisionEvents} 次復原或擦除動作。在兒童繪畫評估中，頻繁修正往往反映自我要求高、擔心畫不好或對內心真實想法仍有一點猶豫。`;
-      } else if (detectedMotifs.length > 0) {
-        const names = detectedMotifs.slice(0, 2).map(m => m.label).join("、");
-        processInsight = `系統從筆觸幾何中辨識出「${names}」等象徵特徵，搭配整體繪畫節奏，為理解未說出口的內心狀態提供重要線索。`;
+      if (recognizedFigures.length > 0) {
+        processInsight = `系統透過多筆空間拓樸成功辨識出完整圖形：「${recognizedFigures.slice(0, 3).map(f => f.label).join("、")}」，並作為本次心理狀態推估的核心依據。`;
+      } else if (revisionEvents >= 3) {
+        processInsight = `繪畫過程中進行了 ${revisionEvents} 次復原或擦除動作，反映對自我表現的猶豫、高標準或緊張感（Koppitz 擦除指標）。`;
       } else {
-        processInsight = `全作共 ${drawStrokes.length} 筆自然完成、幾乎沒有反覆塗改，展現直覺且真誠的情感投射流動。`;
+        processInsight = `全作共 ${drawStrokes.length} 筆自然完成，未偵測到固定具象圖式，主要綜合筆觸動力、構圖比例與色彩表現進行推估。`;
       }
 
       const voiceIdx = (drawStrokes.length + detectedMotifs.length) % profPrimary.innerVoices.length;
       let innerThoughts = profPrimary.summary;
+      if (recognizedFigures.length > 0) {
+        innerThoughts = `畫面中辨識出「${recognizedFigures.slice(0, 3).map(f => f.label).join("、")}」等關鍵圖形特徵。${innerThoughts}`;
+      }
       if (secondary.score >= primary.score - 14) {
-        innerThoughts += ` 同時，作品也隱約流露出「${secondary.label}」的細微底色，顯示當下的內心感受是立體而富有層次的。`;
+        innerThoughts += ` 同時隱約流露出「${secondary.label}」的細微底色，顯示當下感受是立體而富有層次的。`;
       }
-      if (titleOrNote) {
-        innerThoughts += ` 結合你留下的文字「${titleOrNote}」，更清楚看見這幅畫正在替此刻的心境發聲。`;
-      }
+      if (titleOrNote) innerThoughts += ` 結合你留下的文字「${titleOrNote}」，更清楚看見這幅畫正在替此刻的心境發聲。`;
 
       return {
         status: "ok",
+        engineMode: "local_shape_first_v2",
+        engineLabel: "本地圖形引擎 A",
+        isMonochromeSketch,
         primaryEmotion: primary,
         secondaryEmotion: secondary,
         emotions: emotionResults,
@@ -1593,183 +1652,282 @@
         innerThoughts,
         incongruenceNote,
         carePrompts: profPrimary.carePrompts,
+        recognizedFigures,
         detectedMotifs,
         pillars: {
-          color: {
-            dominantBucket: (COLOR_BUCKET_META[domBucket] && COLOR_BUCKET_META[domBucket].label) || domBucket,
-            histogram: colorHist,
-            meanSaturation: Number(meanSat.toFixed(3)),
-            meanLuminance: Number(meanLum.toFixed(3)),
-            insight: colorInsight
-          },
-          strokes: {
-            strokeCount: drawStrokes.length,
-            sharpnessIndex: Number(sharpnessIndex.toFixed(3)),
-            smoothnessIndex: Number(smoothnessIndex.toFixed(3)),
-            velocityIndex: Number(velocityIndex.toFixed(3)),
-            overlapIndex: Number(overlapIndex.toFixed(3)),
-            fragmentationIndex: Number(fragmentationIndex.toFixed(3)),
-            insight: strokeInsight
-          },
-          spatial: {
-            grid3x3,
-            centerOfMass: { x: Number(cx.toFixed(3)), y: Number(cy.toFixed(3)) },
-            bboxCoverage: Number(bboxAreaRatio.toFixed(3)),
-            inkCoverage: Number(inkCoverage.toFixed(4)),
-            edgeTouchRatio: Number(edgeTouchRatio.toFixed(3)),
-            insight: spatialInsight
-          },
-          process: {
-            undoCount,
-            eraserCount,
-            revisionIndex: Number(revisionIndex.toFixed(3)),
-            durationSeconds: Number((totalDurationMs / 1000).toFixed(1)),
-            matchedVerbalCues: matchedWords,
-            insight: processInsight
-          }
+          color: { dominantBucket: (COLOR_BUCKET_META[domBucket] && COLOR_BUCKET_META[domBucket].label) || domBucket, histogram: colorHist, meanSaturation: Number(meanSat.toFixed(3)), meanLuminance: Number(meanLum.toFixed(3)), insight: colorInsight },
+          strokes: { strokeCount: drawStrokes.length, sharpnessIndex: Number(sharpnessIndex.toFixed(3)), smoothnessIndex: Number(smoothnessIndex.toFixed(3)), velocityIndex: Number(velocityIndex.toFixed(3)), overlapIndex: Number(overlapIndex.toFixed(3)), fragmentationIndex: Number(fragmentationIndex.toFixed(3)), insight: strokeInsight },
+          spatial: { grid3x3, centerOfMass: { x: Number(cx.toFixed(3)), y: Number(cy.toFixed(3)) }, bboxCoverage: Number(bboxAreaRatio.toFixed(3)), inkCoverage: Number(inkCoverage.toFixed(4)), edgeTouchRatio: Number(edgeTouchRatio.toFixed(3)), insight: spatialInsight },
+          process: { undoCount, eraserCount, revisionIndex: Number(revisionIndex.toFixed(3)), durationSeconds: Number((totalDurationMs / 1000).toFixed(1)), matchedVerbalCues: matchedWords, insight: processInsight }
         }
       };
     }
 
     // =========================================================================
-    // 3. INTERACTIVE FREEHAND CANVAS ENGINE (Crayon, Pencil, Watercolor, Marker)
+    // 3. ENGINE B (OPTIONAL BYOK GOOGLE GEMINI MULTIMODAL VISION API)
+    // =========================================================================
+    const SESSION_KEY_NAME = "mindcanvas_gemini_key_session";
+    const SESSION_MODE_NAME = "mindcanvas_engine_mode";
+    const SESSION_MODEL_NAME = "mindcanvas_gemini_model";
+
+    function getEngineConfig() {
+      let key = "", mode = "local", model = "gemini-2.5-flash";
+      try {
+        key = sessionStorage.getItem(SESSION_KEY_NAME) || "";
+        mode = sessionStorage.getItem(SESSION_MODE_NAME) || "local";
+        model = sessionStorage.getItem(SESSION_MODEL_NAME) || "gemini-2.5-flash";
+      } catch (_) {}
+      if (mode === "gemini" && !key) mode = "local";
+      return { mode, apiKey: key, model };
+    }
+
+    async function callGeminiVisionAnalysis(imageDataUrl, localBaseResult, userNote, selectedMotifs, apiKey, model) {
+      const base64Data = imageDataUrl.split(",")[1];
+      const telemetrySummary = {
+        strokeCount: localBaseResult.pillars.strokes.strokeCount,
+        sharpnessIndex: localBaseResult.pillars.strokes.sharpnessIndex,
+        smoothnessIndex: localBaseResult.pillars.strokes.smoothnessIndex,
+        velocityIndex: localBaseResult.pillars.strokes.velocityIndex,
+        overlapShadingIndex: localBaseResult.pillars.strokes.overlapIndex,
+        undoCount: localBaseResult.pillars.process.undoCount,
+        eraserCount: localBaseResult.pillars.process.eraserCount,
+        durationSeconds: localBaseResult.pillars.process.durationSeconds,
+        bboxCoverage: localBaseResult.pillars.spatial.bboxCoverage,
+        isMonochromeSketch: localBaseResult.isMonochromeSketch,
+        userSpontaneousNote: userNote || "(無)",
+        userSelectedTags: selectedMotifs
+      };
+
+      const prompt = [
+        "你是一位具備兒童發展心理學與藝術治療專業的溫柔引導師，熟悉 John Buck 屋樹人（HTP）、Elizabeth Koppitz 兒童人物畫情緒指標（HFD）、Viktor Lowenfeld 藝術發展階段、Cathy Malchiodi《Understanding Children's Drawings》與 Burkitt 色彩研究。",
+        "請仔細觀察這張使用者的自由繪畫作品，**以畫面中實際畫出的完整圖形、表情、物體、人物互動與構圖為第一主導判斷依據**（若是單色鉛筆畫，絕不可因使用黑色就判定為負面情緒）。同時整合以下客觀落筆行為數據：",
+        JSON.stringify(telemetrySummary),
+        "請以繁體中文回傳嚴格的 JSON 格式（不要包含 Markdown 程式碼框），結構如下：",
+        `{
+  "recognizedObjects": [{"label": "具體辨識出的物體或表情（如：流淚的小狗、沒門窗的房子、微笑太陽）", "theory": "對應心理學參考架構", "meaning": "1-2句溫柔心理學解讀"}],
+  "scores": {"sadness": 0-95整數, "anger": 0-95整數, "anxiety": 0-95整數, "loneliness": 0-95整數, "joy": 0-95整數, "calm": 0-95整數},
+  "innerVoice": "一句第一人稱「...」溫柔揣摩創作者內心可能想表達的話",
+  "innerThoughts": "2-3句具體結合畫中實際物體、表情與筆觸歷程的溫柔綜合心理觀察",
+  "incongruenceNote": "若使用者文字與畫作情緒有明顯反差則填寫溫柔觀察，否則為 null",
+  "pillarInsights": {
+    "figures": "針對畫中具體圖形、表情、物件細節與互動關係的深度解讀",
+    "spatial": "針對構圖位置、大小比例與空間留白的解讀",
+    "strokes": "結合線條品質、速度與擦除塗抹行為的解讀",
+    "color": "針對色彩運用（若為單色素描請說明以圖形為主）的解讀"
+  },
+  "carePrompts": ["針對這幅畫具體內容的開放式陪伴提問1", "提問2", "提問3"]
+}`
+      ].join("\n\n");
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: "image/png", data: base64Data } }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.35,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        throw new Error(`Gemini API HTTP ${resp.status}${errText ? ": " + errText.slice(0, 120) : ""}`);
+      }
+      const data = await resp.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) throw new Error("Gemini 未回傳有效分析內容");
+      const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+      const parsed = JSON.parse(cleaned);
+
+      // Merge AI semantic insights cleanly with Engine A's objective quantitative telemetry
+      const sMap = parsed.scores || {};
+      const totalS = EMOTION_KEYS.reduce((acc, k) => acc + Math.max(5, Number(sMap[k] || 15)), 0);
+      const emotions = EMOTION_KEYS.map(k => {
+        const prof = EMOTION_PROFILES[k];
+        const sc = Math.round(clamp(Number(sMap[k] ?? 20), 6, 96));
+        return {
+          key: k, label: prof.label, shortLabel: prof.shortLabel, enLabel: prof.enLabel,
+          valence: prof.valence, accentHex: prof.accentHex,
+          score: sc, sharePercent: Math.round((Math.max(5, sc) / totalS) * 100)
+        };
+      }).sort((a, b) => b.score - a.score);
+
+      const aiObjects = Array.isArray(parsed.recognizedObjects) ? parsed.recognizedObjects : [];
+      const mergedMotifs = [
+        ...aiObjects.map((o, i) => ({
+          code: "ai_obj_" + i,
+          label: String(o.label || "畫中元素"),
+          theory: String(o.theory || "Gemini 視覺心理觀察"),
+          meaning: String(o.meaning || "")
+        })),
+        ...localBaseResult.detectedMotifs.slice(0, 3)
+      ];
+
+      return {
+        ...localBaseResult,
+        engineMode: "gemini_vision_hybrid",
+        engineLabel: `Gemini 視覺深度模式 B（${model}）`,
+        primaryEmotion: emotions[0],
+        secondaryEmotion: emotions[1],
+        emotions,
+        innerVoice: parsed.innerVoice || localBaseResult.innerVoice,
+        innerThoughts: parsed.innerThoughts || localBaseResult.innerThoughts,
+        incongruenceNote: parsed.incongruenceNote || localBaseResult.incongruenceNote,
+        carePrompts: Array.isArray(parsed.carePrompts) && parsed.carePrompts.length >= 2 ? parsed.carePrompts.slice(0, 3) : localBaseResult.carePrompts,
+        recognizedFigures: aiObjects.length
+          ? aiObjects.map((o, i) => ({ code: "ai_" + i, label: String(o.label || "視覺物件"), category: "AI 視覺辨識", theory: String(o.theory || ""), meaning: String(o.meaning || ""), bbox: null }))
+          : localBaseResult.recognizedFigures,
+        overlayFigures: localBaseResult.recognizedFigures,
+        detectedMotifs: mergedMotifs,
+        pillars: {
+          color: { ...localBaseResult.pillars.color, insight: parsed.pillarInsights?.color || localBaseResult.pillars.color.insight },
+          strokes: { ...localBaseResult.pillars.strokes, insight: parsed.pillarInsights?.strokes || localBaseResult.pillars.strokes.insight },
+          spatial: { ...localBaseResult.pillars.spatial, insight: parsed.pillarInsights?.spatial || localBaseResult.pillars.spatial.insight },
+          process: { ...localBaseResult.pillars.process, insight: parsed.pillarInsights?.figures || localBaseResult.pillars.process.insight }
+        }
+      };
+    }
+
+    // =========================================================================
+    // 4. INTERACTIVE FREEHAND CANVAS & FIGURE OVERLAY RENDERER
     // =========================================================================
     const canvas = document.getElementById("drawingCanvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const stageEl = document.getElementById("canvasStage");
+    const overlayCanvas = document.getElementById("overlayCanvas");
+    const octx = overlayCanvas.getContext("2d");
 
     const state = {
-      tool: "crayon",
-      color: "#2A2B30",
-      size: 7,
-      paperColor: "#FDFBF7",
-      strokes: [],
-      redoStack: [],
-      currentStroke: null,
-      isDrawing: false,
-      undoCount: 0,
-      eraserStrokeCount: 0,
-      firstStrokeAt: null,
-      lastStrokeEndAt: null,
-      pauseCount: 0,
-      selectedMotifs: new Set(),
-      lastAnalysis: null,
-      history: [],
-      animTimer: null
+      tool: "crayon", color: "#2A2B30", size: 7, paperColor: "#FDFBF7",
+      strokes: [], redoStack: [], currentStroke: null, isDrawing: false,
+      undoCount: 0, eraserStrokeCount: 0, firstStrokeAt: null, lastStrokeEndAt: null, pauseCount: 0,
+      selectedMotifs: new Set(), lastAnalysis: null, showOverlay: true, history: [], animTimer: null
     };
 
-    const LOGICAL_W = 800;
-    const LOGICAL_H = 550;
+    const LOGICAL_W = 800, LOGICAL_H = 550;
 
     function initCanvasResolution() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = LOGICAL_W * dpr;
-      canvas.height = LOGICAL_H * dpr;
+      canvas.width = LOGICAL_W * dpr; canvas.height = LOGICAL_H * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      overlayCanvas.width = LOGICAL_W * dpr; overlayCanvas.height = LOGICAL_H * dpr;
+      octx.setTransform(dpr, 0, 0, dpr, 0, 0);
       redrawAll();
     }
+
+    function clearOverlay() {
+      octx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+    }
+
+    function drawFigureOverlay(figures) {
+      clearOverlay();
+      const btn = document.getElementById("toggleOverlayBtn");
+      const boxFigs = (figures || []).filter(f => f && f.bbox);
+      if (boxFigs.length === 0) {
+        btn.classList.add("hidden");
+        return;
+      }
+      btn.classList.remove("hidden");
+      btn.textContent = state.showOverlay ? "隱藏圖形標示框" : "顯示圖形標示框";
+      if (!state.showOverlay) return;
+
+      const palette = ["#2F7A8C", "#C86A3B", "#4A78A8", "#3B8C6E", "#8A5A9E"];
+      boxFigs.forEach((f, idx) => {
+        const b = f.bbox;
+        const col = palette[idx % palette.length];
+        const pad = 8;
+        const x = Math.max(4, b.x - pad);
+        const y = Math.max(4, b.y - pad);
+        const w = Math.min(LOGICAL_W - x - 4, b.w + pad * 2);
+        const h = Math.min(LOGICAL_H - y - 4, b.h + pad * 2);
+
+        octx.save();
+        octx.setLineDash([6, 4]);
+        octx.lineWidth = 2;
+        octx.strokeStyle = col;
+        octx.strokeRect(x, y, w, h);
+
+        // Crisp label pill
+        octx.setLineDash([]);
+        octx.font = "600 12px sans-serif";
+        const tw = octx.measureText(f.label).width;
+        const lx = Math.min(LOGICAL_W - tw - 18, x);
+        const ly = y > 26 ? y - 22 : y + 6;
+        octx.fillStyle = col;
+        octx.beginPath();
+        octx.roundRect ? octx.roundRect(lx, ly, tw + 14, 20, 6) : octx.fillRect(lx, ly, tw + 14, 20);
+        octx.fill();
+        octx.fillStyle = "#ffffff";
+        octx.textBaseline = "middle";
+        octx.fillText(f.label, lx + 7, ly + 10.5);
+        octx.restore();
+      });
+    }
+
+    document.getElementById("toggleOverlayBtn").addEventListener("click", () => {
+      state.showOverlay = !state.showOverlay;
+      if (state.lastAnalysis) {
+        drawFigureOverlay(state.lastAnalysis.overlayFigures || state.lastAnalysis.recognizedFigures);
+      }
+    });
 
     function paintPaperBackground() {
       ctx.save();
       ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = state.paperColor;
       ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
-      // Subtle warm paper grain dots (deterministic so it never flickers)
       ctx.fillStyle = "rgba(120, 108, 92, 0.028)";
-      for (let i = 0; i < 420; i++) {
-        const gx = ((i * 197 + 31) % LOGICAL_W);
-        const gy = ((i * 353 + 73) % LOGICAL_H);
-        ctx.fillRect(gx, gy, 1.5, 1.5);
-      }
+      for (let i = 0; i < 420; i++) ctx.fillRect((i * 197 + 31) % LOGICAL_W, (i * 353 + 73) % LOGICAL_H, 1.5, 1.5);
       ctx.restore();
     }
 
     function drawSegment(s, p0, p1, segIdx) {
-      const tool = s.tool;
-      const color = tool === "eraser" ? state.paperColor : s.color;
-      const pressure = clamp((p0.p + p1.p) * 0.5, 0.25, 1.0);
-      const baseSize = s.size;
-
+      const tool = s.tool, color = tool === "eraser" ? state.paperColor : s.color;
+      const pressure = clamp((p0.p + p1.p) * 0.5, 0.25, 1.0), baseSize = s.size;
       ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
       if (tool === "eraser") {
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = state.paperColor;
-        ctx.lineWidth = baseSize * 2.4;
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
+        ctx.globalAlpha = 1; ctx.strokeStyle = state.paperColor; ctx.lineWidth = baseSize * 2.4;
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       } else if (tool === "marker") {
-        ctx.globalAlpha = 0.92;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = baseSize * 1.25 * (0.85 + pressure * 0.3);
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
+        ctx.globalAlpha = 0.92; ctx.strokeStyle = color; ctx.lineWidth = baseSize * 1.25 * (0.85 + pressure * 0.3);
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       } else if (tool === "pencil") {
-        ctx.globalAlpha = 0.72;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = Math.max(1.2, baseSize * 0.55 * (0.7 + pressure * 0.5));
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
-        // Fine parallel graphite grain
-        ctx.globalAlpha = 0.22;
-        ctx.lineWidth = Math.max(0.8, baseSize * 0.35);
-        ctx.beginPath();
-        ctx.moveTo(p0.x + 0.8, p0.y - 0.6);
-        ctx.lineTo(p1.x + 0.8, p1.y - 0.6);
-        ctx.stroke();
+        ctx.globalAlpha = 0.74; ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, baseSize * 0.55 * (0.7 + pressure * 0.5));
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        ctx.globalAlpha = 0.22; ctx.lineWidth = Math.max(0.8, baseSize * 0.35);
+        ctx.beginPath(); ctx.moveTo(p0.x + 0.8, p0.y - 0.6); ctx.lineTo(p1.x + 0.8, p1.y - 0.6); ctx.stroke();
       } else if (tool === "watercolor") {
-        ctx.globalAlpha = 0.16;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = baseSize * 0.9;
+        ctx.globalAlpha = 0.16; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = baseSize * 0.9;
         ctx.lineWidth = baseSize * 2.2 * (0.8 + pressure * 0.35);
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-        ctx.globalAlpha = 0.14;
-        ctx.lineWidth = baseSize * 1.3;
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 0.14; ctx.lineWidth = baseSize * 1.3;
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
       } else {
-        // Crayon: organic wax stipple + core body
-        const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-        const width = baseSize * 1.18 * (0.78 + pressure * 0.42);
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width * 0.82;
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
-
+        const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y), width = baseSize * 1.18 * (0.78 + pressure * 0.42);
+        ctx.globalAlpha = 0.55; ctx.strokeStyle = color; ctx.lineWidth = width * 0.82;
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
         ctx.fillStyle = color;
-        const steps = Math.max(1, Math.ceil(dist / 2.2));
-        const grainCount = Math.max(3, Math.round(width * 0.7));
+        const steps = Math.max(1, Math.ceil(dist / 2.2)), grainCount = Math.max(3, Math.round(width * 0.7));
         for (let step = 0; step <= steps; step++) {
-          const u = step / steps;
-          const cx = p0.x + (p1.x - p0.x) * u;
-          const cy = p0.y + (p1.y - p0.y) * u;
+          const u = step / steps, cx = p0.x + (p1.x - p0.x) * u, cy = p0.y + (p1.y - p0.y) * u;
           for (let g = 0; g < grainCount; g++) {
             const seed = (segIdx * 97 + step * 31 + g * 17) * 12.9898;
-            const rand1 = Math.abs(Math.sin(seed) * 43758.5453) % 1;
-            const rand2 = Math.abs(Math.sin(seed + 78.233) * 24634.6345) % 1;
-            const angle = rand1 * Math.PI * 2;
-            const rad = Math.sqrt(rand2) * (width * 0.54);
-            ctx.globalAlpha = 0.25 + (1 - rand2) * 0.48;
-            ctx.fillRect(cx + Math.cos(angle) * rad, cy + Math.sin(angle) * rad, 1.8, 1.8);
+            const r1 = Math.abs(Math.sin(seed) * 43758.5453) % 1;
+            const r2 = Math.abs(Math.sin(seed + 78.233) * 24634.6345) % 1;
+            const ang = r1 * Math.PI * 2, rad = Math.sqrt(r2) * (width * 0.54);
+            ctx.globalAlpha = 0.25 + (1 - r2) * 0.48;
+            ctx.fillRect(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, 1.8, 1.8);
           }
         }
       }
@@ -1778,14 +1936,9 @@
 
     function drawFullStroke(stroke) {
       const pts = stroke.points;
-      if (!pts || pts.length === 0) return;
-      if (pts.length === 1) {
-        drawSegment(stroke, pts[0], { x: pts[0].x + 0.5, y: pts[0].y + 0.5, p: pts[0].p }, 0);
-        return;
-      }
-      for (let i = 1; i < pts.length; i++) {
-        drawSegment(stroke, pts[i - 1], pts[i], i);
-      }
+      if (!pts || !pts.length) return;
+      if (pts.length === 1) { drawSegment(stroke, pts[0], { x: pts[0].x + 0.5, y: pts[0].y + 0.5, p: pts[0].p }, 0); return; }
+      for (let i = 1; i < pts.length; i++) drawSegment(stroke, pts[i - 1], pts[i], i);
     }
 
     function redrawAll() {
@@ -1797,30 +1950,24 @@
 
     function getCanvasPoint(e) {
       const rect = canvas.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * LOGICAL_W;
-      const y = ((e.clientY - rect.top) / rect.height) * LOGICAL_H;
-      const p = (typeof e.pressure === "number" && e.pressure > 0 && e.pressure <= 1) ? e.pressure : 0.55;
-      return { x: clamp(x, 0, LOGICAL_W), y: clamp(y, 0, LOGICAL_H), t: performance.now(), p };
+      return {
+        x: clamp(((e.clientX - rect.left) / rect.width) * LOGICAL_W, 0, LOGICAL_W),
+        y: clamp(((e.clientY - rect.top) / rect.height) * LOGICAL_H, 0, LOGICAL_H),
+        t: performance.now(),
+        p: (typeof e.pressure === "number" && e.pressure > 0 && e.pressure <= 1) ? e.pressure : 0.55
+      };
     }
 
     canvas.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 && e.pointerType === "mouse") return;
-      stopPresetAnimation();
+      stopPresetAnimation(); clearOverlay();
+      document.getElementById("toggleOverlayBtn").classList.add("hidden");
       canvas.setPointerCapture(e.pointerId);
-      const pt = getCanvasPoint(e);
-      const now = performance.now();
+      const pt = getCanvasPoint(e), now = performance.now();
       if (!state.firstStrokeAt) state.firstStrokeAt = now;
       if (state.lastStrokeEndAt && now - state.lastStrokeEndAt > 2500) state.pauseCount++;
-
-      state.isDrawing = true;
-      state.redoStack = [];
-      state.currentStroke = {
-        id: "s_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-        tool: state.tool,
-        color: state.color,
-        size: state.size,
-        points: [pt]
-      };
+      state.isDrawing = true; state.redoStack = [];
+      state.currentStroke = { id: "s_" + Date.now(), tool: state.tool, color: state.color, size: state.size, points: [pt] };
       drawSegment(state.currentStroke, pt, { x: pt.x + 0.4, y: pt.y + 0.4, p: pt.p }, 0);
       hideInlineAlert();
       document.getElementById("canvasHint").style.opacity = "0";
@@ -1828,9 +1975,7 @@
 
     canvas.addEventListener("pointermove", (e) => {
       if (!state.isDrawing || !state.currentStroke) return;
-      const pt = getCanvasPoint(e);
-      const pts = state.currentStroke.points;
-      const prev = pts[pts.length - 1];
+      const pt = getCanvasPoint(e), pts = state.currentStroke.points, prev = pts[pts.length - 1];
       if (Math.hypot(pt.x - prev.x, pt.y - prev.y) < 1.5) return;
       pts.push(pt);
       drawSegment(state.currentStroke, prev, pt, pts.length - 1);
@@ -1845,7 +1990,6 @@
       state.lastStrokeEndAt = performance.now();
       updateControlsAndTelemetry();
     }
-
     canvas.addEventListener("pointerup", finishStroke);
     canvas.addEventListener("pointercancel", finishStroke);
 
@@ -1854,11 +1998,9 @@
       document.getElementById("undoBtn").disabled = state.strokes.length === 0;
       document.getElementById("redoBtn").disabled = state.redoStack.length === 0;
       document.getElementById("canvasHint").style.opacity = state.strokes.length === 0 ? "1" : "0";
-
       const readout = document.getElementById("telemetryReadout");
-      if (drawCount === 0) {
-        readout.textContent = "尚未落筆・可自由創作";
-      } else {
+      if (drawCount === 0) readout.textContent = "尚未落筆・可自由創作";
+      else {
         const secs = state.firstStrokeAt ? Math.max(1, Math.round(((state.lastStrokeEndAt || performance.now()) - state.firstStrokeAt) / 1000)) : 1;
         const rev = state.undoCount + state.eraserStrokeCount;
         readout.textContent = `已記錄 ${drawCount} 筆 · ${secs} 秒${rev > 0 ? ` · 修改 ${rev} 次` : ""}`;
@@ -1866,7 +2008,7 @@
     }
 
     // =========================================================================
-    // 4. TOOLBAR, PALETTE, SHORTCUTS & PRESET PSYCHOLOGY DEMOS
+    // 5. CONTROLS, ENGINE MODAL & PRESET EXAMPLES
     // =========================================================================
     const toolLabels = { crayon: "蠟筆", pencil: "鉛筆", watercolor: "水彩", marker: "麥克筆", eraser: "橡皮擦" };
     const sizeLabels = { 3: "細", 7: "中", 14: "粗", 24: "特粗" };
@@ -1876,16 +2018,12 @@
       document.getElementById("brushNameText").textContent = `${toolLabels[state.tool]} · ${sizeLabels[state.size] || state.size + "px"}`;
     }
 
-    // Build 16-color palette
     const paletteEl = document.getElementById("colorPalette");
-    CURATED_COLORS.forEach((c) => {
+    CURATED_COLORS.forEach(c => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "swatch-btn w-6 h-6 rounded-full border border-black/15 shrink-0" + (c.hex === state.color ? " active" : "");
-      btn.style.backgroundColor = c.hex;
-      btn.title = c.name;
-      btn.setAttribute("aria-label", c.name);
-      btn.dataset.color = c.hex;
+      btn.style.backgroundColor = c.hex; btn.title = c.name; btn.setAttribute("aria-label", c.name); btn.dataset.color = c.hex;
       btn.addEventListener("click", () => selectColor(c.hex));
       paletteEl.appendChild(btn);
     });
@@ -1897,23 +2035,21 @@
       document.getElementById("customColorInput").value = hex.length === 7 ? hex : "#2A2B30";
       updateBrushBadge();
     }
-
-    document.getElementById("customColorInput").addEventListener("input", (e) => selectColor(e.target.value));
+    document.getElementById("customColorInput").addEventListener("input", e => selectColor(e.target.value));
 
     function selectTool(tool) {
       state.tool = tool;
-      document.querySelectorAll("[data-tool]").forEach(btn => btn.setAttribute("aria-pressed", String(btn.dataset.tool === tool)));
+      document.querySelectorAll("[data-tool]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tool === tool)));
       updateBrushBadge();
     }
-    document.querySelectorAll("[data-tool]").forEach(btn => btn.addEventListener("click", () => selectTool(btn.dataset.tool)));
+    document.querySelectorAll("[data-tool]").forEach(b => b.addEventListener("click", () => selectTool(b.dataset.tool)));
 
     document.querySelectorAll(".size-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         state.size = Number(btn.dataset.size);
         document.querySelectorAll(".size-btn").forEach(b => {
-          const active = b === btn;
-          b.setAttribute("aria-pressed", String(active));
-          b.classList.toggle("bg-[var(--secondary)]", active);
+          b.setAttribute("aria-pressed", String(b === btn));
+          b.classList.toggle("bg-[var(--secondary)]", b === btn);
         });
         updateBrushBadge();
       });
@@ -1922,89 +2058,120 @@
     document.querySelectorAll(".paper-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         state.paperColor = btn.dataset.paper;
-        document.querySelectorAll(".paper-btn").forEach(b => b.classList.toggle("ring-2", b === btn));
-        document.querySelectorAll(".paper-btn").forEach(b => b.classList.toggle("ring-[var(--primary)]", b === btn));
-        redrawAll();
-        updateBrushBadge();
+        document.querySelectorAll(".paper-btn").forEach(b => {
+          b.classList.toggle("ring-2", b === btn);
+          b.classList.toggle("ring-[var(--primary)]", b === btn);
+        });
+        redrawAll(); updateBrushBadge();
       });
     });
 
     document.getElementById("undoBtn").addEventListener("click", () => {
-      if (state.strokes.length === 0) return;
-      state.redoStack.push(state.strokes.pop());
-      state.undoCount++;
-      redrawAll();
+      if (!state.strokes.length) return;
+      state.redoStack.push(state.strokes.pop()); state.undoCount++; clearOverlay(); redrawAll();
     });
-
     document.getElementById("redoBtn").addEventListener("click", () => {
-      if (state.redoStack.length === 0) return;
-      state.strokes.push(state.redoStack.pop());
-      redrawAll();
+      if (!state.redoStack.length) return;
+      state.strokes.push(state.redoStack.pop()); clearOverlay(); redrawAll();
     });
-
     document.getElementById("clearBtn").addEventListener("click", () => {
-      stopPresetAnimation();
-      state.strokes = [];
-      state.redoStack = [];
-      state.undoCount = 0;
-      state.eraserStrokeCount = 0;
-      state.firstStrokeAt = null;
-      state.lastStrokeEndAt = null;
-      state.pauseCount = 0;
+      stopPresetAnimation(); clearOverlay();
+      document.getElementById("toggleOverlayBtn").classList.add("hidden");
+      state.strokes = []; state.redoStack = []; state.undoCount = 0; state.eraserStrokeCount = 0;
+      state.firstStrokeAt = null; state.lastStrokeEndAt = null; state.pauseCount = 0;
       document.getElementById("noteInput").value = "";
       state.selectedMotifs.clear();
       document.querySelectorAll(".motif-chip").forEach(c => c.setAttribute("aria-pressed", "false"));
-      hideInlineAlert();
-      redrawAll();
+      hideInlineAlert(); redrawAll();
     });
-
     document.getElementById("downloadBtn").addEventListener("click", () => {
       const a = document.createElement("a");
       a.download = `mindcanvas_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
-      a.href = canvas.toDataURL("image/png");
-      a.click();
+      a.href = canvas.toDataURL("image/png"); a.click();
     });
 
-    // Keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Y)
     window.addEventListener("keydown", (e) => {
-      if (document.activeElement && document.activeElement.tagName === "INPUT") return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) document.getElementById("redoBtn").click();
-        else document.getElementById("undoBtn").click();
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-        e.preventDefault();
-        document.getElementById("redoBtn").click();
-      }
+      if (document.activeElement && ["INPUT", "SELECT"].includes(document.activeElement.tagName)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); document.getElementById(e.shiftKey ? "redoBtn" : "undoBtn").click(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); document.getElementById("redoBtn").click(); }
     });
 
-    // Motif chips
     document.querySelectorAll(".motif-chip").forEach(chip => {
       chip.addEventListener("click", () => {
-        const key = chip.dataset.motif;
-        if (state.selectedMotifs.has(key)) {
-          state.selectedMotifs.delete(key);
-          chip.setAttribute("aria-pressed", "false");
-        } else {
-          state.selectedMotifs.add(key);
-          chip.setAttribute("aria-pressed", "true");
-        }
+        const k = chip.dataset.motif;
+        if (state.selectedMotifs.has(k)) { state.selectedMotifs.delete(k); chip.setAttribute("aria-pressed", "false"); }
+        else { state.selectedMotifs.add(k); chip.setAttribute("aria-pressed", "true"); }
       });
     });
 
-    // Preset Dropdown
+    // Engine Settings Modal Logic
+    const engineModal = document.getElementById("engineModal");
+    function syncEngineHeaderUI() {
+      const cfg = getEngineConfig();
+      const lbl = document.getElementById("engineModeLabel");
+      const dot = document.getElementById("engineStatusDot");
+      if (cfg.mode === "gemini" && cfg.apiKey) {
+        lbl.textContent = "Gemini 視覺模式 B";
+        dot.style.background = "#3B8C6E";
+      } else {
+        lbl.textContent = "本地圖形引擎 A";
+        dot.style.background = "var(--primary)";
+      }
+    }
+
+    document.getElementById("openEngineBtn").addEventListener("click", () => {
+      const cfg = getEngineConfig();
+      document.getElementById("radioEngineLocal").checked = cfg.mode !== "gemini";
+      document.getElementById("radioEngineGemini").checked = cfg.mode === "gemini";
+      document.getElementById("geminiKeyInput").value = cfg.apiKey;
+      document.getElementById("geminiModelSelect").value = cfg.model;
+      engineModal.classList.remove("hidden");
+    });
+    document.getElementById("closeEngineBtn").addEventListener("click", () => engineModal.classList.add("hidden"));
+    engineModal.addEventListener("click", e => { if (e.target === engineModal) engineModal.classList.add("hidden"); });
+
+    document.getElementById("geminiKeyInput").addEventListener("input", e => {
+      if (e.target.value.trim().length > 8) document.getElementById("radioEngineGemini").checked = true;
+    });
+
+    document.getElementById("clearGeminiKeyBtn").addEventListener("click", () => {
+      try {
+        sessionStorage.removeItem(SESSION_KEY_NAME);
+        sessionStorage.setItem(SESSION_MODE_NAME, "local");
+      } catch (_) {}
+      document.getElementById("geminiKeyInput").value = "";
+      document.getElementById("radioEngineLocal").checked = true;
+      syncEngineHeaderUI();
+      engineModal.classList.add("hidden");
+      showInlineAlert("已安全清除金鑰並切換回「方案 A 本地圖形引擎」。");
+    });
+
+    document.getElementById("saveEngineBtn").addEventListener("click", () => {
+      const wantGemini = document.getElementById("radioEngineGemini").checked;
+      const key = document.getElementById("geminiKeyInput").value.trim();
+      const model = document.getElementById("geminiModelSelect").value;
+      if (wantGemini && !key) {
+        showInlineAlert("若要啟用方案 B，請貼上您的 Google Gemini API Key；或直接選用免 Key 的方案 A。");
+        return;
+      }
+      try {
+        if (key) sessionStorage.setItem(SESSION_KEY_NAME, key); else sessionStorage.removeItem(SESSION_KEY_NAME);
+        sessionStorage.setItem(SESSION_MODE_NAME, wantGemini ? "gemini" : "local");
+        sessionStorage.setItem(SESSION_MODEL_NAME, model);
+      } catch (_) {}
+      syncEngineHeaderUI();
+      engineModal.classList.add("hidden");
+      hideInlineAlert();
+    });
+
+    // Presets Dropdown & Generators
     const presetBtn = document.getElementById("presetMenuBtn");
     const presetDropdown = document.getElementById("presetDropdown");
-    presetBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      presetDropdown.classList.toggle("hidden");
-    });
+    presetBtn.addEventListener("click", e => { e.stopPropagation(); presetDropdown.classList.toggle("hidden"); });
     document.addEventListener("click", () => presetDropdown.classList.add("hidden"));
 
-    // Synthetic Preset Generators (authentic vector kinematics!)
     function makeZigzag(x0, y0, x1, y1, count, amp, color, size, dtMs, tool = "marker") {
-      const pts = [];
-      let t = 0;
+      const pts = []; let t = 0;
       for (let i = 0; i <= count; i++) {
         const u = i / count;
         pts.push({ x: x0 + (x1 - x0) * u, y: y0 + (y1 - y0) * u + (i % 2 === 0 ? amp : -amp), t, p: 0.9 });
@@ -2012,16 +2179,14 @@
       }
       return { tool, color, size, points: pts };
     }
-
     function makeCircle(cx, cy, r, color, size, steps = 36, dtMs = 34, tool = "crayon") {
       const pts = [];
       for (let i = 0; i <= steps; i++) {
-        const ang = (Math.PI * 2 * i) / steps;
-        pts.push({ x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang), t: i * dtMs, p: 0.55 });
+        const a = (Math.PI * 2 * i) / steps;
+        pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), t: i * dtMs, p: 0.55 });
       }
       return { tool, color, size, points: pts };
     }
-
     function makeLine(x0, y0, x1, y1, color, size, steps = 12, dtMs = 55, tool = "pencil") {
       const pts = [];
       for (let i = 0; i <= steps; i++) {
@@ -2030,7 +2195,6 @@
       }
       return { tool, color, size, points: pts };
     }
-
     function makeWave(x0, y0, len, amp, freq, color, size, steps = 32, dtMs = 42, tool = "watercolor") {
       const pts = [];
       for (let i = 0; i <= steps; i++) {
@@ -2039,8 +2203,7 @@
       }
       return { tool, color, size, points: pts };
     }
-
-    function makeArc(cx, cy, r, a0, a1, color, size, steps = 18, dtMs = 42, tool = "crayon") {
+    function makeArc(cx, cy, r, a0, a1, color, size, steps = 18, dtMs = 40, tool = "pencil") {
       const pts = [];
       for (let i = 0; i <= steps; i++) {
         const a = a0 + (a1 - a0) * (i / steps);
@@ -2048,174 +2211,189 @@
       }
       return { tool, color, size, points: pts };
     }
+    function makeHeart(cx, cy, scale, color, size = 8, tool = "crayon") {
+      const pts = [];
+      for (let i = 0; i <= 48; i++) {
+        const t = (Math.PI * 2 * i) / 48;
+        const hx = 16 * Math.pow(Math.sin(t), 3);
+        const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        pts.push({ x: cx + hx * scale, y: cy + hy * scale, t: i * 30, p: 0.55 });
+      }
+      return { tool, color, size, points: pts };
+    }
 
     function buildPresetData(key) {
+      if (key === "black_happy") {
+        const c = "#2A2B30";
+        return {
+          note: "", undoCount: 0, eraserCount: 0, pauseCount: 0,
+          strokes: [
+            makeCircle(420, 305, 95, c, 6, 40, 32, "pencil"),
+            makeCircle(385, 280, 8, c, 5, 16, 25, "pencil"),
+            makeCircle(455, 280, 8, c, 5, 16, 25, "pencil"),
+            makeArc(420, 312, 48, Math.PI * 0.15, Math.PI * 0.85, c, 6, 20, 30, "pencil"),
+            makeCircle(155, 125, 34, c, 5, 30, 30, "pencil"),
+            makeLine(155, 82, 155, 50, c, 5, 6, 25, "pencil"),
+            makeLine(190, 96, 215, 72, c, 5, 6, 25, "pencil"),
+            makeLine(199, 125, 230, 125, c, 5, 6, 25, "pencil"),
+            makeLine(120, 96, 95, 72, c, 5, 6, 25, "pencil"),
+            makeLine(110, 125, 80, 125, c, 5, 6, 25, "pencil")
+          ]
+        };
+      }
+      if (key === "yellow_cry") {
+        const c = "#F5C43D";
+        return {
+          note: "", undoCount: 0, eraserCount: 0, pauseCount: 1,
+          strokes: [
+            makeCircle(400, 280, 100, c, 7, 40, 48, "crayon"),
+            makeCircle(360, 250, 8, c, 6, 16, 45, "crayon"),
+            makeCircle(440, 250, 8, c, 6, 16, 45, "crayon"),
+            makeLine(360, 272, 360, 306, c, 5, 8, 55, "crayon"),
+            makeLine(440, 272, 440, 306, c, 5, 8, 55, "crayon"),
+            makeArc(400, 355, 42, Math.PI * 1.15, Math.PI * 1.85, c, 6, 18, 50, "crayon")
+          ]
+        };
+      }
+      if (key === "house_calm") {
+        const c = "#2A2B30";
+        return {
+          note: "", undoCount: 0, eraserCount: 0, pauseCount: 0,
+          strokes: [
+            makeLine(275, 230, 525, 230, c, 6, 10, 42, "pencil"),
+            makeLine(525, 230, 525, 415, c, 6, 10, 42, "pencil"),
+            makeLine(525, 415, 275, 415, c, 6, 10, 42, "pencil"),
+            makeLine(275, 415, 275, 230, c, 6, 10, 42, "pencil"),
+            makeLine(255, 235, 400, 120, c, 6, 10, 42, "pencil"),
+            makeLine(400, 120, 545, 235, c, 6, 10, 42, "pencil"),
+            makeLine(375, 415, 375, 325, c, 5, 8, 44, "pencil"),
+            makeLine(375, 325, 425, 325, c, 5, 8, 44, "pencil"),
+            makeLine(425, 325, 425, 415, c, 5, 8, 44, "pencil"),
+            makeCircle(325, 290, 20, c, 5, 24, 40, "pencil"),
+            makeCircle(475, 290, 20, c, 5, 24, 40, "pencil")
+          ]
+        };
+      }
       if (key === "anger") {
         return {
-          note: "",
-          undoCount: 0, eraserCount: 0, pauseCount: 0,
+          note: "", undoCount: 0, eraserCount: 0, pauseCount: 0,
           strokes: [
-            makeZigzag(45, 95, 755, 445, 14, 65, "#D62828", 15, 10, "marker"),
-            makeZigzag(745, 85, 55, 465, 14, 68, "#2A2B30", 14, 10, "crayon"),
-            makeZigzag(110, 275, 710, 255, 15, 78, "#8B1E24", 16, 9, "marker"),
-            makeZigzag(210, 120, 610, 420, 11, 52, "#D62828", 13, 10, "crayon"),
-            makeLine(390, 40, 330, 240, "#2A2B30", 14, 8, 12, "marker"),
-            makeLine(330, 240, 460, 230, "#2A2B30", 14, 8, 12, "marker"),
-            makeLine(460, 230, 370, 495, "#D62828", 14, 8, 12, "marker")
+            makeCircle(335, 275, 92, "#2A2B30", 8, 40, 18, "marker"),
+            makeLine(280, 232, 322, 254, "#D62828", 8, 8, 12, "marker"),
+            makeLine(390, 232, 348, 254, "#D62828", 8, 8, 12, "marker"),
+            makeCircle(304, 260, 6, "#2A2B30", 6, 12, 16, "marker"),
+            makeCircle(366, 260, 6, "#2A2B30", 6, 12, 16, "marker"),
+            makeZigzag(295, 318, 375, 318, 6, 9, "#D62828", 7, 10, "marker"),
+            makeLine(510, 165, 650, 325, "#D62828", 11, 8, 10, "marker"),
+            makeLine(650, 165, 510, 325, "#D62828", 11, 8, 10, "marker"),
+            makeZigzag(80, 440, 720, 440, 12, 28, "#8B1E24", 12, 10, "crayon")
           ]
         };
       }
       if (key === "sadness") {
-        const strokes = [
-          // Heavy low cloud
-          makeWave(180, 215, 430, 18, 4.5, "#6E7B8B", 16, 32, 62, "watercolor"),
-          makeWave(200, 240, 390, 12, 3.5, "#386192", 14, 28, 65, "watercolor"),
-          // Downward falling rain streaks
-          makeLine(225, 265, 212, 485, "#386192", 5, 16, 72, "pencil"),
-          makeLine(275, 270, 264, 495, "#25395C", 5, 16, 75, "pencil"),
-          makeLine(325, 260, 315, 480, "#8D95A0", 5, 16, 78, "pencil"),
-          makeLine(465, 270, 456, 492, "#386192", 5, 16, 74, "pencil"),
-          makeLine(515, 262, 504, 484, "#25395C", 5, 16, 76, "pencil"),
-          makeLine(565, 274, 556, 495, "#8D95A0", 5, 16, 80, "pencil"),
-          // Small sad drooping face in lower center
-          makeCircle(395, 420, 36, "#386192", 5, 30, 62, "pencil"),
-          makeArc(395, 444, 16, Math.PI * 1.15, Math.PI * 1.85, "#25395C", 5, 14, 65, "pencil")
-        ];
-        return { note: "", undoCount: 1, eraserCount: 0, pauseCount: 2, strokes };
+        return {
+          note: "", undoCount: 1, eraserCount: 0, pauseCount: 2,
+          strokes: [
+            makeWave(180, 185, 430, 16, 4.5, "#6E7B8B", 14, 30, 62, "watercolor"),
+            makeLine(225, 225, 214, 455, "#386192", 5, 14, 72, "pencil"),
+            makeLine(275, 230, 266, 465, "#25395C", 5, 14, 75, "pencil"),
+            makeLine(520, 225, 510, 455, "#386192", 5, 14, 74, "pencil"),
+            makeLine(568, 232, 560, 462, "#8D95A0", 5, 14, 78, "pencil"),
+            makeCircle(395, 380, 66, "#386192", 6, 36, 58, "pencil"),
+            makeCircle(372, 360, 6, "#25395C", 5, 14, 52, "pencil"),
+            makeCircle(418, 360, 6, "#25395C", 5, 14, 52, "pencil"),
+            makeLine(372, 375, 372, 396, "#54A9D6", 4, 6, 60, "pencil"),
+            makeArc(395, 428, 28, Math.PI * 1.15, Math.PI * 1.85, "#25395C", 5, 16, 62, "pencil")
+          ]
+        };
       }
       if (key === "anxiety") {
-        const strokes = [];
-        // Tight enclosed box
-        strokes.push(makeLine(260, 160, 540, 160, "#2A2B30", 6, 12, 38, "pencil"));
-        strokes.push(makeLine(540, 160, 540, 390, "#2A2B30", 6, 12, 38, "pencil"));
-        strokes.push(makeLine(540, 390, 260, 390, "#2A2B30", 6, 12, 38, "pencil"));
-        strokes.push(makeLine(260, 390, 260, 160, "#2A2B30", 6, 12, 38, "pencil"));
-        // Dense overlapping anxious shading inside
+        const strokes = [
+          makeLine(260, 160, 540, 160, "#2A2B30", 6, 10, 38, "pencil"),
+          makeLine(540, 160, 540, 390, "#2A2B30", 6, 10, 38, "pencil"),
+          makeLine(540, 390, 260, 390, "#2A2B30", 6, 10, 38, "pencil"),
+          makeLine(260, 390, 260, 160, "#2A2B30", 6, 10, 38, "pencil")
+        ];
         for (let i = 0; i < 12; i++) {
-          const sx = 285 + (i % 4) * 52;
-          const sy = 190 + Math.floor(i / 4) * 58;
+          const sx = 285 + (i % 4) * 52, sy = 190 + Math.floor(i / 4) * 58;
           strokes.push(makeZigzag(sx, sy, sx + 48, sy + 28, 6, 14, i % 2 === 0 ? "#2A2B30" : "#8D95A0", 5, 26, "pencil"));
         }
         return { note: "", undoCount: 6, eraserCount: 4, pauseCount: 4, strokes };
       }
       if (key === "loneliness") {
         return {
-          note: "",
-          undoCount: 1, eraserCount: 0, pauseCount: 2,
+          note: "", undoCount: 1, eraserCount: 0, pauseCount: 2,
           strokes: [
-            makeCircle(105, 420, 17, "#386192", 4, 28, 52, "pencil"),
-            makeLine(105, 438, 105, 480, "#386192", 4, 10, 55, "pencil"),
-            makeLine(86, 456, 124, 456, "#8D95A0", 4, 8, 55, "pencil"),
-            makeLine(105, 480, 91, 506, "#386192", 4, 8, 55, "pencil"),
-            makeLine(105, 480, 119, 506, "#386192", 4, 8, 55, "pencil")
+            makeCircle(105, 420, 17, "#2A2B30", 4, 28, 52, "pencil"),
+            makeLine(105, 438, 105, 480, "#2A2B30", 4, 10, 55, "pencil"),
+            makeLine(86, 456, 124, 456, "#2A2B30", 4, 8, 55, "pencil"),
+            makeLine(105, 480, 91, 506, "#2A2B30", 4, 8, 55, "pencil"),
+            makeLine(105, 480, 119, 506, "#2A2B30", 4, 8, 55, "pencil")
           ]
         };
       }
-      if (key === "joy") {
-        return {
-          note: "",
-          undoCount: 0, eraserCount: 0, pauseCount: 0,
-          strokes: [
-            // Bright sun + rays
-            makeCircle(215, 140, 44, "#F5C43D", 11, 36, 26, "crayon"),
-            makeLine(215, 82, 215, 44, "#F08A3C", 8, 8, 22, "crayon"),
-            makeLine(262, 100, 294, 72, "#F08A3C", 8, 8, 22, "crayon"),
-            makeLine(275, 140, 316, 140, "#F5C43D", 8, 8, 22, "crayon"),
-            makeLine(168, 102, 138, 72, "#F08A3C", 8, 8, 22, "crayon"),
-            makeLine(155, 140, 115, 140, "#F5C43D", 8, 8, 22, "crayon"),
-            makeLine(258, 184, 286, 212, "#F5C43D", 8, 8, 22, "crayon"),
-            // Blooming pink flower
-            makeLine(495, 415, 495, 295, "#68B96A", 9, 12, 28, "crayon"),
-            makeCircle(495, 258, 46, "#F28BA8", 11, 36, 26, "crayon"),
-            makeCircle(495, 258, 20, "#F5C43D", 10, 28, 26, "crayon"),
-            // Warm smiling arc & rolling meadow
-            makeArc(215, 142, 20, Math.PI * 0.15, Math.PI * 0.85, "#F08A3C", 5, 16, 26, "crayon"),
-            makeWave(120, 425, 560, 34, 2.2, "#68B96A", 14, 34, 30, "watercolor")
-          ]
-        };
-      }
-      // calm
+      // joy
       return {
-        note: "",
-        undoCount: 0, eraserCount: 0, pauseCount: 0,
+        note: "", undoCount: 0, eraserCount: 0, pauseCount: 0,
         strokes: [
-          makeCircle(400, 195, 56, "#54A9D6", 9, 40, 42, "watercolor"),
-          makeCircle(400, 195, 34, "#68B96A", 8, 36, 42, "watercolor"),
-          makeWave(175, 295, 450, 20, 2.5, "#2E7D5B", 11, 34, 44, "watercolor"),
-          makeWave(185, 345, 430, 18, 2.2, "#54A9D6", 11, 34, 45, "watercolor"),
-          makeWave(205, 395, 390, 14, 2.0, "#68B96A", 10, 30, 45, "watercolor")
+          makeCircle(210, 135, 42, "#F5C43D", 10, 36, 26, "crayon"),
+          makeLine(210, 82, 210, 44, "#F08A3C", 8, 8, 22, "crayon"),
+          makeLine(255, 98, 286, 70, "#F08A3C", 8, 8, 22, "crayon"),
+          makeLine(268, 135, 308, 135, "#F5C43D", 8, 8, 22, "crayon"),
+          makeLine(164, 98, 134, 70, "#F08A3C", 8, 8, 22, "crayon"),
+          makeLine(152, 135, 114, 135, "#F5C43D", 8, 8, 22, "crayon"),
+          makeHeart(495, 255, 6.2, "#F28BA8", 10, "crayon"),
+          makeWave(120, 430, 560, 30, 2.2, "#68B96A", 14, 32, 30, "watercolor")
         ]
       };
     }
 
     function stopPresetAnimation() {
-      if (state.animTimer) {
-        clearTimeout(state.animTimer);
-        state.animTimer = null;
-      }
+      if (state.animTimer) { clearTimeout(state.animTimer); state.animTimer = null; }
     }
 
     function playPreset(key) {
-      stopPresetAnimation();
+      stopPresetAnimation(); clearOverlay();
       presetDropdown.classList.add("hidden");
       const preset = buildPresetData(key);
-      state.strokes = [];
-      state.redoStack = [];
-      state.undoCount = preset.undoCount;
-      state.eraserStrokeCount = preset.eraserCount;
-      state.pauseCount = preset.pauseCount;
-      state.firstStrokeAt = performance.now() - 8000;
-      state.lastStrokeEndAt = performance.now();
+      state.strokes = []; state.redoStack = [];
+      state.undoCount = preset.undoCount; state.eraserStrokeCount = preset.eraserCount; state.pauseCount = preset.pauseCount;
+      state.firstStrokeAt = performance.now() - 8000; state.lastStrokeEndAt = performance.now();
       state.selectedMotifs.clear();
       document.querySelectorAll(".motif-chip").forEach(c => c.setAttribute("aria-pressed", "false"));
       document.getElementById("noteInput").value = preset.note;
-      hideInlineAlert();
-      redrawAll();
+      hideInlineAlert(); redrawAll();
 
       let idx = 0;
       function step() {
-        if (idx >= preset.strokes.length) {
-          state.animTimer = null;
-          runAnalysisAndRender();
-          return;
-        }
+        if (idx >= preset.strokes.length) { state.animTimer = null; runAnalysisAndRender(); return; }
         state.strokes.push(preset.strokes[idx]);
         drawFullStroke(preset.strokes[idx]);
         updateControlsAndTelemetry();
         idx++;
-        state.animTimer = setTimeout(step, 95);
+        state.animTimer = setTimeout(step, 85);
       }
       step();
     }
-
-    document.querySelectorAll("[data-preset]").forEach(btn => {
-      btn.addEventListener("click", () => playPreset(btn.dataset.preset));
-    });
+    document.querySelectorAll("[data-preset]").forEach(btn => btn.addEventListener("click", () => playPreset(btn.dataset.preset)));
 
     // =========================================================================
-    // 5. ANALYSIS EXECUTION, RADAR CHART & REPORT RENDERING
+    // 6. REPORT RENDERING, RADAR CHART & DUAL-ENGINE EXECUTION
     // =========================================================================
     function showInlineAlert(msg) {
       const el = document.getElementById("inlineAlert");
-      el.textContent = msg;
-      el.classList.remove("hidden");
+      el.textContent = msg; el.classList.remove("hidden");
     }
-    function hideInlineAlert() {
-      document.getElementById("inlineAlert").classList.add("hidden");
-    }
+    function hideInlineAlert() { document.getElementById("inlineAlert").classList.add("hidden"); }
 
     function getThemeColor(varName, fallback) {
-      const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-      return val || fallback;
+      return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
     }
 
     function renderRadarChart(emotions) {
-      const rCanvas = document.getElementById("radarCanvas");
-      const rctx = rCanvas.getContext("2d");
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const cssSize = 190;
-      rCanvas.width = cssSize * dpr;
-      rCanvas.height = cssSize * dpr;
+      const rCanvas = document.getElementById("radarCanvas"), rctx = rCanvas.getContext("2d");
+      const dpr = Math.min(window.devicePixelRatio || 1, 2), cssSize = 190;
+      rCanvas.width = cssSize * dpr; rCanvas.height = cssSize * dpr;
       rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       rctx.clearRect(0, 0, cssSize, cssSize);
 
@@ -2225,77 +2403,51 @@
       const mutedCol = getThemeColor("--muted-foreground", "#6b7280");
       const primaryCol = ordered.reduce((best, cur) => (cur.score > best.score ? cur : best), ordered[0]).accentHex;
 
-      // Concentric web rings
       for (let ring = 1; ring <= 4; ring++) {
         const r = (radius * ring) / 4;
         rctx.beginPath();
         for (let i = 0; i < 6; i++) {
           const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6;
-          const x = cx + Math.cos(ang) * r;
-          const y = cy + Math.sin(ang) * r;
-          if (i === 0) rctx.moveTo(x, y); else rctx.lineTo(x, y);
+          if (i === 0) rctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+          else rctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
         }
-        rctx.closePath();
-        rctx.strokeStyle = borderCol;
-        rctx.lineWidth = 1;
-        rctx.stroke();
+        rctx.closePath(); rctx.strokeStyle = borderCol; rctx.lineWidth = 1; rctx.stroke();
       }
 
-      // Axis spokes + labels
-      rctx.font = "11px sans-serif";
-      rctx.fillStyle = mutedCol;
-      rctx.textAlign = "center";
-      rctx.textBaseline = "middle";
+      rctx.font = "11px sans-serif"; rctx.fillStyle = mutedCol; rctx.textAlign = "center"; rctx.textBaseline = "middle";
       for (let i = 0; i < 6; i++) {
         const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6;
-        rctx.beginPath();
-        rctx.moveTo(cx, cy);
-        rctx.lineTo(cx + Math.cos(ang) * radius, cy + Math.sin(ang) * radius);
-        rctx.strokeStyle = borderCol;
-        rctx.stroke();
-
-        const lx = cx + Math.cos(ang) * (radius + 22);
-        const ly = cy + Math.sin(ang) * (radius + 16);
-        rctx.fillText(ordered[i].shortLabel, lx, ly);
+        rctx.beginPath(); rctx.moveTo(cx, cy); rctx.lineTo(cx + Math.cos(ang) * radius, cy + Math.sin(ang) * radius);
+        rctx.strokeStyle = borderCol; rctx.stroke();
+        rctx.fillText(ordered[i].shortLabel, cx + Math.cos(ang) * (radius + 22), cy + Math.sin(ang) * (radius + 16));
       }
 
-      // Data polygon
       rctx.beginPath();
       for (let i = 0; i < 6; i++) {
-        const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6;
-        const r = (ordered[i].score / 100) * radius;
-        const x = cx + Math.cos(ang) * r;
-        const y = cy + Math.sin(ang) * r;
-        if (i === 0) rctx.moveTo(x, y); else rctx.lineTo(x, y);
+        const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6, r = (ordered[i].score / 100) * radius;
+        if (i === 0) rctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+        else rctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
       }
       rctx.closePath();
       const [pr, pg, pb] = hexToRgb(primaryCol);
-      rctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, 0.24)`;
-      rctx.fill();
-      rctx.strokeStyle = primaryCol;
-      rctx.lineWidth = 2;
-      rctx.stroke();
+      rctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, 0.24)`; rctx.fill();
+      rctx.strokeStyle = primaryCol; rctx.lineWidth = 2; rctx.stroke();
 
-      // Vertex dots
       for (let i = 0; i < 6; i++) {
-        const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6;
-        const r = (ordered[i].score / 100) * radius;
-        rctx.beginPath();
-        rctx.arc(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r, 3, 0, Math.PI * 2);
-        rctx.fillStyle = ordered[i].accentHex;
-        rctx.fill();
+        const ang = -Math.PI / 2 + (Math.PI * 2 * i) / 6, r = (ordered[i].score / 100) * radius;
+        rctx.beginPath(); rctx.arc(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r, 3, 0, Math.PI * 2);
+        rctx.fillStyle = ordered[i].accentHex; rctx.fill();
       }
     }
 
     function renderReport(res, saveToHistory = true) {
       state.lastAnalysis = res;
       document.getElementById("welcomePanel").classList.add("hidden");
-      const panel = document.getElementById("reportPanel");
-      panel.classList.remove("hidden");
+      document.getElementById("reportPanel").classList.remove("hidden");
 
-      const pri = res.primaryEmotion;
-      const sec = res.secondaryEmotion;
-
+      const pri = res.primaryEmotion, sec = res.secondaryEmotion;
+      document.getElementById("reportEngineBadge").textContent = res.engineLabel || "本地圖形引擎 A";
+      document.getElementById("monoBadge").classList.toggle("hidden", !res.isMonochromeSketch);
       document.getElementById("primaryEmotionTitle").textContent = pri.label;
       document.getElementById("primaryValenceTag").textContent = pri.valence;
       document.getElementById("primaryScoreBadge").textContent = `${pri.score}`;
@@ -2304,22 +2456,31 @@
       document.getElementById("innerVoiceQuote").textContent = res.innerVoice;
       document.getElementById("innerThoughtsDesc").textContent = res.innerThoughts;
 
+      // Recognized Complete Figures strip + Canvas dashed bounding boxes
+      const figBox = document.getElementById("recognizedFiguresBox");
+      const figChips = document.getElementById("recognizedFiguresChips");
+      const figs = res.recognizedFigures || [];
+      if (figs.length > 0) {
+        figBox.classList.remove("hidden");
+        document.getElementById("recognizedCountLabel").textContent = `共辨識 ${figs.length} 項`;
+        figChips.innerHTML = figs.map(f =>
+          `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">${f.label}</span>`
+        ).join("");
+      } else {
+        figBox.classList.add("hidden");
+      }
+      drawFigureOverlay(res.overlayFigures || figs);
+
       const incBox = document.getElementById("incongruenceBox");
       if (res.incongruenceNote) {
         document.getElementById("incongruenceText").textContent = res.incongruenceNote;
         incBox.classList.remove("hidden");
-      } else {
-        incBox.classList.add("hidden");
-      }
+      } else incBox.classList.add("hidden");
 
-      // Radar + Horizontal Bars
       renderRadarChart(res.emotions);
       const barsEl = document.getElementById("emotionBars");
-      barsEl.innerHTML = "";
-      res.emotions.forEach((em, idx) => {
-        const row = document.createElement("div");
-        row.className = "space-y-1";
-        row.innerHTML = `
+      barsEl.innerHTML = res.emotions.map((em, idx) => `
+        <div class="space-y-1">
           <div class="flex items-center justify-between text-xs">
             <span class="${idx === 0 ? "font-semibold text-[var(--foreground)]" : "text-[var(--muted-foreground)]"}">${em.label}</span>
             <span class="tabular-nums font-medium text-[var(--foreground)]">${em.score}</span>
@@ -2327,60 +2488,34 @@
           <div class="h-2 w-full rounded-full bg-[var(--content)] overflow-hidden">
             <div class="bar-fill h-full rounded-full" style="width:${em.score}%; background:${em.accentHex};"></div>
           </div>
-        `;
-        barsEl.appendChild(row);
-      });
-
-      // Pillar 1: Color
-      const pColor = res.pillars.color;
-      document.getElementById("colorDominantLabel").textContent = `主導色系：${pColor.dominantBucket}`;
-      document.getElementById("colorInsight").textContent = pColor.insight;
-      const stackBar = document.getElementById("colorStackBar");
-      const legend = document.getElementById("colorLegend");
-      stackBar.innerHTML = "";
-      legend.innerHTML = "";
-      Object.entries(pColor.histogram)
-        .filter(([, val]) => val >= 0.02)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([k, val]) => {
-          const meta = COLOR_BUCKET_META[k] || { label: k, hex: "#888" };
-          const pct = Math.round(val * 100);
-          const seg = document.createElement("div");
-          seg.style.width = `${pct}%`;
-          seg.style.background = meta.hex;
-          seg.title = `${meta.label} ${pct}%`;
-          stackBar.appendChild(seg);
-
-          const item = document.createElement("span");
-          item.className = "inline-flex items-center gap-1";
-          item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${meta.hex}"></span>${meta.label} ${pct}%`;
-          legend.appendChild(item);
-        });
-
-      // Pillar 2: Strokes
-      const pStroke = res.pillars.strokes;
-      document.getElementById("strokeInsight").textContent = pStroke.insight;
-      const metricItems = [
-        { label: "尖銳折角張力", val: Math.round(pStroke.sharpnessIndex * 100), hint: pStroke.sharpnessIndex > 0.35 ? "偏銳利" : "平緩" },
-        { label: "圓潤流暢度", val: Math.round(pStroke.smoothnessIndex * 100), hint: pStroke.smoothnessIndex > 0.4 ? "流暢柔和" : "偏直線" },
-        { label: "筆觸速度能量", val: Math.round(pStroke.velocityIndex * 100), hint: pStroke.velocityIndex > 0.55 ? "急促有力" : "從容緩慢" },
-        { label: "重疊塗抹密度", val: Math.round(pStroke.overlapIndex * 100), hint: pStroke.overlapIndex > 0.42 ? "重度塗抹" : "清晰留白" }
-      ];
-      const smGrid = document.getElementById("strokeMetricsGrid");
-      smGrid.innerHTML = metricItems.map(m => `
-        <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-1">
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-[var(--muted-foreground)]">${m.label}</span>
-            <span class="font-semibold tabular-nums text-[var(--foreground)]">${m.val}%</span>
-          </div>
-          <div class="h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
-            <div class="h-full rounded-full bg-[var(--primary)]" style="width:${m.val}%"></div>
-          </div>
-          <div class="text-xs text-[var(--muted-foreground)]">${m.hint}</div>
         </div>
       `).join("");
 
-      // Pillar 3: Spatial 3x3 Heatmap
+      // Pillar 1: Figures & Process
+      const pProc = res.pillars.process, pStroke = res.pillars.strokes;
+      document.getElementById("processInsight").textContent = pProc.insight;
+      const motifsEl = document.getElementById("motifsList");
+      if (!res.detectedMotifs.length) {
+        motifsEl.innerHTML = `<div class="p-2.5 rounded-xl bg-[var(--content)] text-xs text-[var(--muted-foreground)]">未偵測到特定具象圖式，本次以線條動力、空間比例與整體節奏進行綜合評估。</div>`;
+      } else {
+        motifsEl.innerHTML = res.detectedMotifs.map(m => `
+          <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-0.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-[var(--foreground)]">${m.label}</span>
+              <span class="text-[11px] text-[var(--muted-foreground)] shrink-0">${(m.theory || "").split(" ")[0]}</span>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">${m.meaning}</p>
+          </div>
+        `).join("");
+      }
+      document.getElementById("processSummaryRow").innerHTML = `
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">總筆數 ${pStroke.strokeCount}</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">復原 ${pProc.undoCount} 次</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">擦除 ${pProc.eraserCount} 次</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">歷時 ${pProc.durationSeconds} 秒</span>
+      `;
+
+      // Pillar 2: Spatial
       const pSpatial = res.pillars.spatial;
       document.getElementById("spatialInsight").textContent = pSpatial.insight;
       const heatEl = document.getElementById("spatialHeatmap");
@@ -2405,49 +2540,49 @@
         <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">邊界觸及比例</span><span class="font-medium tabular-nums">${Math.round(pSpatial.edgeTouchRatio * 100)}%</span></div>
       `;
 
-      // Pillar 4: Motifs & Process
-      const pProc = res.pillars.process;
-      document.getElementById("processInsight").textContent = pProc.insight;
-      const motifsEl = document.getElementById("motifsList");
-      if (res.detectedMotifs.length === 0) {
-        motifsEl.innerHTML = `<div class="p-2.5 rounded-xl bg-[var(--content)] text-xs text-[var(--muted-foreground)]">線條結構自然平順，未觸發強烈衝突或極端退縮之幾何指標。</div>`;
-      } else {
-        motifsEl.innerHTML = res.detectedMotifs.map(m => `
-          <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-0.5">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-semibold text-[var(--foreground)]">${m.label}</span>
-              <span class="text-xs text-[var(--muted-foreground)] shrink-0">${m.theory.split(" ")[0]}</span>
-            </div>
-            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">${m.meaning}</p>
-          </div>
-        `).join("");
-      }
-      document.getElementById("processSummaryRow").innerHTML = `
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">總筆數 ${pStroke.strokeCount}</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">復原 ${pProc.undoCount} 次</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">擦除 ${pProc.eraserCount} 次</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">歷時 ${pProc.durationSeconds} 秒</span>
-      `;
+      // Pillar 3: Strokes
+      document.getElementById("strokeInsight").textContent = pStroke.insight;
+      const metricItems = [
+        { label: "尖銳折角張力", val: Math.round(pStroke.sharpnessIndex * 100), hint: pStroke.sharpnessIndex > 0.35 ? "偏銳利" : "平緩" },
+        { label: "圓潤流暢度", val: Math.round(pStroke.smoothnessIndex * 100), hint: pStroke.smoothnessIndex > 0.4 ? "流暢柔和" : "偏直線" },
+        { label: "筆觸速度能量", val: Math.round(pStroke.velocityIndex * 100), hint: pStroke.velocityIndex > 0.55 ? "急促有力" : "從容緩慢" },
+        { label: "重疊塗抹密度", val: Math.round(pStroke.overlapIndex * 100), hint: pStroke.overlapIndex > 0.42 ? "重度塗抹" : "清晰留白" }
+      ];
+      document.getElementById("strokeMetricsGrid").innerHTML = metricItems.map(m => `
+        <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-1">
+          <div class="flex items-center justify-between text-xs"><span class="text-[var(--muted-foreground)]">${m.label}</span><span class="font-semibold tabular-nums text-[var(--foreground)]">${m.val}%</span></div>
+          <div class="h-1.5 rounded-full bg-[var(--border)] overflow-hidden"><div class="h-full rounded-full bg-[var(--primary)]" style="width:${m.val}%"></div></div>
+          <div class="text-xs text-[var(--muted-foreground)]">${m.hint}</div>
+        </div>
+      `).join("");
 
-      // Gentle Care Prompts
-      const promptsEl = document.getElementById("carePromptsList");
-      promptsEl.innerHTML = res.carePrompts.map((p, i) => `
+      // Pillar 4: Color
+      const pColor = res.pillars.color;
+      document.getElementById("colorDominantLabel").textContent = `主導色系：${pColor.dominantBucket}`;
+      document.getElementById("colorInsight").textContent = pColor.insight;
+      const stackBar = document.getElementById("colorStackBar"), legend = document.getElementById("colorLegend");
+      stackBar.innerHTML = ""; legend.innerHTML = "";
+      Object.entries(pColor.histogram).filter(([, val]) => val >= 0.02).sort((a, b) => b[1] - a[1]).forEach(([k, val]) => {
+        const meta = COLOR_BUCKET_META[k] || { label: k, hex: "#888" }, pct = Math.round(val * 100);
+        const seg = document.createElement("div"); seg.style.width = `${pct}%`; seg.style.background = meta.hex; seg.title = `${meta.label} ${pct}%`;
+        stackBar.appendChild(seg);
+        const item = document.createElement("span"); item.className = "inline-flex items-center gap-1";
+        item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${meta.hex}"></span>${meta.label} ${pct}%`;
+        legend.appendChild(item);
+      });
+
+      document.getElementById("carePromptsList").innerHTML = res.carePrompts.map((p, i) => `
         <li class="flex items-start gap-2 p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
           <span class="w-5 h-5 rounded-full bg-[var(--secondary)] text-[var(--foreground)] text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">${i + 1}</span>
           <span class="leading-relaxed">${p}</span>
         </li>
       `).join("");
 
-      // Save to session history
       if (saveToHistory) {
-        const thumbUrl = canvas.toDataURL("image/png");
         const snap = {
-          id: Date.now(),
-          thumbUrl,
+          id: Date.now(), thumbUrl: canvas.toDataURL("image/png"),
           timeStr: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          result: res,
-          strokesCopy: JSON.parse(JSON.stringify(state.strokes)),
-          paperColor: state.paperColor
+          result: res, strokesCopy: JSON.parse(JSON.stringify(state.strokes)), paperColor: state.paperColor
         };
         state.history.unshift(snap);
         if (state.history.length > 8) state.history.pop();
@@ -2456,13 +2591,12 @@
     }
 
     function renderHistoryStrip() {
-      const sec = document.getElementById("historySection");
-      const strip = document.getElementById("historyStrip");
-      if (state.history.length === 0) { sec.classList.add("hidden"); return; }
+      const sec = document.getElementById("historySection"), strip = document.getElementById("historyStrip");
+      if (!state.history.length) { sec.classList.add("hidden"); return; }
       sec.classList.remove("hidden");
       document.getElementById("historyCount").textContent = `共 ${state.history.length} 幅`;
       strip.innerHTML = "";
-      state.history.forEach((item) => {
+      state.history.forEach(item => {
         const card = document.createElement("button");
         card.type = "button";
         card.className = "tool-btn shrink-0 w-28 text-left rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--content)] hover:border-[var(--primary)]";
@@ -2492,53 +2626,65 @@
       hideInlineAlert();
       const pixelStats = extractCanvasPixelStats(canvas, state.paperColor);
       const durationMs = state.firstStrokeAt ? Math.max(1000, (state.lastStrokeEndAt || performance.now()) - state.firstStrokeAt) : 5000;
+      const userNote = document.getElementById("noteInput").value.trim();
+      const selMotifs = Array.from(state.selectedMotifs);
 
       const payload = {
         canvas: { width: LOGICAL_W, height: LOGICAL_H, backgroundColor: state.paperColor },
         strokes: state.strokes,
-        processMetrics: {
-          undoCount: state.undoCount,
-          eraserStrokeCount: state.eraserStrokeCount,
-          totalDurationMs: durationMs,
-          pauseCount: state.pauseCount
-        },
-        userContext: {
-          titleOrNote: document.getElementById("noteInput").value.trim(),
-          selectedMotifs: Array.from(state.selectedMotifs)
-        },
-        imageDataUrl: canvas.toDataURL("image/png"),
+        processMetrics: { undoCount: state.undoCount, eraserStrokeCount: state.eraserStrokeCount, totalDurationMs: durationMs, pauseCount: state.pauseCount },
+        userContext: { titleOrNote: userNote, selectedMotifs: selMotifs },
         clientImageStats: pixelStats
       };
 
-      let result = null;
+      // Run Engine A: call FastAPI backend when served via API server, or local engine on GitHub Pages / offline
+      let localResult = null;
       const isStaticHost = location.protocol === "file:" || location.hostname.endsWith(".github.io");
       if (!isStaticHost) {
         try {
           const resp = await fetch("/api/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ ...payload, imageDataUrl: canvas.toDataURL("image/png") })
           });
           if (resp.ok) {
-            result = await resp.json();
+            localResult = await resp.json();
+            if (localResult && !localResult.engineLabel) localResult.engineLabel = "本地圖形引擎 A（後端）";
           }
-        } catch (_) {
-          // Fallback seamlessly to local psychology engine if backend is unavailable
+        } catch (_) {}
+      }
+      if (!localResult) localResult = analyzeDrawing(payload);
+      if (localResult.status !== "ok") { showInlineAlert(localResult.message); return; }
+
+      const cfg = getEngineConfig();
+      if (cfg.mode === "gemini" && cfg.apiKey) {
+        const btn = document.getElementById("analyzeBtn");
+        const icon = document.getElementById("analyzeBtnIcon");
+        const text = document.getElementById("analyzeBtnText");
+        btn.disabled = true;
+        icon.innerHTML = `<span class="spinner"></span>`;
+        text.textContent = "Gemini 視覺分析中…";
+        try {
+          const aiResult = await callGeminiVisionAnalysis(
+            canvas.toDataURL("image/png"), localResult, userNote, selMotifs, cfg.apiKey, cfg.model
+          );
+          renderReport(aiResult, true);
+        } catch (err) {
+          showInlineAlert(`Gemini 視覺模式暫時無法連線（${err.message || "網路或金鑰異常"}），已自動無縫降級為「方案 A 本地圖形引擎」完成分析。`);
+          renderReport(localResult, true);
+        } finally {
+          btn.disabled = false;
+          icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>`;
+          text.textContent = "解析畫作心理狀態";
         }
+        return;
       }
-      if (!result) {
-        result = analyzeDrawing(payload);
-      }
-      if (result.status === "ok") {
-        renderReport(result, true);
-      } else {
-        showInlineAlert(result.message);
-      }
+
+      renderReport(localResult, true);
     }
 
     document.getElementById("analyzeBtn").addEventListener("click", runAnalysisAndRender);
 
-    // Evidence Tabs
     document.querySelectorAll("[role='tab']").forEach(tab => {
       tab.addEventListener("click", () => {
         const target = tab.dataset.tab;
@@ -2547,7 +2693,6 @@
       });
     });
 
-    // References Modal
     const refsModal = document.getElementById("refsModal");
     document.getElementById("refsModalBody").innerHTML = PSYCHOLOGY_REFERENCES.map(r => `
       <div class="p-3.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-1">
@@ -2559,22 +2704,17 @@
         <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">${r.description}</p>
       </div>
     `).join("");
-
     document.getElementById("openRefsBtn").addEventListener("click", () => refsModal.classList.remove("hidden"));
     document.getElementById("closeRefsBtn").addEventListener("click", () => refsModal.classList.add("hidden"));
-    refsModal.addEventListener("click", (e) => { if (e.target === refsModal) refsModal.classList.add("hidden"); });
+    refsModal.addEventListener("click", e => { if (e.target === refsModal) refsModal.classList.add("hidden"); });
 
-    // Live Theme Change Sync (Generative UI requirement: redraw canvas/charts without resetting state)
     window.addEventListener("themechange", () => {
-      if (state.lastAnalysis) {
-        renderRadarChart(state.lastAnalysis.emotions);
-      }
+      if (state.lastAnalysis) renderRadarChart(state.lastAnalysis.emotions);
     });
 
-    // Expose pure engine for automated verification if needed
     window.__mindCanvas = { analyzeDrawing, buildPresetData };
 
-    // Initialize studio
+    syncEngineHeaderUI();
     initCanvasResolution();
     updateBrushBadge();
   })();
