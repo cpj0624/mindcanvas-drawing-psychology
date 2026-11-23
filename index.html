@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>心畫室 MindCanvas v2.0 — 完整圖形 × 兒童心理學雙引擎探索</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'none';" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="description" content="心畫室 MindCanvas v2.0：免費互動式兒童心理學繪畫情緒探索工具，採用完整圖形與表情優先引擎（支援單色鉛筆去偏），並支援選填個人 Gemini API Key 啟用多模態視覺深度解讀。" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%233A6B7C%27/%3E%3Cpath d=%27M9 22l3.5-1 10-10-2.5-2.5-10 10L9 22z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1669,6 +1671,16 @@
     const SESSION_KEY_NAME = "mindcanvas_gemini_key_session";
     const SESSION_MODE_NAME = "mindcanvas_engine_mode";
     const SESSION_MODEL_NAME = "mindcanvas_gemini_model";
+    const ALLOWED_GEMINI_MODELS = new Set(["gemini-2.5-flash", "gemini-2.0-flash"]);
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
     function getEngineConfig() {
       let key = "", mode = "local", model = "gemini-2.5-flash";
@@ -1677,11 +1689,13 @@
         mode = sessionStorage.getItem(SESSION_MODE_NAME) || "local";
         model = sessionStorage.getItem(SESSION_MODEL_NAME) || "gemini-2.5-flash";
       } catch (_) {}
+      if (!ALLOWED_GEMINI_MODELS.has(model)) model = "gemini-2.5-flash";
       if (mode === "gemini" && !key) mode = "local";
       return { mode, apiKey: key, model };
     }
 
     async function callGeminiVisionAnalysis(imageDataUrl, localBaseResult, userNote, selectedMotifs, apiKey, model) {
+      const safeModel = ALLOWED_GEMINI_MODELS.has(model) ? model : "gemini-2.5-flash";
       const base64Data = imageDataUrl.split(",")[1];
       const telemetrySummary = {
         strokeCount: localBaseResult.pillars.strokes.strokeCount,
@@ -1719,7 +1733,7 @@
 }`
       ].join("\n\n");
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`;
       const resp = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -1741,8 +1755,7 @@
       });
 
       if (!resp.ok) {
-        const errText = await resp.text().catch(() => "");
-        throw new Error(`Gemini API HTTP ${resp.status}${errText ? ": " + errText.slice(0, 120) : ""}`);
+        throw new Error(`HTTP ${resp.status}`);
       }
       const data = await resp.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -2464,7 +2477,7 @@
         figBox.classList.remove("hidden");
         document.getElementById("recognizedCountLabel").textContent = `共辨識 ${figs.length} 項`;
         figChips.innerHTML = figs.map(f =>
-          `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">${f.label}</span>`
+          `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">${escapeHtml(f.label)}</span>`
         ).join("");
       } else {
         figBox.classList.add("hidden");
@@ -2482,11 +2495,11 @@
       barsEl.innerHTML = res.emotions.map((em, idx) => `
         <div class="space-y-1">
           <div class="flex items-center justify-between text-xs">
-            <span class="${idx === 0 ? "font-semibold text-[var(--foreground)]" : "text-[var(--muted-foreground)]"}">${em.label}</span>
-            <span class="tabular-nums font-medium text-[var(--foreground)]">${em.score}</span>
+            <span class="${idx === 0 ? "font-semibold text-[var(--foreground)]" : "text-[var(--muted-foreground)]"}">${escapeHtml(em.label)}</span>
+            <span class="tabular-nums font-medium text-[var(--foreground)]">${Number(em.score) || 0}</span>
           </div>
           <div class="h-2 w-full rounded-full bg-[var(--content)] overflow-hidden">
-            <div class="bar-fill h-full rounded-full" style="width:${em.score}%; background:${em.accentHex};"></div>
+            <div class="bar-fill h-full rounded-full" style="width:${clamp(Number(em.score) || 0, 0, 100)}%; background:${escapeHtml(em.accentHex)};"></div>
           </div>
         </div>
       `).join("");
@@ -2501,18 +2514,18 @@
         motifsEl.innerHTML = res.detectedMotifs.map(m => `
           <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-0.5">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-semibold text-[var(--foreground)]">${m.label}</span>
-              <span class="text-[11px] text-[var(--muted-foreground)] shrink-0">${(m.theory || "").split(" ")[0]}</span>
+              <span class="text-xs font-semibold text-[var(--foreground)]">${escapeHtml(m.label)}</span>
+              <span class="text-[11px] text-[var(--muted-foreground)] shrink-0">${escapeHtml((m.theory || "").split(" ")[0])}</span>
             </div>
-            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">${m.meaning}</p>
+            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">${escapeHtml(m.meaning)}</p>
           </div>
         `).join("");
       }
       document.getElementById("processSummaryRow").innerHTML = `
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">總筆數 ${pStroke.strokeCount}</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">復原 ${pProc.undoCount} 次</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">擦除 ${pProc.eraserCount} 次</span>
-        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">歷時 ${pProc.durationSeconds} 秒</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">總筆數 ${Number(pStroke.strokeCount) || 0}</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">復原 ${Number(pProc.undoCount) || 0} 次</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">擦除 ${Number(pProc.eraserCount) || 0} 次</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--card-border)]">歷時 ${Number(pProc.durationSeconds) || 0} 秒</span>
       `;
 
       // Pillar 2: Spatial
@@ -2550,9 +2563,9 @@
       ];
       document.getElementById("strokeMetricsGrid").innerHTML = metricItems.map(m => `
         <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-1">
-          <div class="flex items-center justify-between text-xs"><span class="text-[var(--muted-foreground)]">${m.label}</span><span class="font-semibold tabular-nums text-[var(--foreground)]">${m.val}%</span></div>
-          <div class="h-1.5 rounded-full bg-[var(--border)] overflow-hidden"><div class="h-full rounded-full bg-[var(--primary)]" style="width:${m.val}%"></div></div>
-          <div class="text-xs text-[var(--muted-foreground)]">${m.hint}</div>
+          <div class="flex items-center justify-between text-xs"><span class="text-[var(--muted-foreground)]">${escapeHtml(m.label)}</span><span class="font-semibold tabular-nums text-[var(--foreground)]">${Number(m.val) || 0}%</span></div>
+          <div class="h-1.5 rounded-full bg-[var(--border)] overflow-hidden"><div class="h-full rounded-full bg-[var(--primary)]" style="width:${clamp(Number(m.val) || 0, 0, 100)}%"></div></div>
+          <div class="text-xs text-[var(--muted-foreground)]">${escapeHtml(m.hint)}</div>
         </div>
       `).join("");
 
@@ -2567,14 +2580,14 @@
         const seg = document.createElement("div"); seg.style.width = `${pct}%`; seg.style.background = meta.hex; seg.title = `${meta.label} ${pct}%`;
         stackBar.appendChild(seg);
         const item = document.createElement("span"); item.className = "inline-flex items-center gap-1";
-        item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${meta.hex}"></span>${meta.label} ${pct}%`;
+        item.innerHTML = `<span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${escapeHtml(meta.hex)}"></span>${escapeHtml(meta.label)} ${pct}%`;
         legend.appendChild(item);
       });
 
       document.getElementById("carePromptsList").innerHTML = res.carePrompts.map((p, i) => `
         <li class="flex items-start gap-2 p-2.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)]">
           <span class="w-5 h-5 rounded-full bg-[var(--secondary)] text-[var(--foreground)] text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">${i + 1}</span>
-          <span class="leading-relaxed">${p}</span>
+          <span class="leading-relaxed">${escapeHtml(p)}</span>
         </li>
       `).join("");
 
@@ -2600,11 +2613,12 @@
         const card = document.createElement("button");
         card.type = "button";
         card.className = "tool-btn shrink-0 w-28 text-left rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--content)] hover:border-[var(--primary)]";
+        const safeThumb = String(item.thumbUrl || "").startsWith("data:image/png;base64,") ? item.thumbUrl : "";
         card.innerHTML = `
-          <img src="${item.thumbUrl}" alt="${item.result.primaryEmotion.label}" class="w-full h-16 object-cover border-b border-[var(--card-border)]" />
+          <img src="${safeThumb}" alt="${escapeHtml(item.result.primaryEmotion.label)}" class="w-full h-16 object-cover border-b border-[var(--card-border)]" />
           <div class="p-1.5">
-            <div class="text-xs font-semibold truncate text-[var(--foreground)]">${item.result.primaryEmotion.shortLabel}</div>
-            <div class="text-xs text-[var(--muted-foreground)] tabular-nums">${item.timeStr} · ${item.result.primaryEmotion.score}</div>
+            <div class="text-xs font-semibold truncate text-[var(--foreground)]">${escapeHtml(item.result.primaryEmotion.shortLabel)}</div>
+            <div class="text-xs text-[var(--muted-foreground)] tabular-nums">${escapeHtml(item.timeStr)} · ${Number(item.result.primaryEmotion.score) || 0}</div>
           </div>
         `;
         card.addEventListener("click", () => {

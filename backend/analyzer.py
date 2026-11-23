@@ -156,12 +156,17 @@ def _segments_intersect(
 def _analyze_image_buffer(
     image_data_url: str, bg_hex: str
 ) -> Optional[Dict[str, Any]]:
-    if not image_data_url or "," not in image_data_url:
+    if not image_data_url or "," not in image_data_url or len(image_data_url) > 6_000_000:
         return None
     try:
         _, b64_part = image_data_url.split(",", 1)
-        raw = base64.b64decode(b64_part)
-        img = Image.open(io.BytesIO(raw)).convert("RGB")
+        raw = base64.b64decode(b64_part, validate=True)
+        if len(raw) > 4_500_000:
+            return None
+        with Image.open(io.BytesIO(raw)) as opened:
+            if opened.width * opened.height > 4_000_000:
+                return None
+            img = opened.convert("RGB")
         target_w = 180
         ratio = target_w / max(1, img.width)
         target_h = max(60, int(round(img.height * ratio)))

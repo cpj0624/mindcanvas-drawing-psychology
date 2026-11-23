@@ -42,39 +42,39 @@ class StrokePoint(BaseModel):
 
 
 class StrokeItem(BaseModel):
-    id: Optional[str] = None
-    tool: str = "crayon"
-    color: str = "#222222"
-    size: float = 6.0
-    points: List[StrokePoint] = Field(default_factory=list)
+    id: Optional[str] = Field(default=None, max_length=64)
+    tool: str = Field(default="crayon", max_length=24)
+    color: str = Field(default="#222222", max_length=16)
+    size: float = Field(default=6.0, ge=1.0, le=80.0)
+    points: List[StrokePoint] = Field(default_factory=list, max_length=4000)
 
 
 class CanvasMeta(BaseModel):
-    width: float = 800.0
-    height: float = 540.0
-    backgroundColor: str = "#FDFBF7"
+    width: float = Field(default=800.0, ge=50.0, le=4096.0)
+    height: float = Field(default=540.0, ge=50.0, le=4096.0)
+    backgroundColor: str = Field(default="#FDFBF7", max_length=16)
 
 
 class ProcessMetrics(BaseModel):
-    undoCount: int = 0
-    redoCount: int = 0
-    clearCount: int = 0
-    eraserStrokeCount: int = 0
-    totalDurationMs: float = 0.0
-    pauseCount: int = 0
+    undoCount: int = Field(default=0, ge=0, le=10000)
+    redoCount: int = Field(default=0, ge=0, le=10000)
+    clearCount: int = Field(default=0, ge=0, le=1000)
+    eraserStrokeCount: int = Field(default=0, ge=0, le=10000)
+    totalDurationMs: float = Field(default=0.0, ge=0.0, le=86_400_000.0)
+    pauseCount: int = Field(default=0, ge=0, le=10000)
 
 
 class UserContext(BaseModel):
-    titleOrNote: str = ""
-    selectedMotifs: List[str] = Field(default_factory=list)
+    titleOrNote: str = Field(default="", max_length=300)
+    selectedMotifs: List[str] = Field(default_factory=list, max_length=20)
 
 
 class AnalyzeRequest(BaseModel):
     canvas: CanvasMeta = Field(default_factory=CanvasMeta)
-    strokes: List[StrokeItem] = Field(default_factory=list)
+    strokes: List[StrokeItem] = Field(default_factory=list, max_length=2000)
     processMetrics: ProcessMetrics = Field(default_factory=ProcessMetrics)
     userContext: UserContext = Field(default_factory=UserContext)
-    imageDataUrl: Optional[str] = None
+    imageDataUrl: Optional[str] = Field(default=None, max_length=6_000_000)
     clientImageStats: Optional[Dict[str, Any]] = None
 
 
