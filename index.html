@@ -604,15 +604,28 @@
             </div>
 
             <div class="flex items-center justify-between gap-2">
-              <label for="geminiModelSelect" class="text-[var(--muted-foreground)]">視覺模型</label>
-              <select id="geminiModelSelect" class="px-2.5 py-1.5 rounded-lg text-xs bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">
-                <option value="gemini-2.5-flash" selected>gemini-2.5-flash（推薦・快速精準）</option>
-                <option value="gemini-2.0-flash">gemini-2.0-flash（備援）</option>
+              <label for="geminiModelSelect" class="text-[var(--muted-foreground)] shrink-0">視覺模型</label>
+              <select id="geminiModelSelect" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">
+                <option value="auto" selected>自動偵測金鑰最新可用模型（推薦）</option>
+                <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite（最新輕量多模態）</option>
+                <option value="gemini-3.8-flash">gemini-3.8-flash（旗艦 Flash 視覺推理）</option>
+                <option value="gemini-3.6-flash">gemini-3.6-flash（標準 Gemini 3 Flash）</option>
+                <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite（輕量備援）</option>
+                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（2.5 輕量相容）</option>
               </select>
             </div>
 
+            <div class="flex items-center justify-between gap-2">
+              <button id="testGeminiKeyBtn" type="button" class="tool-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                <span>測試金鑰並偵測可用模型</span>
+              </button>
+              <span class="text-[11px] text-[var(--muted-foreground)]">舊版 2.0 / 2.5 Flash 已停用，建議選「自動偵測」</span>
+            </div>
+
+            <div id="engineModalStatus" class="hidden p-2.5 rounded-lg text-xs leading-relaxed border"></div>
+
             <div class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-[11px] text-[var(--muted-foreground)] leading-relaxed">
-              安全保證：本網頁原始碼不含任何金鑰；您輸入的金鑰只存於瀏覽器分頁暫存區（<code class="font-mono">sessionStorage</code>），關閉分頁即自動銷毀，且透過 Header 加密直連 Google 官方 API。若金鑰無效或網路異常將自動降級回方案 A。
+              安全保證：本網頁原始碼不含任何金鑰；您輸入的金鑰只存於瀏覽器分頁暫存區（<code class="font-mono">sessionStorage</code>），關閉分頁即自動銷毀，且透過 Header 加密直連 Google 官方 API。請在公開瀏覽器（如 GitHub Pages 網址）中使用方案 B；若網路受限或異常將自動降級回方案 A。
             </div>
           </div>
         </div>
@@ -1671,7 +1684,16 @@
     const SESSION_KEY_NAME = "mindcanvas_gemini_key_session";
     const SESSION_MODE_NAME = "mindcanvas_engine_mode";
     const SESSION_MODEL_NAME = "mindcanvas_gemini_model";
-    const ALLOWED_GEMINI_MODELS = new Set(["gemini-2.5-flash", "gemini-2.0-flash"]);
+    const SAFE_MODEL_RE = /^gemini-[a-z0-9.\-]{2,64}$/i;
+    const PREFERRED_MODEL_ORDER = [
+      "gemini-3.5-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.6-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash"
+    ];
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1682,20 +1704,131 @@
         .replace(/'/g, "&#39;");
     }
 
+    function sanitizeApiKey(raw) {
+      return String(raw || "").replace(/\s+/g, "").trim();
+    }
+
+    function isValidHeaderKey(key) {
+      return key.length >= 10 && /^[\x21-\x7E]+$/.test(key);
+    }
+
+    function isSafeModelId(m) {
+      return m === "auto" || SAFE_MODEL_RE.test(String(m || ""));
+    }
+
     function getEngineConfig() {
-      let key = "", mode = "local", model = "gemini-2.5-flash";
+      let key = "", mode = "local", model = "auto";
       try {
-        key = sessionStorage.getItem(SESSION_KEY_NAME) || "";
+        key = sanitizeApiKey(sessionStorage.getItem(SESSION_KEY_NAME) || "");
         mode = sessionStorage.getItem(SESSION_MODE_NAME) || "local";
-        model = sessionStorage.getItem(SESSION_MODEL_NAME) || "gemini-2.5-flash";
+        model = sessionStorage.getItem(SESSION_MODEL_NAME) || "auto";
       } catch (_) {}
-      if (!ALLOWED_GEMINI_MODELS.has(model)) model = "gemini-2.5-flash";
-      if (mode === "gemini" && !key) mode = "local";
+      if (!isSafeModelId(model)) model = "auto";
+      if (mode === "gemini" && !isValidHeaderKey(key)) mode = "local";
       return { mode, apiKey: key, model };
     }
 
+    function formatGeminiFriendlyError(status, fallbackMsg) {
+      if (status === 400 || status === 401) return `HTTP ${status}（API Key 格式無效或已失效，請回到 Google AI Studio 重新複製完整金鑰）`;
+      if (status === 403) return "HTTP 403（此金鑰無權限存取 Gemini API、專案未啟用 Generative Language API，或受地區／帳號限制）";
+      if (status === 404) return "HTTP 404（指定模型已下架或此新帳號不支援舊版模型，請使用「自動偵測最新模型」）";
+      if (status === 429) return "HTTP 429（已達免費方案短時間呼叫頻率上限，請稍等 1 分鐘再試）";
+      if (fallbackMsg && /fetch|network|cors/i.test(fallbackMsg)) {
+        return "瀏覽器無法連線至 Google Gemini API（若您目前在對話內建預覽框中操作，預覽框安全策略會封鎖外部連線，請改開 GitHub Pages 公開網址即可使用方案 B）";
+      }
+      return fallbackMsg || "網路或金鑰異常";
+    }
+
+    async function discoverGeminiVisionModels(apiKey) {
+      const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100", {
+        method: "GET",
+        headers: { "x-goog-api-key": apiKey }
+      });
+      if (!resp.ok) {
+        const err = new Error(formatGeminiFriendlyError(resp.status));
+        err.httpStatus = resp.status;
+        throw err;
+      }
+      const data = await resp.json();
+      const rawModels = Array.isArray(data.models) ? data.models : [];
+      const candidates = rawModels
+        .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
+        .map(m => String(m.name || "").replace(/^models\//, ""))
+        .filter(id => SAFE_MODEL_RE.test(id))
+        .filter(id => !/(tts|live|transcribe|embedding|imagen|veo|lyria|aqa|robotics|computer-use|image-generation|-image$|nano-banana|2\.0-flash)/i.test(id));
+
+      // Rank preferred modern Flash models first, then other gemini-3/4/2.5 models
+      candidates.sort((a, b) => {
+        const ia = PREFERRED_MODEL_ORDER.indexOf(a);
+        const ib = PREFERRED_MODEL_ORDER.indexOf(b);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        const aFlash = /flash/i.test(a) ? 0 : 1;
+        const bFlash = /flash/i.test(b) ? 0 : 1;
+        if (aFlash !== bFlash) return aFlash - bFlash;
+        return b.localeCompare(a);
+      });
+      return candidates;
+    }
+
+    function extractJsonFromGeminiResponse(data) {
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      // Skip thinking/thought parts returned by Gemini 3 reasoning models
+      const visibleText = parts
+        .filter(p => !p.thought && typeof p.text === "string" && p.text.trim())
+        .map(p => p.text)
+        .join("\n")
+        .trim();
+      const fallbackText = visibleText || parts.map(p => (typeof p.text === "string" ? p.text : "")).join("\n").trim();
+      if (!fallbackText) throw new Error("Gemini 未回傳有效文字內容");
+      const stripped = fallbackText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+      try {
+        return JSON.parse(stripped);
+      } catch (_) {
+        const start = stripped.indexOf("{");
+        const end = stripped.lastIndexOf("}");
+        if (start !== -1 && end > start) {
+          return JSON.parse(stripped.slice(start, end + 1));
+        }
+        throw new Error("Gemini 回傳格式非有效 JSON");
+      }
+    }
+
+    async function callSingleGeminiModel(safeModel, apiKey, prompt, base64Data) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`;
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: "image/png", data: base64Data } }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.35,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+      if (!resp.ok) {
+        const err = new Error(formatGeminiFriendlyError(resp.status));
+        err.httpStatus = resp.status;
+        throw err;
+      }
+      const data = await resp.json();
+      return extractJsonFromGeminiResponse(data);
+    }
+
     async function callGeminiVisionAnalysis(imageDataUrl, localBaseResult, userNote, selectedMotifs, apiKey, model) {
-      const safeModel = ALLOWED_GEMINI_MODELS.has(model) ? model : "gemini-2.5-flash";
+      const cleanKey = sanitizeApiKey(apiKey);
+      if (!isValidHeaderKey(cleanKey)) {
+        throw new Error("API Key 包含無效字元或長度不足，請重新複製");
+      }
       const base64Data = imageDataUrl.split(",")[1];
       const telemetrySummary = {
         strokeCount: localBaseResult.pillars.strokes.strokeCount,
@@ -1716,7 +1849,7 @@
         "你是一位具備兒童發展心理學與藝術治療專業的溫柔引導師，熟悉 John Buck 屋樹人（HTP）、Elizabeth Koppitz 兒童人物畫情緒指標（HFD）、Viktor Lowenfeld 藝術發展階段、Cathy Malchiodi《Understanding Children's Drawings》與 Burkitt 色彩研究。",
         "請仔細觀察這張使用者的自由繪畫作品，**以畫面中實際畫出的完整圖形、表情、物體、人物互動與構圖為第一主導判斷依據**（若是單色鉛筆畫，絕不可因使用黑色就判定為負面情緒）。同時整合以下客觀落筆行為數據：",
         JSON.stringify(telemetrySummary),
-        "請以繁體中文回傳嚴格的 JSON 格式（不要包含 Markdown 程式碼框），結構如下：",
+        "請只回傳繁體中文的純 JSON 物件（不可有額外說明文字），格式如下：",
         `{
   "recognizedObjects": [{"label": "具體辨識出的物體或表情（如：流淚的小狗、沒門窗的房子、微笑太陽）", "theory": "對應心理學參考架構", "meaning": "1-2句溫柔心理學解讀"}],
   "scores": {"sadness": 0-95整數, "anger": 0-95整數, "anxiety": 0-95整數, "loneliness": 0-95整數, "joy": 0-95整數, "calm": 0-95整數},
@@ -1733,37 +1866,48 @@
 }`
       ].join("\n\n");
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`;
-      const resp = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: "image/png", data: base64Data } }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0.35,
-            responseMimeType: "application/json"
-          }
-        })
-      });
-
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}`);
+      // Build ordered candidate list: user-chosen model first, then dynamically discovered active models
+      const tryList = [];
+      if (model && model !== "auto" && SAFE_MODEL_RE.test(model)) {
+        tryList.push(model);
       }
-      const data = await resp.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) throw new Error("Gemini 未回傳有效分析內容");
-      const cleaned = rawText.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-      const parsed = JSON.parse(cleaned);
+      try {
+        const discovered = await discoverGeminiVisionModels(cleanKey);
+        for (const mId of discovered) {
+          if (!tryList.includes(mId)) tryList.push(mId);
+        }
+      } catch (discErr) {
+        if (discErr.httpStatus === 400 || discErr.httpStatus === 401 || discErr.httpStatus === 403) {
+          throw discErr;
+        }
+        // If listing failed due to transient issue, try modern defaults
+        for (const defM of PREFERRED_MODEL_ORDER) {
+          if (!tryList.includes(defM)) tryList.push(defM);
+        }
+      }
 
-      // Merge AI semantic insights cleanly with Engine A's objective quantitative telemetry
+      if (tryList.length === 0) {
+        throw new Error("此 API Key 下未找到可用的多模態視覺生成模型");
+      }
+
+      let parsed = null;
+      let usedModel = tryList[0];
+      let lastErr = null;
+      for (const candidate of tryList.slice(0, 4)) {
+        try {
+          parsed = await callSingleGeminiModel(candidate, cleanKey, prompt, base64Data);
+          usedModel = candidate;
+          break;
+        } catch (err) {
+          lastErr = err;
+          // Stop retrying immediately on auth/permission/network errors
+          if (err.httpStatus === 400 || err.httpStatus === 401 || err.httpStatus === 403 || !err.httpStatus) {
+            throw err;
+          }
+        }
+      }
+      if (!parsed) throw lastErr || new Error("所有候選模型皆無法完成分析");
+
       const sMap = parsed.scores || {};
       const totalS = EMOTION_KEYS.reduce((acc, k) => acc + Math.max(5, Number(sMap[k] || 15)), 0);
       const emotions = EMOTION_KEYS.map(k => {
@@ -1790,7 +1934,7 @@
       return {
         ...localBaseResult,
         engineMode: "gemini_vision_hybrid",
-        engineLabel: `Gemini 視覺深度模式 B（${model}）`,
+        engineLabel: `Gemini 視覺深度模式 B（${usedModel}）`,
         primaryEmotion: emotions[0],
         secondaryEmotion: emotions[1],
         emotions,
@@ -2132,19 +2276,58 @@
       }
     }
 
+    function setModalStatus(msg, tone = "info") {
+      const box = document.getElementById("engineModalStatus");
+      if (!msg) { box.classList.add("hidden"); box.textContent = ""; return; }
+      box.textContent = msg;
+      box.classList.remove("hidden");
+      box.style.borderColor = tone === "ok" ? "var(--success)" : (tone === "err" ? "var(--error)" : "var(--border)");
+      box.style.backgroundColor = "var(--card)";
+    }
+
     document.getElementById("openEngineBtn").addEventListener("click", () => {
       const cfg = getEngineConfig();
       document.getElementById("radioEngineLocal").checked = cfg.mode !== "gemini";
       document.getElementById("radioEngineGemini").checked = cfg.mode === "gemini";
       document.getElementById("geminiKeyInput").value = cfg.apiKey;
-      document.getElementById("geminiModelSelect").value = cfg.model;
+      const sel = document.getElementById("geminiModelSelect");
+      if ([...sel.options].some(o => o.value === cfg.model)) sel.value = cfg.model;
+      else sel.value = "auto";
+      setModalStatus("");
       engineModal.classList.remove("hidden");
     });
     document.getElementById("closeEngineBtn").addEventListener("click", () => engineModal.classList.add("hidden"));
     engineModal.addEventListener("click", e => { if (e.target === engineModal) engineModal.classList.add("hidden"); });
 
     document.getElementById("geminiKeyInput").addEventListener("input", e => {
-      if (e.target.value.trim().length > 8) document.getElementById("radioEngineGemini").checked = true;
+      if (sanitizeApiKey(e.target.value).length > 8) document.getElementById("radioEngineGemini").checked = true;
+      setModalStatus("");
+    });
+
+    document.getElementById("testGeminiKeyBtn").addEventListener("click", async () => {
+      const rawKey = document.getElementById("geminiKeyInput").value;
+      const key = sanitizeApiKey(rawKey);
+      if (!key) { setModalStatus("請先貼上您的 Google AI Studio API Key 再測試。", "err"); return; }
+      if (!isValidHeaderKey(key)) { setModalStatus("金鑰格式含非英數符號或長度不足，請確認完整複製（不含中文或換行）。", "err"); return; }
+      const btn = document.getElementById("testGeminiKeyBtn");
+      btn.disabled = true;
+      setModalStatus("正在連線 Google Gemini API 並偵測此金鑰可用的最新視覺模型…", "info");
+      try {
+        const models = await discoverGeminiVisionModels(key);
+        if (!models.length) {
+          setModalStatus("金鑰已通過驗證，但此專案未查到可用的視覺生成模型，請至 Google AI Studio 確認專案設定。", "err");
+        } else {
+          const sel = document.getElementById("geminiModelSelect");
+          sel.innerHTML = `<option value="auto" selected>自動偵測最新可用模型（將優先用 ${escapeHtml(models[0])}）</option>` +
+            models.slice(0, 8).map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+          document.getElementById("radioEngineGemini").checked = true;
+          setModalStatus(`連線成功！偵測到 ${models.length} 個可用視覺模型，將優先使用「${models[0]}」。請點擊右下角「儲存設定」。`, "ok");
+        }
+      } catch (err) {
+        setModalStatus(`連線失敗：${formatGeminiFriendlyError(err.httpStatus, err.message)}`, "err");
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     document.getElementById("clearGeminiKeyBtn").addEventListener("click", () => {
@@ -2154,6 +2337,7 @@
       } catch (_) {}
       document.getElementById("geminiKeyInput").value = "";
       document.getElementById("radioEngineLocal").checked = true;
+      setModalStatus("");
       syncEngineHeaderUI();
       engineModal.classList.add("hidden");
       showInlineAlert("已安全清除金鑰並切換回「方案 A 本地圖形引擎」。");
@@ -2161,16 +2345,20 @@
 
     document.getElementById("saveEngineBtn").addEventListener("click", () => {
       const wantGemini = document.getElementById("radioEngineGemini").checked;
-      const key = document.getElementById("geminiKeyInput").value.trim();
+      const key = sanitizeApiKey(document.getElementById("geminiKeyInput").value);
       const model = document.getElementById("geminiModelSelect").value;
       if (wantGemini && !key) {
-        showInlineAlert("若要啟用方案 B，請貼上您的 Google Gemini API Key；或直接選用免 Key 的方案 A。");
+        setModalStatus("若要啟用方案 B，請先貼上您的 Google Gemini API Key；或點選上方的「方案 A（免 Key）」。", "err");
+        return;
+      }
+      if (wantGemini && !isValidHeaderKey(key)) {
+        setModalStatus("金鑰格式不正確（含非法字元或長度過短），請重新至 Google AI Studio 複製。", "err");
         return;
       }
       try {
         if (key) sessionStorage.setItem(SESSION_KEY_NAME, key); else sessionStorage.removeItem(SESSION_KEY_NAME);
         sessionStorage.setItem(SESSION_MODE_NAME, wantGemini ? "gemini" : "local");
-        sessionStorage.setItem(SESSION_MODEL_NAME, model);
+        sessionStorage.setItem(SESSION_MODEL_NAME, isSafeModelId(model) ? model : "auto");
       } catch (_) {}
       syncEngineHeaderUI();
       engineModal.classList.add("hidden");
@@ -2684,7 +2872,8 @@
           );
           renderReport(aiResult, true);
         } catch (err) {
-          showInlineAlert(`Gemini 視覺模式暫時無法連線（${err.message || "網路或金鑰異常"}），已自動無縫降級為「方案 A 本地圖形引擎」完成分析。`);
+          const reason = formatGeminiFriendlyError(err && err.httpStatus, err && err.message);
+          showInlineAlert(`Gemini 視覺模式暫時無法完成（${reason}），已自動無縫降級為「方案 A 本地圖形引擎」完成分析。`);
           renderReport(localResult, true);
         } finally {
           btn.disabled = false;
