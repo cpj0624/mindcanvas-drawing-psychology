@@ -27,6 +27,46 @@ from .knowledge_base import (
     VERBAL_LEXICON,
 )
 
+CRISIS_KEYWORDS: Tuple[str, ...] = (
+    "自傷", "自殺", "想死", "輕生", "割腕", "跳樓", "不想活", "結束生命",
+    "傷害自己", "受暴", "家暴", "施暴", "虐待", "性侵", "猥褻", "性騷擾",
+    "被打到", "求救", "suicide", "self-harm", "self harm", "abuse",
+)
+
+COUNSELOR_OBJECT_CUES: Dict[str, Tuple[str, ...]] = {
+    "sadness": ("哭", "淚", "雨", "烏雲", "死", "離開", "想念", "失去", "受傷", "跌倒", "生病", "墓", "枯萎", "眼淚"),
+    "anger": ("生氣", "怪物", "怪獸", "炸彈", "火", "吵架", "打架", "打人", "刺", "武器", "壞人", "火山", "暴龍", "討厭", "撕"),
+    "anxiety": ("躲", "藏", "保護罩", "盾", "牆", "圍牆", "籠", "鎖", "不敢", "害怕", "怕", "緊張", "考試", "迷宮", "黑影", "抖", "惡夢", "門沒開", "縮起來"),
+    "loneliness": ("獨自", "一個人", "角落", "沒人", "沒有朋友", "孤單", "轉學", "新班級", "被排擠", "遠遠的", "空空", "自己待著"),
+    "joy": ("笑", "玩", "好朋友", "朋友", "家人", "寵物", "太陽", "花", "愛心", "禮物", "彩虹", "糖果", "派對", "遊樂園", "蛋糕", "開心"),
+    "calm": ("安靜", "休息", "睡覺", "家", "樹", "山", "海", "散步", "平靜", "安心", "安全", "溫暖", "看書", "風景", "自然"),
+}
+
+
+def _detect_safety_alert(texts: List[str]) -> Optional[Dict[str, Any]]:
+    """Detect urgent self-harm or abuse cues and return a formal referral guardrail."""
+    joined = " ".join(t for t in texts if t).lower()
+    if not joined:
+        return None
+    hits = [kw for kw in CRISIS_KEYWORDS if kw in joined]
+    if not hits:
+        return None
+    return {
+        "level": "urgent",
+        "matchedCount": len(hits),
+        "title": "高風險安全與專業轉介提醒（倫理護欄）",
+        "message": (
+            "系統在文字或補充訪談脈絡中偵測到可能涉及自傷、受暴或立即安全疑慮的關鍵線索。"
+            "繪畫分析工具絕不可取代正式危機評估或醫療處遇，請輔導人員立即依所屬學校／機構之危機處理與兒少保護通報流程進行安全評估，並連結專業資源。"
+        ),
+        "resources": [
+            "衛福部安心專線：1925（24 小時免付費心理諮詢）",
+            "生命線協談專線：1995",
+            "婦幼／兒少保護專線：113（24 小時）",
+            "緊急危難報案：110 ／ 救護：119，並依規定通報校安或社政單位",
+        ],
+    }
+
 
 def _clamp(val: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, val))
@@ -970,6 +1010,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     omitted_detail_scale = float(age_norm["omittedDetailScale"])
     selected_motifs: List[str] = [str(m)[:48] for m in list(user_context.get("selectedMotifs") or [])[:20]]
 
+    raw_counselor = payload.get("counselorContext") or {}
+    if not isinstance(raw_counselor, dict):
+        raw_counselor = {}
+    counselor_verified_objects: List[str] = [
+        str(obj).strip()[:80]
+        for obj in list(raw_counselor.get("verifiedObjects") or [])[:15]
+        if isinstance(obj, str) and str(obj).strip()
+    ]
+    counselor_follow_up_notes: str = str(raw_counselor.get("followUpNotes") or "").strip()[:600]
+    has_counselor_context = bool(counselor_verified_objects or counselor_follow_up_notes)
+    safety_alert = _detect_safety_alert(
+        [title_or_note, counselor_follow_up_notes, *counselor_verified_objects]
+    )
+
     if not draw_strokes:
         return {
             "status": "empty",
@@ -1470,16 +1524,25 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "meaning": "多次撤銷或塗改可能代表對自我表現的猶豫、要求完美、緊張，或在思考該如何表達內心想法。",
         })
 
+    # Counselor-Assisted Image Clarification (v3.3 post-analysis human-in-the-loop verification)
+    for c_idx, obj_label in enumerate(counselor_verified_objects):
+        detected_motifs.insert(c_idx, {
+            "code": f"counselor_obj_{c_idx}",
+            "label": f"輔導員確認：{obj_label}",
+            "theory": "輔導人員協助辨識 × Gross & Hayne (1998) 脈絡驗證",
+            "meaning": "由輔導人員於作畫與訪談後協助確認的實際畫中元素，優先於純幾何猜測作為脈絡判讀與延伸引導依據。",
+        })
+
     # Expressive channels taxonomy (Jolley 2004; Picard 2007, 2012; Misalidi & Bonoti 2014)
     expressive_channels: List[str] = []
     if any(f.get("channel") == "literal" for f in recognized_figures):
         expressive_channels.append("字面表情（Literal）")
-    if any(f.get("channel") == "content" for f in recognized_figures):
+    if any(f.get("channel") == "content" for f in recognized_figures) or counselor_verified_objects:
         expressive_channels.append("情境隱喻（Content）")
     if not expressive_channels or (sharpness_index > 0.34 or overlap_index > 0.42 or active_buckets >= 2):
         expressive_channels.append("抽象形式（Abstract）")
 
-    # --- 5. Spontaneous Verbalization Analysis (Gross & Hayne, 1998) ---
+    # --- 5. Spontaneous Verbalization & Counselor Follow-Up Context (Gross & Hayne, 1998) ---
     verbal_scores = {k: 0.0 for k in EMOTION_KEYS}
     matched_words: Dict[str, List[str]] = {k: [] for k in EMOTION_KEYS}
     if title_or_note:
@@ -1489,6 +1552,17 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             if hits:
                 matched_words[emo] = hits
                 verbal_scores[emo] = _clamp(0.18 + 0.08 * (len(hits) - 1), 0.0, 0.36)
+
+    counselor_scores = {k: 0.0 for k in EMOTION_KEYS}
+    counselor_matched_cues: Dict[str, List[str]] = {k: [] for k in EMOTION_KEYS}
+    if has_counselor_context:
+        c_blob = (" ".join(counselor_verified_objects) + " " + counselor_follow_up_notes).lower()
+        for emo in EMOTION_KEYS:
+            combined_lex = list(dict.fromkeys([*COUNSELOR_OBJECT_CUES.get(emo, ()), *VERBAL_LEXICON.get(emo, ())]))
+            c_hits = [w for w in combined_lex if w in c_blob]
+            if c_hits:
+                counselor_matched_cues[emo] = c_hits[:6]
+                counselor_scores[emo] = _clamp(0.18 + 0.06 * (len(c_hits) - 1), 0.0, 0.34)
 
     # --- 6. Shape-First + Empirical Calibrated Six-Dimension Psychological Inference ---
     scores: Dict[str, float] = {k: 0.10 + fig_boosts.get(k, 0.0) for k in EMOTION_KEYS}
@@ -1632,21 +1706,23 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             scores[emo] += w
     for emo, v_score in verbal_scores.items():
         scores[emo] += v_score
+    for emo, c_score in counselor_scores.items():
+        scores[emo] += c_score
 
     # --- 6b. Multi-Evidence Convergence Guardrail (Joiner 1996; Catte & Cox 1999; Thomas & Jolley 1998) ---
     converging_channels = 0
-    if recognized_figures:
-        converging_channels += 2 if len(recognized_figures) >= 2 else 1
+    if recognized_figures or counselor_verified_objects:
+        converging_channels += 2 if (len(recognized_figures) + len(counselor_verified_objects)) >= 2 else 1
     if sharpness_index >= 0.34 or overlap_index >= 0.42 or smoothness_index >= 0.44 or revision_events >= 3:
         converging_channels += 1
     if bbox_area_ratio < 0.18 or edge_touch_ratio >= 0.30 or centeredness >= 0.72:
         converging_channels += 1
-    if title_or_note or selected_motifs:
+    if title_or_note or selected_motifs or counselor_follow_up_notes:
         converging_channels += 1
     if not is_monochrome_sketch and not is_canonical_nature_palette and active_buckets >= 2:
         converging_channels += 1
 
-    if converging_channels >= 4 or (recognized_figures and converging_channels >= 3):
+    if converging_channels >= 4 or ((recognized_figures or counselor_verified_objects) and converging_channels >= 3):
         conv_level = "high"
         conv_label = "高收斂（多維證據一致）"
         alt_note = "本次圖形結構、筆觸動力與構圖呈現多維度一致線索；仍建議傾聽創作者自己的故事作為最終理解（Thomas & Jolley, 1998）。"
@@ -1829,6 +1905,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         inner_thoughts_paragraph += f" 同時隱約流露出「{secondary['label']}」的細微底色，顯示當下感受是立體而富有層次的。"
     if title_or_note:
         inner_thoughts_paragraph += f" 結合你留下的文字「{title_or_note}」，更清楚看見這幅畫正在替此刻的心境發聲。"
+    if counselor_verified_objects:
+        inner_thoughts_paragraph += f" 納入輔導人員協助辨識的畫中元素（{'、'.join(counselor_verified_objects[:3])}）後，更能貼近創作者原本想表達的真實畫面。"
+    if counselor_follow_up_notes:
+        inner_thoughts_paragraph += " 並已結合後續訪談溝通脈絡重新校準整體判讀。"
 
     # --- 8. Explainable Reasoning Tree (3-Level Interactive Logic & Evidence Summary) ---
     emo_short = {k: EMOTION_PROFILES[k]["short_label"] for k in EMOTION_KEYS}
@@ -1843,6 +1923,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # Branch 1: Figures & Content (Primary priority)
     fig_children: List[Dict[str, str]] = []
+    if counselor_verified_objects:
+        c_impact_str = _fmt_impact(counselor_scores) if any(v > 0 for v in counselor_scores.values()) else "人工脈絡確認"
+        fig_children.append({
+            "id": "fig_counselor_verified",
+            "title": f"輔導人員協助辨識：{('、'.join(counselor_verified_objects[:4]))}",
+            "tag": c_impact_str,
+            "summary": "已由輔導人員於繪畫後協助確認畫中具體物件／角色，優先納入內容脈絡。",
+            "detail": (
+                f"輔導人員共補充確認 {len(counselor_verified_objects)} 項畫面元素（{'、'.join(counselor_verified_objects)}）。"
+                "依 Gross & Hayne (1998) 與 Picard 等人（2007）研究，由創作者口頭澄清並經輔導人員確認之畫面主題，"
+                "其脈絡可信度高於純幾何猜測，已同步更新至情緒收斂權重與互動引導提問。"
+            ),
+            "citation": "輔導人員人工協助辨識 × Gross & Hayne (1998); Picard et al. (2007)",
+        })
     for f in recognized_figures:
         ch_lbl = "字面表情（Literal）" if f.get("channel") == "literal" else "情境隱喻（Content）"
         fig_children.append({
@@ -1865,7 +1959,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "detail": (
                 "方案 A 採幾何拓樸辨識（臉部表情、屋樹門窗、太陽、雨雲、愛心、打叉、柵欄、人物）。"
                 "當未命中固定圖式時，系統不會硬猜物件，而是自動將權重轉移至軟體介面筆觸動力、空間構圖比例與口語脈絡；"
-                "若畫中有動物、複雜場景或多人物故事，可切換方案 B（Gemini 視覺）進行開放式內容判讀。"
+                "輔導人員亦可直接於下方「輔導人員 AI 諮詢與圖像補充區」輸入實際辨識內容並重新解析，或切換方案 B（Gemini 視覺）。"
             ),
             "citation": "Jolley et al. (2004); Picard et al. (2007)",
         })
@@ -2033,8 +2127,32 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
     ]
 
+    if has_counselor_context:
+        c_matched_flat = [
+            f"{emo_short[k]}({','.join(v)})"
+            for k, v in counselor_matched_cues.items()
+            if v
+        ]
+        context_children.insert(1, {
+            "id": "ctx_counselor",
+            "title": "輔導人員協助辨識與後續訪談脈絡",
+            "tag": _fmt_impact(counselor_scores) if any(v > 0 for v in counselor_scores.values()) else "已納入人工補充",
+            "summary": (
+                (f"協助辨識：{'、'.join(counselor_verified_objects)}。" if counselor_verified_objects else "")
+                + (f"後續溝通紀錄：「{counselor_follow_up_notes[:120]}{'…' if len(counselor_follow_up_notes) > 120 else ''}」" if counselor_follow_up_notes else "")
+            ),
+            "detail": (
+                f"輔導人員於初次分析後補入之脈絡已整合至雙分頁重算"
+                + (f"（命中語意線索：{'、'.join(c_matched_flat)}，上限 +0.34）" if c_matched_flat else "（維持客觀中性權重，未硬性加權）")
+                + "；系統仍遵循 Thomas & Jolley (1998) 多元詮釋原則，不以單一線索下診斷定論。"
+            ),
+            "citation": "Human-in-the-Loop Counselor Context × Gross & Hayne (1998)",
+        })
+
     # Build top-level judgment summary explaining WHY primary emotion won
     lead_reasons: List[str] = []
+    if counselor_verified_objects:
+        lead_reasons.append(f"納入輔導人員協助辨識「{'、'.join(counselor_verified_objects[:2])}」")
     if recognized_figures:
         lead_reasons.append(f"優先辨識出「{'、'.join(f['label'] for f in recognized_figures[:2])}」")
     if is_monochrome_sketch:
@@ -2064,6 +2182,19 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         + "點擊下方任一分支節點，可逐層展開查看模型採用了哪些數據、規則與國際期刊文獻。"
     )
 
+    total_content_count = len(recognized_figures) + len(counselor_verified_objects)
+    fig_branch_summary = (
+        f"已整合輔導人員確認元素「{'、'.join(counselor_verified_objects[:2])}」"
+        + (f"與系統偵測「{'、'.join(f['label'] for f in recognized_figures[:2])}」" if recognized_figures else "")
+        + f"，共同作為「{primary['shortLabel']}」之核心內容判準。"
+        if counselor_verified_objects
+        else (
+            f"已偵測「{'、'.join(f['label'] for f in recognized_figures[:3])}」，對「{primary['shortLabel']}」構成核心判準。"
+            if recognized_figures
+            else "未命中 17 類固定圖式，系統自動以筆觸動力、空間比例與文字作為主要推論來源。"
+        )
+    )
+
     reasoning_tree = {
         "rootTitle": f"結論總結：{primary['label']}（{primary['score']} 分）",
         "rootBadge": conv_label,
@@ -2073,13 +2204,13 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             {
                 "id": "figures",
                 "title": "① 圖像內容與表情辨識（第一優先）",
-                "status": "primary" if recognized_figures else "neutral",
-                "badge": f"辨識 {len(recognized_figures)} 項圖形" if recognized_figures else "無固定圖式（轉由動力推估）",
-                "summary": (
-                    f"已偵測「{'、'.join(f['label'] for f in recognized_figures[:3])}」，對「{primary['shortLabel']}」構成核心判準。"
-                    if recognized_figures
-                    else "未命中 17 類固定圖式，系統自動以筆觸動力、空間比例與文字作為主要推論來源。"
+                "status": "primary" if total_content_count > 0 else "neutral",
+                "badge": (
+                    f"共 {total_content_count} 項（含輔導員確認）"
+                    if counselor_verified_objects
+                    else (f"辨識 {len(recognized_figures)} 項圖形" if recognized_figures else "無固定圖式（轉由動力推估）")
                 ),
+                "summary": fig_branch_summary,
                 "children": fig_children,
             },
             {
@@ -2109,7 +2240,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             {
                 "id": "context_guardrail",
                 "title": "⑤ 口語脈絡、年齡常模與防過度解讀護欄",
-                "status": "guardrail" if (conv_level == "low" or incongruence_note or age_group == "3-6") else "neutral",
+                "status": "guardrail" if (conv_level == "low" or incongruence_note or age_group == "3-6" or safety_alert) else "neutral",
                 "badge": f"{conv_label.split('（')[0]} · 上限 {max_score_cap}",
                 "summary": alt_note,
                 "children": context_children,
@@ -2139,9 +2270,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     fig_first = recognized_figures[0] if recognized_figures else None
     fig_code = fig_first["code"] if fig_first else ""
-    fig_name = fig_first["label"] if fig_first else ""
+    verified_first = counselor_verified_objects[0] if counselor_verified_objects else ""
+    fig_name = verified_first or (fig_first["label"] if fig_first else "")
 
-    if fig_first:
+    if fig_name:
         opening_cue = f"「我看見你在畫紙上畫了『{fig_name}』，感覺這裡面藏著一個很特別的故事。你可以當小導遊，帶我看看這幅畫嗎？」"
     elif title_or_note:
         opening_cue = f"「你幫這幅畫留下了『{title_or_note}』這句話，我很想知道畫裡正在發生什麼事，可以跟我說說看嗎？」"
@@ -2155,7 +2287,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         f"如果我們一起走進這幅畫裡，你最想先帶我看哪一個地方？（你剛剛是從哪一筆開始畫的？）",
         (
             f"我注意到畫裡有「{fig_name}」，你可以告訴我他是誰、或者他正在這裡做什麼嗎？"
-            if fig_first
+            if fig_name
             else f"這裡的線條和留白安排得很特別，你畫這一塊的時候心裡想到的是什麼畫面或聲音呢？"
         ),
     ]
@@ -2335,6 +2467,12 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         "strengthsNote": strengths_note,
         "reasoningTree": reasoning_tree,
         "dialogueGuide": dialogue_guide,
+        "counselorContext": {
+            "verifiedObjects": counselor_verified_objects,
+            "followUpNotes": counselor_follow_up_notes,
+            "hasContext": has_counselor_context,
+        },
+        "safetyAlert": safety_alert,
         "primaryEmotion": primary,
         "secondaryEmotion": secondary,
         "emotions": emotion_results,
@@ -2405,3 +2543,153 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "嚴格遵循「不以單一線索下定論」原則，僅作為溫柔的情緒探索與 Draw & Tell 親子對話起點，並非臨床心理或醫療診斷。"
         ),
     }
+
+
+def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Local zero-key adult/counselor consultation responder grounded in empirical report data."""
+    question = str(payload.get("question") or "").strip()[:500]
+    if not question:
+        return {
+            "status": "error",
+            "reply": "請先輸入想討論的畫面細節、辨識補充或後續提問。",
+            "safetyAlert": None,
+            "suggestedObject": None,
+            "suggestedNote": None,
+        }
+
+    report = payload.get("analysisSummary") or {}
+    if not isinstance(report, dict):
+        report = {}
+    counselor_ctx = payload.get("counselorContext") or {}
+    if not isinstance(counselor_ctx, dict):
+        counselor_ctx = {}
+
+    verified_objects = [
+        str(x).strip()[:80]
+        for x in list(counselor_ctx.get("verifiedObjects") or [])[:15]
+        if isinstance(x, str) and str(x).strip()
+    ]
+    follow_up_notes = str(counselor_ctx.get("followUpNotes") or "").strip()[:600]
+
+    safety_alert = _detect_safety_alert([question, follow_up_notes, *verified_objects])
+    if safety_alert:
+        res_lines = "\n".join(f"• {r}" for r in safety_alert["resources"])
+        reply = (
+            "【安全與專業轉介優先提醒】\n"
+            "您在提問或訪談紀錄中提到可能涉及自傷、受暴或立即安全疑慮的線索。"
+            "繪畫心理工具僅為輔助理解之起點，絕不可替代正式危機評估或法定保護處遇。\n\n"
+            "建議輔導人員立即採取：\n"
+            "1. 優先確認個案當下人身安全與情緒穩定，避免單獨留置風險。\n"
+            "2. 依貴校／機構危機處理與兒少保護責任通報流程啟動評估與轉介。\n"
+            f"3. 立即聯絡專業資源：\n{res_lines}"
+        )
+        return {
+            "status": "ok",
+            "engineMode": "local_consult_v3",
+            "reply": reply,
+            "safetyAlert": safety_alert,
+            "suggestedObject": None,
+            "suggestedNote": None,
+        }
+
+    pri_label = str(report.get("primaryLabel") or "主要傾向")[:40]
+    pri_score = int(_safe_float(report.get("primaryScore"), 0))
+    sec_label = str(report.get("secondaryLabel") or "次要傾向")[:40]
+    sec_score = int(_safe_float(report.get("secondaryScore"), 0))
+    conv_label = str(report.get("convergenceLabel") or "探索性參考")[:60]
+    age_label = str(report.get("ageNormLabel") or "未指定（通用常模）")[:40]
+    root_summary = str(report.get("reasoningSummary") or "")[:420]
+    alt_note = str(report.get("alternativeNote") or "同一特徵也可能源自畫技習慣或工具探索（Thomas & Jolley, 1998）。")[:260]
+    strengths_note = str(report.get("strengthsNote") or "")[:260]
+    stroke_insight = str(report.get("strokeInsight") or "")[:260]
+    figures_list = [str(f)[:40] for f in list(report.get("recognizedFigures") or [])[:6] if isinstance(f, str)]
+
+    q_lower = question.lower()
+    suggested_obj: Optional[str] = None
+    suggested_note: Optional[str] = None
+
+    # 1. Counselor clarifying ambiguous drawn content
+    clarify_markers = ("其實是", "畫的是", "代表", "＝", "=", "左下", "右下", "左上", "右上", "中間那", "角落那", "那一塊", "模糊", "補充辨識")
+    if any(m in question for m in clarify_markers):
+        cleaned = question.replace("我補充一下", "").replace("補充辨識", "").strip(" ：:，,。")
+        if cleaned and len(cleaned) <= 72:
+            suggested_obj = cleaned
+        else:
+            suggested_note = question[:180]
+        matched_dirs = []
+        for emo in EMOTION_KEYS:
+            cues = [w for w in COUNSELOR_OBJECT_CUES.get(emo, ()) if w in q_lower]
+            if cues:
+                matched_dirs.append(f"{EMOTION_PROFILES[emo]['short_label']}（線索：{'、'.join(cues[:3])}）")
+        cue_line = (
+            f"此描述在兒童繪畫情境脈絡中可能呼應：{'；'.join(matched_dirs)}。"
+            if matched_dirs
+            else "此元素屬高度個人化敘事象徵，建議以孩子自己的故事定義為準，避免直接套用制式符號表。"
+        )
+        reply = (
+            "【協助圖像辨識與脈絡校準】\n"
+            f"感謝您補充畫面實際內容！依 Picard 等人（2007）與 Gross & Hayne（1998）實證，創作者親口澄清並經輔導人員確認的物件意義，準確度遠高於純幾何推估。\n"
+            f"• 脈絡檢視：{cue_line}\n"
+            "• 建議延伸問法：「你剛剛說這裡畫的是這個角色／東西，如果它現在能講一句話，它最想說什麼？」\n"
+            "• 下一步：您可以點擊上方「納入補充資訊並重新解析」，系統會將您確認的元素寫入判斷樹狀圖與互動引導分頁。"
+        )
+    # 2. Explaining scoring, trade-off, or alternative non-emotional hypotheses
+    elif any(k in question for k in ("為什麼", "為何", "依據", "分數", "取捨", "次高", "替代", "誤判", "判斷", "差異", "邏輯")):
+        gap = abs(pri_score - sec_score)
+        gap_txt = (
+            f"主要傾向「{pri_label}（{pri_score}）」領先次高「{sec_label}（{sec_score}）」達 {gap} 分，視覺／行為證據相對集中。"
+            if gap >= 12
+            else f"主要傾向「{pri_label}（{pri_score}）」與次高「{sec_label}（{sec_score}）」僅差 {gap} 分，顯示感受具雙重交織性，解讀時不宜只看單一標籤。"
+        )
+        reply = (
+            "【判斷依據與多元替代詮釋（實證核對）】\n"
+            f"• 目前結論與差距：{gap_txt}（證據收斂：{conv_label}；常模：{age_label}）\n"
+            f"• 模型推理摘要：{root_summary or stroke_insight or '系統採圖形內容優先，其次結合介面筆觸、空間比例與去偏色彩。'}\n"
+            f"• 非情緒替代解釋（Thomas & Jolley, 1998）：{alt_note}\n"
+            f"• 正向資源檢視（Pénzes, 2020）：{strengths_note or '畫面仍展現創作者運用視覺媒介主動表達與整理經驗的彈性。'}\n"
+            "• 實務建議：依 Joiner (1996) 與 Catte & Cox (1999) 原則，請把上述分數視為『假設清單』，搭配後續訪談紀錄再按重新解析檢核。"
+        )
+    # 3. Child is silent, says "不知道", or avoids answering
+    elif any(k in question for k in ("不知道", "不想說", "沉默", "不講", "抗拒", "逃避", "怎麼接", "怎麼問", "下一步", "接話", "沒嘴巴", "沒門窗")):
+        focus_obj = verified_objects[0] if verified_objects else (figures_list[0] if figures_list else "畫裡最顯眼的那個形狀")
+        reply = (
+            "【面對沉默／「不知道」之非誘導接話策略（Gross & Hayne, 1998; Malchiodi, 1998）】\n"
+            "孩子說「不知道」常不是刻意隱瞞，而是還沒找到合適詞彙，或對直接被問「你是不是很……？」感到壓力。\n"
+            "建議改用『降壓＋第三人稱投射』三步驟：\n"
+            "1. 先接納沉默：「沒關係喔，不用急著想答案，你願意把它畫下來就已經很棒了。」\n"
+            f"2. 回到具體細節而非情緒：「我看見這裡有『{focus_obj}』，如果幫這幅畫配一種聲音或背景音樂，你覺得會像什麼聲音？」\n"
+            "3. 給選擇題或共創邀約：「如果你想幫畫裡加一個小幫手或秘密道具，下次我們可以畫在旁邊嗎？」\n"
+            "• 提醒：每次只問 1 題並給足 5–10 秒靜默等待，切勿連環追問或替孩子猜情緒。"
+        )
+    # 4. Summarize current notes / prepare for re-analysis
+    elif any(k in question for k in ("整理", "摘要", "重點", "回填", "總結")):
+        obj_txt = "、".join(verified_objects) if verified_objects else "（尚未填寫協助辨識物件）"
+        note_txt = follow_up_notes if follow_up_notes else "（尚未填寫後續訪談紀錄）"
+        reply = (
+            "【目前輔導補充脈絡整理】\n"
+            f"• 系統原本辨識圖形：{'、'.join(figures_list) if figures_list else '無固定圖式（以筆觸動力為主）'}\n"
+            f"• 輔導員補充辨識物件：{obj_txt}\n"
+            f"• 後續溝通／訪談紀錄：{note_txt}\n"
+            "• 建議操作：確認上方兩欄已補上孩子實際說明的物件與反應後，點擊『納入補充資訊並重新解析』，即可同步刷新「內在情緒分析」與「圖像互動引導」兩個分頁。"
+        )
+    else:
+        suggested_note = question[:180] if len(question) >= 8 else None
+        reply = (
+            "【本地實證諮詢摘要（免金鑰模式 A）】\n"
+            f"• 當前作品焦點：主要傾向「{pri_label}（{pri_score}）」、次高「{sec_label}（{sec_score}）」，收斂度為「{conv_label}」（常模：{age_label}）。\n"
+            f"• 筆觸與正向資源：{stroke_insight or '已整合軟體介面筆觸動力。'} {strengths_note}\n"
+            "• 建議後續探索方向：\n"
+            "  1. 若畫中有模糊或抽象部位，可直接於上方『協助辨識畫面元素』填入孩子口述的實際物體並重算。\n"
+            "  2. 對話時優先採用開放式描述（如『這裡正在發生什麼事？』），再把孩子補充的重點記於上方『後續訪談反應』。\n"
+            "（提示：若您已在右上角啟用方案 B 個人 Gemini API Key，本諮詢區會自動升級為可檢視完整畫作影像的開放式多模態 AI 顧問。）"
+        )
+
+    return {
+        "status": "ok",
+        "engineMode": "local_consult_v3",
+        "reply": reply,
+        "safetyAlert": None,
+        "suggestedObject": suggested_obj,
+        "suggestedNote": suggested_note,
+    }
+

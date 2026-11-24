@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .analyzer import analyze_drawing
+from .analyzer import analyze_drawing, consult_counselor
 from .knowledge_base import PSYCHOLOGY_REFERENCES
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -27,11 +27,11 @@ ALLOWED_ORIGINS = (
 app = FastAPI(
     title="心畫室 MindCanvas — 兒童心理學繪畫情緒分析後端",
     description=(
-        "依據兒童繪畫心理學（Buck HTP 屋樹人、Koppitz 情緒指標、Lowenfeld、"
-        "Malchiodi、Burkitt 色彩研究）分析使用者自由繪畫之色彩、筆觸動力、"
-        "空間構圖與繪畫歷程，推估情緒狀態與內在想表達之想法。"
+        "依據 14 篇國際心理學同儕審查期刊實證與經典 HTP／Koppitz 架構，"
+        "分析使用者自由繪畫之圖形、介面筆觸動力、空間構圖與繪畫歷程，"
+        "並支援輔導人員後設圖像補充重算與實證諮詢。"
     ),
-    version="2.0.1",
+    version="3.3.0",
 )
 
 app.add_middleware(
@@ -50,6 +50,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store, no-cache, must-revalidate, private")
+        response.headers.setdefault("Pragma", "no-cache")
     return response
 
 
@@ -106,6 +109,13 @@ class UserContext(BaseModel):
     )
 
 
+class CounselorContext(BaseModel):
+    verifiedObjects: List[Annotated[str, Field(max_length=80)]] = Field(
+        default_factory=list, max_length=15
+    )
+    followUpNotes: str = Field(default="", max_length=600)
+
+
 class ClientImageStats(BaseModel):
     inkCoverageRatio: UnitFloat
     grid3x3: List[UnitFloat] = Field(..., min_length=9, max_length=9)
@@ -127,6 +137,7 @@ class AnalyzeRequest(BaseModel):
     strokes: List[StrokeItem] = Field(default_factory=list, max_length=2000)
     processMetrics: ProcessMetrics = Field(default_factory=ProcessMetrics)
     userContext: UserContext = Field(default_factory=UserContext)
+    counselorContext: CounselorContext = Field(default_factory=CounselorContext)
     imageDataUrl: Optional[str] = Field(default=None, max_length=6_000_000)
     clientImageStats: Optional[ClientImageStats] = None
 
@@ -140,9 +151,31 @@ class AnalyzeRequest(BaseModel):
         return self
 
 
+class ConsultAnalysisSummary(BaseModel):
+    primaryLabel: str = Field(default="", max_length=48)
+    primaryScore: int = Field(default=0, ge=0, le=100)
+    secondaryLabel: str = Field(default="", max_length=48)
+    secondaryScore: int = Field(default=0, ge=0, le=100)
+    convergenceLabel: str = Field(default="", max_length=64)
+    ageNormLabel: str = Field(default="", max_length=48)
+    reasoningSummary: str = Field(default="", max_length=500)
+    alternativeNote: str = Field(default="", max_length=320)
+    strengthsNote: str = Field(default="", max_length=320)
+    strokeInsight: str = Field(default="", max_length=320)
+    recognizedFigures: List[Annotated[str, Field(max_length=64)]] = Field(
+        default_factory=list, max_length=12
+    )
+
+
+class ConsultRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+    analysisSummary: ConsultAnalysisSummary = Field(default_factory=ConsultAnalysisSummary)
+    counselorContext: CounselorContext = Field(default_factory=CounselorContext)
+
+
 @app.get("/api/health")
 def health_check() -> Dict[str, str]:
-    return {"status": "ok", "service": "mindcanvas-child-psychology-backend"}
+    return {"status": "ok", "service": "mindcanvas-child-psychology-backend", "version": "3.3.0"}
 
 
 @app.get("/api/references")
@@ -153,6 +186,12 @@ def get_references() -> Dict[str, Any]:
 @app.post("/api/analyze")
 def analyze_endpoint(req: AnalyzeRequest) -> JSONResponse:
     result = analyze_drawing(req.model_dump())
+    return JSONResponse(content=result)
+
+
+@app.post("/api/consult")
+def consult_endpoint(req: ConsultRequest) -> JSONResponse:
+    result = consult_counselor(req.model_dump())
     return JSONResponse(content=result)
 
 

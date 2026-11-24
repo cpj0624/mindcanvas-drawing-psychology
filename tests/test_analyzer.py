@@ -9,7 +9,7 @@ import unittest
 
 from PIL import Image, ImageDraw
 
-from backend.analyzer import analyze_drawing
+from backend.analyzer import analyze_drawing, consult_counselor
 
 
 def _make_zigzag_stroke(
@@ -591,6 +591,94 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         joined_avoid = " ".join(item["avoid"] for item in dg["avoidPhrases"])
         self.assertIn("黑色", joined_avoid)
         self.assertIn("小", joined_avoid)
+
+    def test_v33_counselor_context_reanalysis_fusion(self):
+        """Counselor verifiedObjects & followUpNotes must enrich tree Branch 1/5, motifs, and dialogueGuide."""
+        strokes = [
+            _make_circle_stroke(140, 410, 28, "#2A2B30", size=5, steps=24, dt_ms=42, tool="pencil"),
+            _make_line_stroke(100, 380, 180, 380, "#2A2B30", size=5, steps=10, dt_ms=42, tool="pencil"),
+        ]
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "7-10"},
+            "counselorContext": {
+                "verifiedObjects": ["左下角＝躲在桌下的小狗", "橫線＝保護罩"],
+                "followUpNotes": "孩子訪談表示小狗因為換新班級有點害怕不敢出來說話",
+            },
+        })
+        self.assertEqual(res["status"], "ok")
+        self.assertTrue(res["counselorContext"]["hasContext"])
+        self.assertIsNone(res["safetyAlert"])
+        self.assertTrue(any("輔導員確認：左下角＝躲在桌下的小狗" in m["label"] for m in res["detectedMotifs"]))
+        fig_branch = res["reasoningTree"]["branches"][0]
+        self.assertEqual(fig_branch["status"], "primary")
+        self.assertTrue(any(ch["id"] == "fig_counselor_verified" for ch in fig_branch["children"]))
+        ctx_branch = res["reasoningTree"]["branches"][4]
+        self.assertTrue(any(ch["id"] == "ctx_counselor" for ch in ctx_branch["children"]))
+        self.assertIn("左下角＝躲在桌下的小狗", res["dialogueGuide"]["openingCue"])
+
+    def test_v33_counselor_consultation_and_crisis_guardrail(self):
+        """consult_counselor handles clarification, reasoning Q&A, resistance coaching, and urgent crisis referral."""
+        summary = {
+            "primaryLabel": "緊張與焦慮",
+            "primaryScore": 74,
+            "secondaryLabel": "孤單與渴望連結",
+            "secondaryScore": 68,
+            "convergenceLabel": "中度收斂（探索性參考）",
+            "ageNormLabel": "7–10 歲（國小中低）",
+            "reasoningSummary": "筆觸修正較多且主體縮聚於一隅。",
+            "alternativeNote": "也可能與剛接觸數位畫布不熟悉有關。",
+            "strengthsNote": "仍保有清晰的邊界整理資源。",
+            "recognizedFigures": ["微小人物"],
+        }
+        r_clarify = consult_counselor({
+            "question": "左下角那一塊其實是躲起來的烏龜",
+            "analysisSummary": summary,
+            "counselorContext": {},
+        })
+        self.assertEqual(r_clarify["status"], "ok")
+        self.assertIsNone(r_clarify["safetyAlert"])
+        self.assertIn("烏龜", r_clarify["suggestedObject"] or "")
+
+        r_why = consult_counselor({
+            "question": "為什麼焦慮和孤單分數很接近？有哪些替代解釋？",
+            "analysisSummary": summary,
+            "counselorContext": {},
+        })
+        self.assertIn("替代解釋", r_why["reply"])
+        self.assertIn("6 分", r_why["reply"])
+
+        r_silent = consult_counselor({
+            "question": "孩子回答不知道也不想說，建議怎麼接話？",
+            "analysisSummary": summary,
+            "counselorContext": {},
+        })
+        self.assertIn("第三人稱", r_silent["reply"])
+
+        r_crisis = consult_counselor({
+            "question": "孩子訪談中提到在家受暴且有自傷想法",
+            "analysisSummary": summary,
+            "counselorContext": {},
+        })
+        self.assertIsNotNone(r_crisis["safetyAlert"])
+        self.assertEqual(r_crisis["safetyAlert"]["level"], "urgent")
+        self.assertIn("1925", r_crisis["reply"])
+        self.assertIn("113", r_crisis["reply"])
+
+    def test_v33_security_consult_request_validation(self):
+        """FastAPI ConsultRequest & CounselorContext must enforce strict bounds against DoS/overflow."""
+        from pydantic import ValidationError
+        from backend.server import AnalyzeRequest, ConsultRequest
+
+        with self.assertRaises(ValidationError):
+            ConsultRequest(question="")
+        with self.assertRaises(ValidationError):
+            ConsultRequest(question="x" * 501)
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(counselorContext={"verifiedObjects": [f"obj{i}" for i in range(16)]})
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(counselorContext={"followUpNotes": "a" * 601})
 
 
 if __name__ == "__main__":
