@@ -366,6 +366,167 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         with self.assertRaises(ValidationError):
             AnalyzeRequest(strokes=[{"points": heavy_pts} for _ in range(20)])
 
+        # New v3.0 telemetry bounds validation
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(strokes=[{"points": [{"x": 10.0, "y": 10.0, "tx": 180.0}]}])
+
+        valid_v3 = AnalyzeRequest(
+            strokes=[{
+                "tool": "pencil",
+                "color": "#2A2B30",
+                "size": 6,
+                "pointerType": "pen",
+                "points": [{"x": 100.0, "y": 100.0, "t": 0.0, "p": 0.72, "tx": 18.0, "ty": -12.0, "w": 4.0}],
+            }],
+            processMetrics={
+                "activeDrawingMs": 3200.0,
+                "totalDurationMs": 9500.0,
+                "colorChangeCount": 2,
+                "toolSwitchCount": 1,
+                "sizeChangeCount": 1,
+                "inputDevices": ["pen"],
+            },
+            userContext={"titleOrNote": "測試", "ageGroup": "7-10"},
+        )
+        self.assertEqual(valid_v3.userContext.ageGroup, "7-10")
+
+    def test_v3_face_no_mouth_and_age_group_attenuation(self):
+        """Omitted mouth detects face_no_mouth; age 3-6 attenuates omitted-detail penalty (Picard 2012; Nanayama Tanaka 2020)."""
+        c = "#2A2B30"
+        strokes = [
+            _make_circle_stroke(400, 270, 95, c, size=6, steps=36, dt_ms=35, tool="pencil"),
+            _make_circle_stroke(365, 245, 9, c, size=5, steps=16, dt_ms=30, tool="pencil"),
+            _make_circle_stroke(435, 245, 9, c, size=5, steps=16, dt_ms=30, tool="pencil"),
+        ]
+        res_young = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "3-6"},
+        })
+        res_older = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "11+"},
+        })
+        self.assertIn("face_no_mouth", {f["code"] for f in res_young["recognizedFigures"]})
+        self.assertIn("face_no_mouth", {f["code"] for f in res_older["recognizedFigures"]})
+        self.assertEqual(res_young["ageNorm"]["omittedDetailScale"], 0.45)
+        self.assertEqual(res_older["ageNorm"]["omittedDetailScale"], 1.0)
+        young_anx = next(e["score"] for e in res_young["emotions"] if e["key"] == "anxiety")
+        older_anx = next(e["score"] for e in res_older["emotions"] if e["key"] == "anxiety")
+        self.assertLessEqual(young_anx, older_anx)
+
+    def test_v3_open_rounded_smile_nanayama_tanaka(self):
+        """Enclosed wide rounded open smile -> face_happy & joy (Nanayama Tanaka et al., 2020)."""
+        c = "#2A2B30"
+        # Oval open mouth inside lower face
+        mouth_pts = [
+            {"x": 400 + 38 * math.cos(2 * math.pi * i / 28), "y": 318 + 20 * math.sin(2 * math.pi * i / 28), "t": i * 25.0, "p": 0.5}
+            for i in range(29)
+        ]
+        strokes = [
+            _make_circle_stroke(400, 270, 100, c, size=6, steps=36, dt_ms=30, tool="pencil"),
+            _make_circle_stroke(365, 240, 8, c, size=5, steps=16, dt_ms=25, tool="pencil"),
+            _make_circle_stroke(435, 240, 8, c, size=5, steps=16, dt_ms=25, tool="pencil"),
+            {"tool": "pencil", "color": c, "size": 5, "points": mouth_pts},
+        ]
+        res = analyze_drawing({"canvas": {"width": 800, "height": 550}, "strokes": strokes})
+        self.assertIn("face_happy", {f["code"] for f in res["recognizedFigures"]})
+        self.assertEqual(res["primaryEmotion"]["key"], "joy", f"Got {res['emotions']}")
+
+    def test_v3_canonical_nature_palette_debiasing_crawford(self):
+        """Blue sky + green grass + warm sun must trigger canonical nature palette debiasing (Crawford et al., 2012)."""
+        strokes = [
+            # Blue sky waves at top
+            _make_line_stroke(60, 75, 740, 75, "#3B82F6", size=14, steps=18, dt_ms=32, tool="watercolor"),
+            _make_line_stroke(60, 110, 740, 110, "#60A5FA", size=14, steps=18, dt_ms=32, tool="watercolor"),
+            # Green grass hills at bottom
+            _make_line_stroke(50, 440, 750, 440, "#43A047", size=14, steps=18, dt_ms=35, tool="crayon"),
+            _make_line_stroke(50, 470, 750, 470, "#2E7D32", size=14, steps=18, dt_ms=35, tool="crayon"),
+            # Warm yellow sun
+            _make_circle_stroke(640, 130, 38, "#FFB300", size=10, steps=28, dt_ms=30, tool="crayon"),
+        ]
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "processMetrics": {"colorChangeCount": 3, "toolSwitchCount": 1},
+        })
+        self.assertTrue(res["isCanonicalNaturePalette"])
+        self.assertIn(res["primaryEmotion"]["key"], ("joy", "calm"), f"Got {res['emotions']}")
+
+    def test_v3_software_interface_stroke_sensing_modes(self):
+        """Software interface sensing differentiates mouse/pen/touch, force proxies, and inAirPauseRatio."""
+        # 1) Mouse: heavy marker vs light watercolor (both flat p=0.5)
+        heavy_mouse = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [
+                {**_make_line_stroke(100, 150, 700, 150, "#D92B2B", size=22, steps=16, dt_ms=10, tool="marker"), "pointerType": "mouse"},
+                {**_make_line_stroke(100, 220, 700, 220, "#D92B2B", size=22, steps=16, dt_ms=10, tool="marker"), "pointerType": "mouse"},
+            ],
+            "processMetrics": {"totalDurationMs": 20000, "activeDrawingMs": 4000, "colorChangeCount": 1, "toolSwitchCount": 1},
+        })
+        light_mouse = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [
+                {**_make_line_stroke(100, 150, 400, 150, "#60A5FA", size=4, steps=16, dt_ms=65, tool="watercolor"), "pointerType": "mouse"},
+                {**_make_line_stroke(100, 220, 400, 220, "#60A5FA", size=4, steps=16, dt_ms=65, tool="watercolor"), "pointerType": "mouse"},
+            ],
+        })
+        self.assertEqual(heavy_mouse["pillars"]["strokes"]["sensingMode"], "mouse_interface")
+        self.assertGreater(
+            heavy_mouse["pillars"]["strokes"]["effectiveForceIndex"],
+            light_mouse["pillars"]["strokes"]["effectiveForceIndex"],
+        )
+        self.assertAlmostEqual(heavy_mouse["pillars"]["strokes"]["inAirPauseRatio"], 0.8, delta=0.05)
+
+        # 2) Stylus pen hardware mode with real varying pressure + tilt
+        pen_pts = [
+            {"x": 150 + i * 22.0, "y": 260.0, "t": i * 25.0, "p": 0.25 + 0.06 * i, "tx": 24.0, "ty": 14.0, "w": 2.0}
+            for i in range(12)
+        ]
+        pen_res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [{"tool": "pencil", "color": "#2A2B30", "size": 6, "pointerType": "pen", "points": pen_pts}],
+        })
+        self.assertEqual(pen_res["pillars"]["strokes"]["sensingMode"], "pen_hardware")
+
+        # 3) Touch contact width mode
+        touch_pts = [
+            {"x": 150 + i * 22.0, "y": 260.0, "t": i * 25.0, "p": 0.5, "w": 36.0}
+            for i in range(10)
+        ]
+        touch_res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [{"tool": "crayon", "color": "#2A2B30", "size": 8, "pointerType": "touch", "points": touch_pts}],
+        })
+        self.assertEqual(touch_res["pillars"]["strokes"]["sensingMode"], "touch_contact")
+
+    def test_v3_low_evidence_convergence_score_cap(self):
+        """Minimal single-stroke input must stay in low convergence and cap score <= 66 (Joiner 1996; Catte & Cox 1999)."""
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [_make_line_stroke(300, 260, 480, 260, "#2A2B30", size=6, steps=6, dt_ms=40, tool="pencil")],
+        })
+        self.assertEqual(res["evidenceConvergence"]["level"], "low")
+        self.assertLessEqual(res["primaryEmotion"]["score"], 66)
+        self.assertTrue(res["evidenceConvergence"]["alternativeNote"])
+
+    def test_v3_references_and_penzes_structure_balance(self):
+        """Output includes all 14+ verified peer-reviewed references plus Pénzes structureBalance & strengthsNote."""
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [
+                _make_circle_stroke(400, 275, 90, "#43A047", size=8, steps=32, dt_ms=35, tool="crayon"),
+                _make_line_stroke(180, 390, 620, 390, "#FFB300", size=10, steps=16, dt_ms=35, tool="crayon"),
+            ],
+        })
+        self.assertEqual(res["engineMode"], "local_empirical_v3")
+        self.assertGreaterEqual(len(res["references"]), 13)
+        self.assertIn("code", res["structureBalance"])
+        self.assertTrue(res["strengthsNote"])
+        self.assertTrue(res["expressiveChannels"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,11 +1,10 @@
-"""Multi-dimensional child drawing psychology analysis engine (v2.0 Shape-First).
+"""Multi-dimensional child drawing psychology analysis engine (v3.0 Empirical).
 
-Extracts objective composite figures, facial expressions, HTP structures,
-stroke kinematics, spatial composition, process telemetry, and optional
-Pillow pixel statistics from a freehand drawing. Prioritizes complete
-graphic structures and facial expressions over raw color, with automatic
-monochrome/pencil-test debiasing aligned with Buck HTP (1948), Koppitz
-HFD (1968), Lowenfeld (1987), Malchiodi (1998), and Burkitt et al. (2003).
+Integrates 14 peer-reviewed international journal empirical studies (Jolley et al.
+2004; Picard et al. 2007, 2012; Misalidi & Bonoti 2014; Nanayama Tanaka et al.
+2020; Burkitt et al. 2003a/b, 2004; Crawford et al. 2012; Pénzes et al. 2020;
+Joiner et al. 1996; Catte & Cox 1999; Thomas & Jolley 1998; Gross & Hayne 1998;
+Cao et al. 2023) with device-adaptive software drawing interface stroke sensing.
 """
 
 from __future__ import annotations
@@ -19,9 +18,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image
 
 from .knowledge_base import (
+    AGE_GROUP_NORMS,
     EMOTION_KEYS,
     EMOTION_PROFILES,
     PSYCHOLOGY_REFERENCES,
+    TOOL_HARDNESS,
     USER_MOTIF_WEIGHTS,
     VERBAL_LEXICON,
 )
@@ -318,12 +319,16 @@ def _analyze_image_buffer(
 
 
 def _detect_composite_figures(
-    prims: List[Dict[str, Any]], width: float, height: float
+    prims: List[Dict[str, Any]],
+    width: float,
+    height: float,
+    omitted_detail_scale: float = 1.0,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, float]]:
     """Assemble multi-stroke spatial topology into complete figures & expressions.
 
     Returns (recognized_figures, emotion_boosts_dict).
-    Each figure includes a bounding box [x, y, w, h] for optional canvas overlay.
+    Each figure includes a bounding box [x, y, w, h] for optional canvas overlay
+    and its empirical expressive channel ('literal' vs. 'content').
     """
     figures: List[Dict[str, Any]] = []
     boosts: Dict[str, float] = {k: 0.0 for k in EMOTION_KEYS}
@@ -339,6 +344,7 @@ def _detect_composite_figures(
         meaning: str,
         bbox: Tuple[float, float, float, float],
         emo_delta: Dict[str, float],
+        channel: str = "content",
     ) -> None:
         found_codes.add(code)
         x0, y0, x1, y1 = bbox
@@ -346,6 +352,7 @@ def _detect_composite_figures(
             "code": code,
             "label": label,
             "category": category,
+            "channel": channel,
             "theory": theory,
             "meaning": meaning,
             "bbox": {
@@ -399,11 +406,12 @@ def _detect_composite_figures(
                 add_fig(
                     "heart_figure",
                     "愛心符號",
-                    "正向心靈符號",
-                    "兒童情感依附與正向象徵",
+                    "正向情境象徵",
+                    "Jolley et al. (2004) 情境正向符號",
                     "畫面描繪了愛心圖案，直接表達善意、被愛的需求、珍惜或溫暖的情感連結。",
                     (p["minX"], p["minY"], p["maxX"], p["maxY"]),
                     {"joy": 0.68, "calm": -0.06, "anger": -0.14, "sadness": -0.08},
+                    channel="content",
                 )
                 used_face_ids.add(p["idx"])
                 break
@@ -425,7 +433,6 @@ def _detect_composite_figures(
             d_near = min(d_start, d_end)
             d_far = max(d_start, d_end)
             if r_est * 0.55 <= d_near <= r_est * 2.1 and d_far > d_near + 8.0:
-                # Check radial alignment
                 vx = (q["x1"] - q["x0"]) if d_start < d_end else (q["x0"] - q["x1"])
                 vy = (q["y1"] - q["y0"]) if d_start < d_end else (q["y0"] - q["y1"])
                 rx = q["cx"] - p["cx"]
@@ -442,16 +449,18 @@ def _detect_composite_figures(
                 "sun_figure",
                 "太陽與光芒",
                 "自然正向象徵",
-                "Buck HTP 與 Malchiodi 正向依附象徵",
+                "Jolley et al. (2004); Picard & Gauthier (2012) 正向情境隱喻",
                 "辨識出圓體與周圍放射光線構成的太陽（不限色彩），象徵內心的溫暖、希望感、正向能量或渴望被照亮。",
                 (min(xs), min(ys), max(xs), max(ys)),
                 {"joy": 0.36, "calm": 0.14, "sadness": -0.14},
+                channel="content",
             )
             used_face_ids.add(p["idx"])
             break
 
     # -------------------------------------------------------------------------
-    # 3. FACE & FACIAL EXPRESSION RECOGNITION (Smile / Frown / Tears / Angry Brows / Shaded Face)
+    # 3. FACE & FACIAL EXPRESSION RECOGNITION
+    #    Aligned with Picard et al. (2007) & Nanayama Tanaka et al. (2020) FACED
     # -------------------------------------------------------------------------
     face_candidates = [
         p
@@ -462,7 +471,6 @@ def _detect_composite_figures(
         and p["diag"] >= 38.0
         and 0.58 <= (p["w"] / max(1.0, p["h"])) <= 1.65
     ]
-    # Sort larger faces first
     face_candidates.sort(key=lambda x: x["diag"], reverse=True)
 
     detected_faces: List[Dict[str, Any]] = []
@@ -485,20 +493,23 @@ def _detect_composite_figures(
                 "圓形臉孔內部出現密集塗黑或反覆遮蓋，在兒童人物畫中常對應強烈的焦慮、自我否定、羞愧或想把真實情緒藏起來。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
                 {"anxiety": 0.38, "sadness": 0.20, "anger": 0.16, "joy": -0.25},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
             continue
 
-        # Classify facial components inside the head circle
         eyes_left = 0
         eyes_right = 0
         angry_left_brow = False
         angry_right_brow = False
         has_smile = False
+        has_open_rounded_smile = False
+        smile_width_ratio = 0.0
         has_frown = False
         has_jagged_mouth = False
         has_tense_flat_mouth = False
+        has_any_mouth_stroke = False
         tear_count = 0
 
         for q in inner:
@@ -507,7 +518,6 @@ def _detect_composite_figures(
 
             # Upper-half features: eyes or angry furrowed brows
             if 0.10 <= rel_y <= 0.58:
-                # Check angry inward-sloping eyebrow (\ on left, / on right)
                 if q["isStraight"] and q["w"] >= face["w"] * 0.08 and q["w"] <= face["w"] * 0.45:
                     dx = q["x1"] - q["x0"]
                     dy = q["y1"] - q["y0"]
@@ -518,7 +528,6 @@ def _detect_composite_figures(
                         elif rel_x > 0.52 and slope < -0.22:
                             angry_right_brow = True
 
-                # Small eye dot / tiny circle / small mark
                 if q["diag"] <= face["diag"] * 0.24:
                     if rel_x < 0.48:
                         eyes_left += 1
@@ -534,20 +543,27 @@ def _detect_composite_figures(
                 if is_vert_drop:
                     tear_count += 1
 
-            # Lower-half mouth zone (centered horizontally)
-            if 0.48 <= rel_y <= 0.92 and 0.22 <= rel_x <= 0.78 and q["w"] >= face["w"] * 0.14:
+            # Lower-half mouth zone (centered horizontally; Nanayama Tanaka et al., 2020)
+            if 0.48 <= rel_y <= 0.92 and 0.22 <= rel_x <= 0.78 and q["w"] >= face["w"] * 0.12:
+                has_any_mouth_stroke = True
+                mw_ratio = q["w"] / max(1.0, face["w"])
                 if q["sharpTurns"] >= 2 and q["sharpRatio"] > 0.35:
                     has_jagged_mouth = True
                 elif q["arcSagRatio"] >= 0.13:
-                    # +y is downward -> center dips below endpoints -> SMILE U-arc!
+                    # +y is downward -> center dips below endpoints -> SMILE U-arc
                     has_smile = True
+                    smile_width_ratio = max(smile_width_ratio, mw_ratio)
+                elif q["isClosed"] and not q["isScribble"] and mw_ratio >= 0.16 and q["h"] >= face["h"] * 0.08 and (q["w"] / max(1.0, q["h"])) <= 3.0:
+                    # Enclosed wide/rounded open mouth (Nanayama Tanaka et al., 2020: lower negative mood)
+                    has_open_rounded_smile = True
+                    smile_width_ratio = max(smile_width_ratio, mw_ratio)
                 elif q["arcSagRatio"] <= -0.13:
-                    # center arches above endpoints -> FROWN inverted-U arc!
+                    # Center arches above endpoints -> FROWN inverted-U arc
                     has_frown = True
                 elif q["isStraight"] and q["w"] > q["h"] * 2.2:
                     has_tense_flat_mouth = True
 
-        # Check tears slightly BELOW the face boundary too (falling tears off the chin/cheeks)
+        # Check tears slightly BELOW the face boundary too
         for q in prims:
             if q["idx"] == face["idx"] or q in inner:
                 continue
@@ -567,23 +583,25 @@ def _detect_composite_figures(
             add_fig(
                 "face_angry",
                 "生氣皺眉臉孔",
-                "臉部表情辨識",
-                "Koppitz HFD 表情與攻擊張力特徵",
+                "字面表情辨識",
+                "Picard et al. (2007); Koppitz (1968) 憤怒眉眼特徵",
                 "辨識出圓形臉孔內帶有向內斜壓的八字眉或緊繃鋸齒嘴型，直接呈現憤怒、不滿、委屈抗議或內在高度防衛情緒。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
                 {"anger": 0.56, "anxiety": 0.16, "joy": -0.32, "calm": -0.24},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
-        elif (has_frown and tear_count >= 1) or (has_eyes and tear_count >= 2 and not has_smile):
+        elif (has_frown and tear_count >= 1) or (has_eyes and tear_count >= 2 and not has_smile and not has_open_rounded_smile):
             add_fig(
                 "face_sad_crying",
                 "哭泣落淚臉孔",
-                "臉部表情辨識",
-                "Koppitz HFD 與 Malchiodi 悲傷表情指標",
+                "字面表情辨識",
+                "Picard et al. (2007); Nanayama Tanaka et al. (2020) 悲傷表情指標",
                 "辨識出下垂嘴角與眼下淚痕／淚滴，明確指向傷心、難過、委屈想哭或亟需被溫柔安慰的心理狀態。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
                 {"sadness": 0.72, "loneliness": 0.12, "joy": -0.36, "calm": -0.26},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
@@ -591,23 +609,27 @@ def _detect_composite_figures(
             add_fig(
                 "face_sad",
                 "嘴角下垂的難過臉孔",
-                "臉部表情辨識",
-                "Koppitz HFD 與兒童表情投射",
-                "辨識出臉孔下半部呈現明顯下垂的倒弧線嘴型，透露失落、不開心、沮喪或提不起勁的內在心情。",
+                "字面表情辨識",
+                "Nanayama Tanaka et al. (2020) 上凸下垂嘴弧線實驗",
+                "辨識出臉孔下半部呈現明顯下垂的倒弧線嘴型（上凸弧），實證研究顯示此幾何特徵顯著對應低落、沮喪與負向情緒狀態。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
                 {"sadness": 0.48, "loneliness": 0.14, "joy": -0.30, "calm": -0.20},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
-        elif has_smile:
+        elif has_smile or has_open_rounded_smile:
+            wide_bonus = 0.08 if smile_width_ratio >= 0.34 else 0.0
+            smile_lbl = "開口圓笑開朗臉孔" if (has_open_rounded_smile and not has_smile) else "微笑開朗臉孔"
             add_fig(
                 "face_happy",
-                "微笑開朗臉孔",
-                "臉部表情辨識",
-                "Malchiodi 正向臉部情感投射",
-                "辨識出臉孔內帶有明顯上揚的微笑弧線，顯示當下心情正向開朗、保有希望感或願意友善互動（不受單色畫筆影響）。",
+                smile_lbl,
+                "字面表情辨識",
+                "Nanayama Tanaka et al. (2020); Picard et al. (2007) 正向嘴部幾何實驗",
+                "辨識出臉孔內帶有寬廣上揚微笑弧線或圓潤開口笑形狀，依 FACED 實證研究對應正向開朗、低負向壓力與友善開放心境（不受單色畫筆影響）。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
-                {"joy": 0.54, "calm": 0.16, "sadness": -0.28, "anger": -0.24},
+                {"joy": 0.68 + wide_bonus, "calm": 0.06, "sadness": -0.28, "anger": -0.24},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
@@ -615,11 +637,27 @@ def _detect_composite_figures(
             add_fig(
                 "face_tense_neutral",
                 "抿嘴緊繃／沉默臉孔",
-                "臉部表情辨識",
-                "Koppitz HFD 情緒壓抑特徵",
-                "臉孔呈現平直緊閉的嘴型，可能反映壓抑想法、無奈、緊張或一時不知如何說出口的狀態。",
+                "字面表情辨識",
+                "Nanayama Tanaka et al. (2020); Koppitz (1968) 短直線緊閉嘴型",
+                "臉孔呈現平直緊閉的水平線嘴型，實證研究指出偏短直線嘴型常見於壓抑想法、無奈、緊張或一時不知如何表達的狀態。",
                 (face["minX"], face["minY"], face["maxX"], face["maxY"]),
                 {"anxiety": 0.24, "sadness": 0.16, "loneliness": 0.14},
+                channel="literal",
+            )
+            detected_faces.append(face)
+            used_face_ids.add(face["idx"])
+        elif eyes_left >= 1 and eyes_right >= 1 and not has_any_mouth_stroke and tear_count == 0 and len(inner) <= 4:
+            # Omitted mouth (Koppitz 1968; Nanayama Tanaka et al. 2020 — attenuated for ages 3-6)
+            sc = omitted_detail_scale
+            add_fig(
+                "face_no_mouth",
+                "省略嘴巴的臉孔（有眼無口）",
+                "字面表情辨識",
+                "Nanayama Tanaka et al. (2020); Koppitz (1968) 省略嘴巴指標",
+                "圓臉內畫有雙眼但省略了嘴巴，在實證研究中常與害羞、退縮、不願開口或承受壓力有關（若為幼齡或尚未畫完，屬常見發展現象，建議結合對話理解）。",
+                (face["minX"], face["minY"], face["maxX"], face["maxY"]),
+                {"anxiety": 0.22 * sc, "loneliness": 0.20 * sc, "sadness": 0.10 * sc},
+                channel="literal",
             )
             detected_faces.append(face)
             used_face_ids.add(face["idx"])
@@ -898,7 +936,7 @@ def _detect_composite_figures(
 
 
 def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Run v2.0 Shape-First child psychology analysis on drawing telemetry."""
+    """Run v3.0 Empirical Shape-First + Software-Interface stroke psychology analysis."""
     canvas_info = payload.get("canvas") or {}
     width = _clamp(_safe_float(canvas_info.get("width"), 800.0), 50.0, 4096.0)
     height = _clamp(_safe_float(canvas_info.get("height"), 550.0), 50.0, 4096.0)
@@ -915,10 +953,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     undo_count = max(0, int(_safe_float(process.get("undoCount"), 0)))
     eraser_count = max(max(0, int(_safe_float(process.get("eraserStrokeCount"), 0))), len(eraser_strokes))
     total_duration_ms = max(0.0, _safe_float(process.get("totalDurationMs"), 0.0))
+    active_drawing_ms = max(0.0, _safe_float(process.get("activeDrawingMs"), 0.0))
     pause_count = max(0, int(_safe_float(process.get("pauseCount"), 0)))
+    color_change_count = max(0, int(_safe_float(process.get("colorChangeCount"), 0)))
+    tool_switch_count = max(0, int(_safe_float(process.get("toolSwitchCount"), 0)))
+    size_change_count = max(0, int(_safe_float(process.get("sizeChangeCount"), 0)))
+    paper_change_count = max(0, int(_safe_float(process.get("paperChangeCount"), 0)))
+    reported_devices = [str(d)[:16] for d in (process.get("inputDevices") or []) if isinstance(d, str)]
 
     user_context = payload.get("userContext") or {}
     title_or_note = str(user_context.get("titleOrNote") or "").strip()[:300]
+    raw_age_group = str(user_context.get("ageGroup") or "unspecified").strip()
+    age_group = raw_age_group if raw_age_group in AGE_GROUP_NORMS else "unspecified"
+    age_norm = AGE_GROUP_NORMS[age_group]
+    omitted_detail_scale = float(age_norm["omittedDetailScale"])
     selected_motifs: List[str] = [str(m)[:48] for m in list(user_context.get("selectedMotifs") or [])[:20]]
 
     if not draw_strokes:
@@ -927,11 +975,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "message": "畫布目前還是空白的，請自由畫上幾筆線條或圖案後再進行心理探索分析。",
         }
 
-    # --- 1. Extract Per-Stroke Primitives, Kinematics, Color & Grid ---
+    # --- 1. Extract Per-Stroke Primitives, Kinematics, Software Interface Settings & Grid ---
     total_drawn_ink_area = 0.0
     velocities: List[float] = []
     pressures: List[float] = []
+    tilts: List[float] = []
+    contact_widths: List[float] = []
     widths: List[float] = []
+    raw_sizes: List[float] = []
+    tool_hardness_vals: List[float] = []
+    tool_counts: Dict[str, int] = {}
+    pointer_types: Dict[str, int] = {}
+    jitter_ratios: List[float] = []
+    inferred_active_ms = 0.0
+
     sharp_turns = 0
     smooth_turns = 0
     total_turns = 0
@@ -975,6 +1032,9 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "y": _clamp(_safe_float(p.get("y"), 0.0), -5000.0, 10000.0),
                 "t": max(0.0, _safe_float(p.get("t"), 0.0)),
                 "p": _clamp(_safe_float(p.get("p"), 0.5), 0.05, 1.0),
+                "tx": _clamp(_safe_float(p.get("tx"), 0.0), -90.0, 90.0),
+                "ty": _clamp(_safe_float(p.get("ty"), 0.0), -90.0, 90.0),
+                "w": _clamp(_safe_float(p.get("w"), 0.0), 0.0, 200.0),
             }
             for p in raw_pts
             if isinstance(p, dict)
@@ -985,7 +1045,15 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             continue
         color_hex = str(stroke.get("color") or "#2A2B30").lower()
         tool = str(stroke.get("tool") or "crayon")
+        p_type = str(stroke.get("pointerType") or "mouse").lower()
+        if p_type not in ("mouse", "pen", "touch"):
+            p_type = "mouse"
+        pointer_types[p_type] = pointer_types.get(p_type, 0) + 1
+        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+        tool_hardness_vals.append(TOOL_HARDNESS.get(tool, 0.7))
+
         size = _clamp(_safe_float(stroke.get("size"), 7.0), 1.0, 80.0)
+        raw_sizes.append(size)
         eff_width = size * {"pencil": 0.65, "crayon": 1.15, "marker": 1.3, "watercolor": 1.65}.get(tool, 1.0)
         widths.append(eff_width)
 
@@ -1001,6 +1069,11 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             x = pt["x"]
             y = pt["y"]
             pressures.append(pt["p"])
+            tilt_mag = math.hypot(pt["tx"], pt["ty"])
+            if tilt_mag > 0.5:
+                tilts.append(min(90.0, tilt_mag))
+            if pt["w"] > 1.0:
+                contact_widths.append(pt["w"])
             min_x, max_x = min(min_x, x), max(max_x, x)
             min_y, max_y = min(min_y, y), max(max_y, y)
             s_min_x, s_max_x = min(s_min_x, x), max(s_max_x, x)
@@ -1016,6 +1089,11 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 if seg_d > 0.5 and dt < 1500.0:
                     velocities.append(min(4.5, seg_d / dt))
 
+        if len(pts) >= 2:
+            stroke_dt = max(0.0, pts[-1]["t"] - pts[0]["t"])
+            if 10.0 <= stroke_dt <= 120_000.0:
+                inferred_active_ms += stroke_dt
+
         if s_len < 1.0:
             s_len = eff_width * 1.2
 
@@ -1028,6 +1106,15 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             short_fragment_strokes += 1
 
         resamp = _resample_points(pts, step=10.0)
+        # Micro-tremor / jitter: ratio of raw high-frequency path length vs resampled smooth path
+        if len(pts) >= 5 and len(resamp) >= 3 and s_len > 25.0:
+            smooth_len = sum(
+                math.hypot(resamp[i][0] - resamp[i - 1][0], resamp[i][1] - resamp[i - 1][1])
+                for i in range(1, len(resamp))
+            )
+            if smooth_len > 10.0:
+                jitter_ratios.append(_clamp((s_len / smooth_len - 1.0) / 0.25))
+
         pt_weight = max(1.0, eff_width) * (s_len / max(1, len(resamp)))
         for rx, ry in resamp:
             col = min(2, max(0, int((rx / width) * 3)))
@@ -1105,7 +1192,6 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         if is_scribble:
             scribble_strokes += 1
 
-        # Compute open horizontal arc vertical sag ratio (+ = smile U-curve, - = frown ∩-curve)
         arc_sag_ratio = 0.0
         if not is_closed and len(resamp) >= 3 and sw >= sh * 0.75 and abs(x1 - x0) >= sw * 0.45:
             y_chord_mid = (y0 + y1) * 0.5
@@ -1147,7 +1233,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "message": "畫布目前沒有有效的筆跡座標，請重新繪製後再進行分析。",
         }
 
-    # --- 2. Combine Vector Telemetry with Pixel Stats & Detect Monochrome Sketch Mode ---
+    # --- 2. Combine Vector Telemetry with Pixel Stats & Detect Monochrome / Canonical Color ---
     pixel_stats = _analyze_image_buffer(str(payload.get("imageDataUrl") or ""), bg_hex)
     if not pixel_stats and payload.get("clientImageStats"):
         pixel_stats = _sanitize_pixel_stats(payload.get("clientImageStats"))
@@ -1176,19 +1262,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         cx = weighted_x_sum / max(1e-6, total_weight)
         cy = weighted_y_sum / max(1e-6, total_weight)
 
-    # Monochrome / Single-Pencil Debiasing check
+    # Monochrome / Single-Pencil Debiasing check (Picard & Gauthier, 2012)
     meaningful_colors = [
         hx for hx, area in color_ink_by_hex.items() if area / max(1.0, total_drawn_ink_area) >= 0.05
     ]
     is_monochrome_sketch = len(meaningful_colors) <= 1
-    # Color factor: 0.20 in monochrome pencil mode, 0.52 in multi-color mode (Shape-First!)
-    color_scale = 0.20 if is_monochrome_sketch else 0.52
+    color_scale = 0.20 if is_monochrome_sketch else 0.50
 
     # --- 3. Composite Complete-Figure & Expression Recognition (Shape-First!) ---
-    recognized_figures, fig_boosts = _detect_composite_figures(stroke_prims, width, height)
+    recognized_figures, fig_boosts = _detect_composite_figures(
+        stroke_prims, width, height, omitted_detail_scale=omitted_detail_scale
+    )
     fig_codes = {f["code"] for f in recognized_figures}
 
-    # Kinematic & Spatial Indices
+    # --- 3b. Software Drawing Interface Stroke Sensing & Kinematic Indices ---
     covered_px_est = max(150.0, ink_coverage * canvas_area)
     raw_overlap_ratio = total_drawn_ink_area / covered_px_est
     multi_hit_cells = sum(1 for c in cell_occupancy.values() if c >= 3)
@@ -1200,10 +1287,56 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     mean_vel = sum(velocities) / max(1, len(velocities)) if velocities else 0.55
     velocity_index = _clamp(mean_vel / 1.8)
     mean_width = sum(widths) / max(1, len(widths))
+    mean_raw_size = sum(raw_sizes) / max(1, len(raw_sizes))
+    mean_tool_hardness = sum(tool_hardness_vals) / max(1, len(tool_hardness_vals))
     mean_pressure = sum(pressures) / max(1, len(pressures))
-    weight_index = _clamp((mean_width / 22.0) * 0.65 + mean_pressure * 0.35)
+    pressure_var = sum((p - mean_pressure) ** 2 for p in pressures) / max(1, len(pressures))
+    has_real_pressure_variance = math.sqrt(pressure_var) > 0.035
+
+    all_device_set = set(pointer_types.keys()) | set(d.lower() for d in reported_devices if d.lower() in ("pen", "touch", "mouse"))
+    if "pen" in all_device_set and len(all_device_set) == 1:
+        sensing_mode = "pen_hardware"
+        sensing_mode_label = "感壓筆硬體感測（真實筆壓＋傾斜角）"
+    elif "touch" in all_device_set and "pen" not in all_device_set:
+        sensing_mode = "touch_contact"
+        sensing_mode_label = "觸控感測（接觸面積＋速度＋介面畫具）"
+    elif len(all_device_set) > 1:
+        sensing_mode = "mixed"
+        sensing_mode_label = "混合裝置感測（感壓／觸控／介面設定）"
+    else:
+        sensing_mode = "mouse_interface"
+        sensing_mode_label = "滑鼠／觸控板介面推估（畫具硬度×粗細×速度×重疊）"
+
+    size_norm = _clamp(mean_raw_size / 22.0)
+    if sensing_mode == "pen_hardware" and has_real_pressure_variance:
+        tilt_bonus = _clamp((sum(tilts) / max(1, len(tilts))) / 75.0) * 0.12 if tilts else 0.0
+        effective_force_index = _clamp(
+            mean_pressure * 0.54 + mean_tool_hardness * 0.22 + size_norm * 0.16 + tilt_bonus
+        )
+    elif sensing_mode == "touch_contact" and contact_widths:
+        contact_norm = _clamp((sum(contact_widths) / len(contact_widths)) / 42.0)
+        effective_force_index = _clamp(
+            contact_norm * 0.30 + mean_tool_hardness * 0.26 + size_norm * 0.22 + velocity_index * 0.22
+        )
+    else:
+        # Mouse/trackpad: discard flat synthetic 0.5 pressure, derive from software interface settings
+        effective_force_index = _clamp(
+            mean_tool_hardness * 0.30 + size_norm * 0.28 + velocity_index * 0.24 + overlap_index * 0.18
+        )
+
+    weight_index = effective_force_index
+    jitter_index = _clamp(sum(jitter_ratios) / max(1, len(jitter_ratios))) if jitter_ratios else 0.0
+
+    eff_active_ms = active_drawing_ms if active_drawing_ms > 0 else inferred_active_ms
+    if total_duration_ms > 1500.0 and eff_active_ms > 0.0 and len(draw_strokes) >= 2:
+        in_air_pause_ratio = _clamp((total_duration_ms - min(total_duration_ms, eff_active_ms)) / total_duration_ms, 0.0, 0.95)
+    else:
+        in_air_pause_ratio = 0.0
+
     fragmentation_index = _clamp(
-        (short_fragment_strokes / max(1, len(draw_strokes))) * 0.75 + _clamp(pause_count / 6.0) * 0.25
+        (short_fragment_strokes / max(1, len(draw_strokes))) * 0.72
+        + _clamp(pause_count / 6.0) * 0.20
+        + (0.08 if in_air_pause_ratio > 0.65 else 0.0)
     )
 
     revision_events = undo_count + eraser_count
@@ -1228,6 +1361,16 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     dark_heavy_palette = dark_muted + neutral_grey * 0.5
     active_buckets = sum(1 for v in color_hist.values() if v >= 0.06)
 
+    # Crawford et al. (2012) Canonical Nature Palette Debiasing (blue sky + green grass / warm sun)
+    has_sad_fig = bool(fig_codes & {"face_sad", "face_sad_crying", "rain_cloud_figure"})
+    is_canonical_nature_palette = (
+        not is_monochrome_sketch
+        and not has_sad_fig
+        and cool_blue >= 0.12
+        and (fresh_green >= 0.14 or warm_bright >= 0.14)
+        and (warm_bright + fresh_green) >= 0.28
+    )
+
     # --- 4. Combine Recognized Complete Figures + Secondary Geometric Motifs ---
     detected_motifs: List[Dict[str, str]] = [
         {
@@ -1245,7 +1388,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         detected_motifs.append({
             "code": "dense_scribble_knot",
             "label": "密集交織／情緒塗抹筆觸",
-            "theory": "Koppitz (1968) 重度陰影與反覆塗抹指標",
+            "theory": "Koppitz (1968); Pénzes et al. (2020) 重複塗抹與張力指標",
             "meaning": "重複來回交疊的強烈筆觸，常代表內心積聚張力、煩躁、焦慮或試圖覆蓋某種不安感受。",
         })
 
@@ -1256,7 +1399,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         detected_motifs.append({
             "code": "downward_streaks",
             "label": "向下垂落／雨絲般的線條",
-            "theory": "Malchiodi (1998) 動態線條方向象徵",
+            "theory": "Jolley et al. (2004); Malchiodi (1998) 動態線條方向象徵",
             "meaning": "多道朝下延展的線條宛如雨滴或垂落感，常見於情緒低落、委屈、悲傷或內在沉重時。",
         })
 
@@ -1273,7 +1416,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 detected_motifs.append({
                     "code": "radiating_warm_burst",
                     "label": "向外綻放的暖色光芒",
-                    "theory": "Buck HTP 與兒童正向象徵（太陽／光線）",
+                    "theory": "Jolley et al. (2004) 情境正向光芒象徵",
                     "meaning": "以暖色朝多方向開展的放射筆觸，常呼應對溫暖、希望、活力與被關愛的感受。",
                 })
             elif tense_rad >= 3:
@@ -1293,7 +1436,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         detected_motifs.append({
             "code": "enclosed_shelter_or_barrier",
             "label": "包覆結構／界線框",
-            "theory": "Buck (1948) 屋樹人（HTP）邊界與庇護象徵",
+            "theory": "Buck (1948); Pénzes et al. (2020) 邊界與結構控制指標",
             "meaning": "封閉方形或圍欄般的輪廓，反映對安全基地與保護的重視，或感受到某種框架與壓力。",
         })
 
@@ -1304,8 +1447,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         detected_motifs.append({
             "code": "tiny_corner_cluster",
             "label": "微小／偏向一隅的構圖比例",
-            "theory": "Koppitz (1968) 微小圖形情緒指標（Tiny Figure）",
-            "meaning": "主體僅佔畫紙一小角且周圍大片留白，常與退縮、害羞、孤單感或覺得自己聲音微弱有關。",
+            "theory": "Burkitt et al. (2003b); Cao et al. (2023) 孤單縮聚尺寸實驗",
+            "meaning": "主體僅佔畫紙一小角且周圍大片留白，在實證研究中與孤單、退縮、害羞或覺得自己聲音微弱相關。",
         })
 
     if edge_touch_ratio >= 0.30 or bbox_area_ratio > 0.80:
@@ -1313,8 +1456,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         detected_motifs.append({
             "code": "edge_overflow",
             "label": "突破畫紙邊界的擴張構圖",
-            "theory": "Buck (1948) 邊界溢出與情緒外放指標",
-            "meaning": "筆觸大量延伸至畫布邊緣，顯示高漲的情緒張力、強烈表達欲或難以被框住的衝動能量。",
+            "theory": "Burkitt et al. (2004); Cao et al. (2023) 高張力／高威脅擴大效應",
+            "meaning": "筆觸大量延伸至畫布邊緣，顯示高漲的情緒張力、強烈表達欲或威脅防衛能量（實證指出負向高張力常呈現放大而非縮小）。",
         })
 
     if revision_events >= 3 or revision_index > 0.36:
@@ -1326,7 +1469,16 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "meaning": "多次撤銷或塗改可能代表對自我表現的猶豫、要求完美、緊張，或在思考該如何表達內心想法。",
         })
 
-    # --- 5. Spontaneous Verbalization Analysis ---
+    # Expressive channels taxonomy (Jolley 2004; Picard 2007, 2012; Misalidi & Bonoti 2014)
+    expressive_channels: List[str] = []
+    if any(f.get("channel") == "literal" for f in recognized_figures):
+        expressive_channels.append("字面表情（Literal）")
+    if any(f.get("channel") == "content" for f in recognized_figures):
+        expressive_channels.append("情境隱喻（Content）")
+    if not expressive_channels or (sharpness_index > 0.34 or overlap_index > 0.42 or active_buckets >= 2):
+        expressive_channels.append("抽象形式（Abstract）")
+
+    # --- 5. Spontaneous Verbalization Analysis (Gross & Hayne, 1998) ---
     verbal_scores = {k: 0.0 for k in EMOTION_KEYS}
     matched_words: Dict[str, List[str]] = {k: [] for k in EMOTION_KEYS}
     if title_or_note:
@@ -1337,20 +1489,32 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 matched_words[emo] = hits
                 verbal_scores[emo] = _clamp(0.18 + 0.08 * (len(hits) - 1), 0.0, 0.36)
 
-    # --- 6. Shape-First Six-Dimension Psychological Inference ---
-    # Start with composite figure & expression weights (45–55% primary driver!)
+    # --- 6. Shape-First + Empirical Calibrated Six-Dimension Psychological Inference ---
     scores: Dict[str, float] = {k: 0.10 + fig_boosts.get(k, 0.0) for k in EMOTION_KEYS}
 
-    # In monochrome sketch mode, neutral black/grey pen does NOT penalize positive emotions
     mono_dark_pen = 0.0 if is_monochrome_sketch else 1.0
+    # Crawford (2012): attenuate cool_blue sadness weight in canonical nature scenes (blue sky + green grass)
+    canonical_blue_scale = 0.38 if is_canonical_nature_palette else 1.0
+    # Burkitt (2004) & Cao (2023): size asymmetry (large + high tension = threat/anger; large + smooth = positive/calm)
+    large_tense_threat = (
+        0.14
+        if (bbox_area_ratio >= 0.48 and (sharpness_index >= 0.32 or overlap_index >= 0.42 or intense_red >= 0.18))
+        else 0.0
+    )
+    large_open_positive = (
+        0.10
+        if (bbox_area_ratio >= 0.38 and sharpness_index < 0.28 and overlap_index < 0.35 and not has_sad_fig)
+        else 0.0
+    )
 
     # (A) ANGER & FRUSTRATION
     scores["anger"] += (
         sharpness_index * 0.34
-        + velocity_index * 0.22
-        + weight_index * 0.14
+        + velocity_index * 0.20
+        + effective_force_index * 0.15
         + overlap_index * (0.20 if (sharpness_index > 0.3 or intense_red > 0.15) else 0.06)
-        + edge_touch_ratio * 0.16
+        + edge_touch_ratio * 0.15
+        + large_tense_threat
         + (0.22 if "dense_scribble_knot" in motif_codes and (velocity_index > 0.48 or intense_red > 0.15) else 0.0)
         + (0.14 if radiating_hub_tense else 0.0)
         + color_scale * (
@@ -1365,10 +1529,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     bottom_weight = grid_3x3[6] + grid_3x3[7] + grid_3x3[8]
     downward_ratio = downward_strokes / max(1, len(draw_strokes))
     low_speed = 1.0 - velocity_index
-    melancholic_cool = (cool_blue + neutral_grey * 0.9) * (1.25 if mean_lum < 0.52 else 0.85)
+    melancholic_cool = (cool_blue * canonical_blue_scale + neutral_grey * 0.9) * (1.25 if mean_lum < 0.52 else 0.85)
     scores["sadness"] += (
         downward_ratio * 0.34
-        + low_speed * 0.16
+        + low_speed * 0.15
         + _clamp((bottom_weight - 0.33) * 1.4) * 0.18
         + (0.22 if "downward_streaks" in motif_codes else 0.0)
         + (0.12 if "tiny_corner_cluster" in motif_codes else 0.0)
@@ -1383,10 +1547,12 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # (C) ANXIETY & TENSION
     scores["anxiety"] += (
-        revision_index * 0.38
-        + fragmentation_index * 0.28
-        + overlap_index * 0.28
-        + sharpness_index * 0.16
+        revision_index * 0.36
+        + fragmentation_index * 0.26
+        + overlap_index * 0.26
+        + sharpness_index * 0.15
+        + jitter_index * 0.12
+        + (0.08 if in_air_pause_ratio > 0.65 and len(draw_strokes) >= 4 else 0.0)
         + (0.18 if "heavy_revision" in motif_codes else 0.0)
         + (0.14 if "enclosed_shelter_or_barrier" in motif_codes and (overlap_index > 0.30 or revision_events >= 2) else 0.0)
         + (0.14 if "dense_scribble_knot" in motif_codes and intense_red < 0.25 else 0.0)
@@ -1395,16 +1561,16 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         - smoothness_index * 0.10
     )
 
-    # (D) LONELINESS & SEEKING CONNECTION
+    # (D) LONELINESS & SEEKING CONNECTION (Burkitt 2003b; Cao 2023: loneliness specifically shrinks)
     sparsity = _clamp(1.0 - ink_coverage / 0.10)
     tiny_factor = _clamp(1.0 - bbox_area_ratio / 0.22) * (0.35 + 0.65 * center_dist)
     scores["loneliness"] += (
-        tiny_factor * 0.36
+        tiny_factor * 0.36 * (0.65 if age_group == "3-6" else 1.0)
         + sparsity * 0.16
         + center_dist * 0.30
         + (0.22 if "tiny_corner_cluster" in motif_codes else 0.0)
         + (0.10 if (len(draw_strokes) <= 7 and bbox_area_ratio < 0.16 and center_dist > 0.24) else 0.0)
-        + color_scale * ((cool_blue + neutral_grey) * 0.24 - intense_red * 0.14)
+        + color_scale * ((cool_blue * canonical_blue_scale + neutral_grey) * 0.24 - intense_red * 0.14)
         - (0.14 if bbox_area_ratio > 0.55 else 0.0)
     )
 
@@ -1415,12 +1581,13 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     scores["joy"] += (
         smoothness_index * 0.20
         + _clamp(generous_balanced) * 0.16
+        + large_open_positive * 0.65
         + upward_ratio * 0.12
         + (0.20 if radiating_hub_warm and "sun_figure" not in motif_codes else 0.0)
         + color_scale * (
             warm_bright * 0.62
             + pink_purple * 0.42
-            + fresh_green * 0.22
+            + fresh_green * 0.24
             + color_richness * 0.24
             + mean_lum * 0.16
             + mean_sat * 0.16
@@ -1430,21 +1597,24 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         - overlap_index * 0.14
     )
 
-    # (F) CALM & GROUNDEDNESS
+    # (F) CALM & GROUNDEDNESS (Cao 2023: Chinese '平和' is positive-valence & expansive)
     centeredness = 1.0 - center_dist
     steady_tempo = 1.0 - abs(velocity_index - 0.34) / 0.66
     low_tension = (1.0 - sharpness_index) * (1.0 - overlap_index) * (1.0 - revision_index)
-    serene_blue = cool_blue * (0.38 if (mean_lum >= 0.44 and "downward_streaks" not in motif_codes and "rain_cloud_figure" not in motif_codes) else 0.08)
+    serene_blue = cool_blue * (
+        0.46 if (is_canonical_nature_palette or (mean_lum >= 0.44 and "downward_streaks" not in motif_codes and "rain_cloud_figure" not in motif_codes)) else 0.08
+    )
     scores["calm"] += (
         smoothness_index * 0.24
         + centeredness * 0.20
+        + large_open_positive * 0.65
         + _clamp(steady_tempo) * 0.14
         + low_tension * 0.20
         + (1.0 - fragmentation_index) * 0.06
         + color_scale * (
             fresh_green * 0.56
             + serene_blue
-            + warm_bright * 0.04
+            + warm_bright * 0.06
             + pink_purple * 0.04
             - intense_red * 0.30
             - dark_muted * 0.24 * mono_dark_pen
@@ -1462,6 +1632,35 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     for emo, v_score in verbal_scores.items():
         scores[emo] += v_score
 
+    # --- 6b. Multi-Evidence Convergence Guardrail (Joiner 1996; Catte & Cox 1999; Thomas & Jolley 1998) ---
+    converging_channels = 0
+    if recognized_figures:
+        converging_channels += 2 if len(recognized_figures) >= 2 else 1
+    if sharpness_index >= 0.34 or overlap_index >= 0.42 or smoothness_index >= 0.44 or revision_events >= 3:
+        converging_channels += 1
+    if bbox_area_ratio < 0.18 or edge_touch_ratio >= 0.30 or centeredness >= 0.72:
+        converging_channels += 1
+    if title_or_note or selected_motifs:
+        converging_channels += 1
+    if not is_monochrome_sketch and not is_canonical_nature_palette and active_buckets >= 2:
+        converging_channels += 1
+
+    if converging_channels >= 4 or (recognized_figures and converging_channels >= 3):
+        conv_level = "high"
+        conv_label = "高收斂（多維證據一致）"
+        alt_note = "本次圖形結構、筆觸動力與構圖呈現多維度一致線索；仍建議傾聽創作者自己的故事作為最終理解（Thomas & Jolley, 1998）。"
+        max_score_cap = 95
+    elif converging_channels >= 2 or len(draw_strokes) >= 5:
+        conv_level = "moderate"
+        conv_label = "中度收斂（探索性參考）"
+        alt_note = "部分特徵具情緒線索，但也可能與當下畫技習慣、靈感嘗試或工具操作有關，適合當作開啟對話的起點（Thomas & Jolley, 1998）。"
+        max_score_cap = 88
+    else:
+        conv_level = "low"
+        conv_label = "低線索（高度多元可能）"
+        alt_note = "目前筆跡較簡短或缺少多維收斂證據。依 Joiner (1996) 與 Catte & Cox (1999) 實證，單一線條或尺寸不可直接推斷情緒困擾，系統已自動調降極端分數。"
+        max_score_cap = 66
+
     clamped = {k: max(0.03, v) for k, v in scores.items()}
     max_val = max(clamped.values())
     total_val = sum(clamped.values())
@@ -1471,7 +1670,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         rel_pct = round((clamped[k] / total_val) * 100)
         dominance = clamped[k] / max(0.45, max_val)
         intensity = _clamp(clamped[k] / 1.35, 0.0, 1.0)
-        strength = int(round(_clamp(dominance * 56 + intensity * 38, 6, 95)))
+        raw_strength = dominance * 56 + intensity * 38
+        if conv_level == "low":
+            raw_strength = min(raw_strength, max_score_cap)
+        strength = int(round(_clamp(raw_strength, 6, max_score_cap)))
         prof = EMOTION_PROFILES[k]
         emotion_results.append({
             "key": k,
@@ -1488,6 +1690,36 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     primary = emotion_results[0]
     secondary = emotion_results[1]
     primary_key = primary["key"]
+
+    # --- 6c. Formal Structure Balance & Positive Strengths (Pénzes et al., 2020) ---
+    if overlap_index >= 0.44 or revision_index >= 0.42 or jitter_index >= 0.42:
+        structure_balance = {
+            "code": "tight_controlled",
+            "label": "高張力重複／緊繃結構",
+            "summary": "依 Pénzes 等人（2020）形式元素研究，畫面重複塗抹、修正或線條震顫偏高，反映內在緊繃與高度警覺。",
+        }
+        strengths_note = "即使當下承載緊繃或壓力，創作者仍透過反覆描繪與界線建構嘗試整理內在感受，顯示具自我覺察與尋求秩序的內在資源（Pénzes et al., 2020）。"
+    elif sharpness_index >= 0.34 and (velocity_index >= 0.50 or effective_force_index >= 0.62):
+        structure_balance = {
+            "code": "expansive_dynamic",
+            "label": "高動態外放結構",
+            "summary": "線條動態感與落筆能量強烈，展現充沛的情緒外化與突破框限張力（Pénzes et al., 2020）。",
+        }
+        strengths_note = "畫面呈現鮮明的表達勇氣與主動外化能量，能把內在挫折直接轉化為視覺張力，是健康的情緒宣洩與溝通起點（Pénzes et al., 2020）。"
+    elif bbox_area_ratio < 0.18 and len(draw_strokes) <= 8:
+        structure_balance = {
+            "code": "sparse_tentative",
+            "label": "低密度內收／試探結構",
+            "summary": "畫面留白比例高且筆觸精簡謹慎，反映小心試探與保留自我空間的節奏（Pénzes et al., 2020）。",
+        }
+        strengths_note = "雖然筆跡精簡內斂，但創作者仍願意落筆留下專屬印記，維持清晰的自我邊界；在溫和陪伴下常能一步步展開更多表達（Gross & Hayne, 1998）。"
+    else:
+        structure_balance = {
+            "code": "balanced_flexible",
+            "label": "結構平衡・具心理彈性",
+            "summary": "依 Pénzes 等人（2020）研究，畫面在輪廓清晰度、流動感與空間變化間保持良好平衡，呈現正向心理適應與創造彈性。",
+        }
+        strengths_note = "畫面展現良好的結構組織力與情緒調節彈性，能自在地整合圖形、空間與節奏來表達內在世界（Pénzes et al., 2020）。"
 
     incongruence_note = None
     if title_or_note:
@@ -1514,46 +1746,75 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         "neutralGrey": "低飽和灰色系",
     }
     if is_monochrome_sketch:
+        if color_change_count == 0:
+            color_insight = (
+                "偵測到全程沿用預設單色畫筆未主動換色（類似鉛筆素描）。依 Picard & Gauthier (2012) 與 Burkitt (2003a) 實證，"
+                "系統已自動啟動「單色去偏」，絕不因預設黑筆給予負向扣分，改以完整圖形、表情與筆觸為主導。"
+            )
+        else:
+            color_insight = (
+                "偵測到本次為單一色系素描。依 Picard & Gauthier (2012) 實證，單色作畫時創作者會改以形狀與表情表達情緒，"
+                "系統已啟動單色去偏並以完整圖形結構為第一判準。"
+            )
+    elif is_canonical_nature_palette:
         color_insight = (
-            "偵測到本次為單色線條作畫（類似經典鉛筆測驗）。系統已自動啟動「單色鉛筆去偏」，"
-            "不因黑色或單一筆色給予負向扣分，改由完整圖形結構、臉部表情、構圖比例與筆觸動力作為主要判斷依據。"
+            "偵測到藍、綠、暖黃等「自然寫實原色」組合。依 Crawford 等人（2012）實驗（寫實配色與情緒強度 r = -0.14 不顯著），"
+            "系統已自動降低藍色的悲傷誤判權重，避免把藍天綠草判成低落。"
         )
     elif (intense_red + dark_muted) >= 0.55 and intense_red >= 0.18:
-        color_insight = "色彩由高張力的紅與深暗色輔助主導，參考 Alschuler & Hattwick 與 Burkitt 研究，高對比濃烈用色常呼應憤怒、挫敗或迫切的情感宣洩。"
+        color_insight = "色彩由高張力紅與深暗色輔助主導，參考 Burkitt (2003a) 與 Cao 等人（2023）實驗，高對比紅色常呼應威脅警覺、憤怒或迫切的情感宣洩。"
     elif (cool_blue + neutral_grey + dark_muted) >= 0.58:
-        color_insight = "色調偏向冷色、低彩度或暗沉色系，依 Burkitt 等人（2003）研究常與低落、難過或深層內省情緒相伴（仍以完整圖形結構為主導）。"
+        color_insight = "色調偏向冷色或暗沉色系，參考 Burkitt (2003a) 與 Cao 等人（2023）研究常與低落或孤單相伴；提醒仍須對照創作者日常個人喜愛色。"
     elif positive_warm_palette >= 0.55:
         color_insight = "暖明色與自然色系帶來溫暖正向的氛圍基調，輔助強化作品的開放與活力感受。"
     else:
-        color_insight = "色彩冷暖交錯具多層次變化，與畫面圖形共同映照出豐富細微的情緒層次。"
+        color_insight = "色彩冷暖交錯具多層次變化，與畫面圖形共同映照出豐富細微的情緒層次（仍須參照個人偏好色）。"
+
+    tool_zh = {"marker": "麥克筆", "crayon": "蠟筆", "pencil": "鉛筆", "watercolor": "水彩"}
+    dom_tool = max(tool_counts, key=lambda k: tool_counts[k]) if tool_counts else "crayon"
+    tool_summary = f"主畫具：{tool_zh.get(dom_tool, dom_tool)}（平均粗細 {round(mean_raw_size, 1)}px）"
+    interface_signals: List[str] = [sensing_mode_label, tool_summary]
+    if color_change_count > 0:
+        interface_signals.append(f"主動換色 {color_change_count} 次")
+    elif is_monochrome_sketch:
+        interface_signals.append("沿用預設筆色（未主動換色）")
+    if tool_switch_count > 0:
+        interface_signals.append(f"切換畫具 {tool_switch_count} 次")
+    if size_change_count > 0:
+        interface_signals.append(f"調整粗細 {size_change_count} 次")
+    if in_air_pause_ratio > 0.05:
+        interface_signals.append(f"提筆停頓佔比 {round(in_air_pause_ratio * 100)}%")
 
     if sharpness_index >= 0.34 and velocity_index >= 0.50:
-        stroke_insight = "筆觸包含明顯的尖銳折角與較快劃動速度，呈現高度情緒喚起、防衛張力或急切宣洩挫折感的動力特徵（Alschuler & Hattwick）。"
+        stroke_insight = f"透過「{sensing_mode_label}」觀察，筆觸呈現明顯尖銳折角、較快劃速與高張力（等效筆力 {round(effective_force_index * 100)}%），呈現強烈情緒喚起或宣洩動力。"
     elif overlap_index >= 0.44:
-        stroke_insight = "多處出現反覆重疊與密集塗抹痕跡，對應 Koppitz（1968）『重度陰影／塗黑』指標，常反映焦慮、緊繃或對某種感受的反覆思量。"
+        stroke_insight = f"多處出現反覆重疊與密集塗抹痕跡（結構分類：{structure_balance['label']}），對應 Koppitz（1968）與 Pénzes 等人（2020）高重複緊繃特徵。"
+    elif jitter_index >= 0.40 or in_air_pause_ratio >= 0.65:
+        stroke_insight = f"軟體介面偵測到較高的線條微震顫（{round(jitter_index * 100)}%）或提筆停頓比例（{round(in_air_pause_ratio * 100)}%），顯示落筆過程帶有猶豫、謹慎思量或內在緊繃。"
     elif fragmentation_index >= 0.45:
-        stroke_insight = "線條偏短且較多斷續與停頓，顯示落筆時帶著小心翼翼、猶豫或能量偏低的心境。"
+        stroke_insight = "線條偏短且較多斷續與停頓，顯示落筆時帶著小心翼翼、試探或能量偏低的心境。"
     elif smoothness_index >= 0.42:
-        stroke_insight = "整體線條圓潤連貫、轉折柔和，在 Lowenfeld 與 Malchiodi 的觀點中代表情緒流動順暢、內在防禦較低。"
+        stroke_insight = f"整體線條圓潤連貫、轉折柔和（{tool_summary}），依 Pénzes 等人（2020）顯示情緒流動順暢、內在防禦較低。"
     else:
-        stroke_insight = "筆觸兼具直線結構與柔和曲線，節奏平穩可控，反映創作者正以有條理的方式組織畫面。"
+        stroke_insight = f"筆觸兼具直線結構與柔和曲線（{tool_summary}），節奏平穩可控，反映創作者正以有條理的方式組織畫面。"
 
     horiz_pos = "偏左（內向回顧／尋求依附）" if cx < 0.38 else ("偏右（面向外界／探索環境）" if cx > 0.62 else "水平居中（平衡穩定）")
     vert_pos = "偏上（想像思緒／渴望抽離）" if cy < 0.38 else ("偏下（尋求踏實／情緒沉重）" if cy > 0.62 else "垂直居中（立足當下）")
     if bbox_area_ratio < 0.18:
-        spatial_insight = f"作品主體僅佔畫布約 {round(bbox_area_ratio * 100)}% 且重心{horiz_pos}、{vert_pos}。依 Koppitz 微小圖形與 Buck HTP 觀點，偏小縮聚構圖常暗示退縮、害羞或孤單感。"
+        spatial_insight = f"作品主體僅佔畫布約 {round(bbox_area_ratio * 100)}% 且重心{horiz_pos}、{vert_pos}。依 Burkitt (2003b) 與 Cao 等人（2023）實證，偏小縮聚構圖常與孤單、害羞或退縮相關。"
     elif edge_touch_ratio >= 0.30 or bbox_area_ratio > 0.78:
-        spatial_insight = f"畫面大幅延展至畫布邊緣（覆蓋範圍約 {round(bbox_area_ratio * 100)}%），呈現強烈外放與突破框限的能量。"
+        spatial_insight = f"畫面大幅延展至畫布邊緣（覆蓋約 {round(bbox_area_ratio * 100)}%）。依 Burkitt (2004) 與 Cao 等人（2023）實驗，大畫幅可能是正向開展，也可能是高威脅／高張力外放，需結合線條與表情判讀。"
     else:
-        spatial_insight = f"畫面佔比約 {round(bbox_area_ratio * 100)}%，空間重心位於{horiz_pos}、{vert_pos}，整體留白與主體比例協調（Buck HTP）。"
+        spatial_insight = f"畫面佔比約 {round(bbox_area_ratio * 100)}%，空間重心位於{horiz_pos}、{vert_pos}，留白與主體比例協調舒展（Buck HTP; Cao et al., 2023）。"
 
+    ch_str = " ＋ ".join(expressive_channels)
     if recognized_figures:
         fig_names = "、".join(f["label"] for f in recognized_figures[:3])
-        process_insight = f"系統透過多筆空間拓樸成功辨識出完整圖形：「{fig_names}」，並作為本次心理狀態推估的核心依據。"
+        process_insight = f"系統透過多筆空間拓樸辨識出「{fig_names}」（表達通道：{ch_str}），並依國際期刊實證原則以完整圖形與情境內容為優先判準。"
     elif revision_events >= 3:
-        process_insight = f"繪畫過程中進行了 {revision_events} 次復原或擦除動作，反映對自我表現的猶豫、高標準或緊張感（Koppitz 擦除指標）。"
+        process_insight = f"繪畫過程中進行了 {revision_events} 次復原或擦除動作（表達通道：{ch_str}），反映對自我表現的猶豫、高標準或緊張感。"
     else:
-        process_insight = f"全作共 {len(draw_strokes)} 筆自然完成，未偵測到固定具象圖式，主要綜合筆觸動力、構圖比例與色彩表現進行推估。"
+        process_insight = f"全作共 {len(draw_strokes)} 筆完成（表達通道：{ch_str}），未偵測到固定具象圖式，主要綜合軟體介面筆觸動力與空間比例進行探索推估。"
 
     prof_primary = EMOTION_PROFILES[primary_key]
     voice_idx = (len(draw_strokes) + len(detected_motifs)) % len(prof_primary["inner_voices"])
@@ -1570,8 +1831,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "status": "ok",
-        "engineMode": "local_shape_first_v2",
+        "engineMode": "local_empirical_v3",
         "isMonochromeSketch": is_monochrome_sketch,
+        "isCanonicalNaturePalette": is_canonical_nature_palette,
+        "ageGroup": age_group,
+        "ageNorm": age_norm,
+        "expressiveChannels": expressive_channels,
+        "evidenceConvergence": {
+            "level": conv_level,
+            "label": conv_label,
+            "channelCount": converging_channels,
+            "alternativeNote": alt_note,
+        },
+        "structureBalance": structure_balance,
+        "strengthsNote": strengths_note,
         "primaryEmotion": primary,
         "secondaryEmotion": secondary,
         "emotions": emotion_results,
@@ -1584,28 +1857,36 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         "pillars": {
             "color": {
                 "title": "色彩與情感投射",
-                "citation": "Burkitt et al. (2003); Alschuler & Hattwick (1947)",
+                "citation": "Burkitt et al. (2003a); Crawford et al. (2012); Cao et al. (2023)",
                 "dominantBucket": color_bucket_labels.get(dominant_color_bucket, dominant_color_bucket),
                 "isMonochromeSketch": is_monochrome_sketch,
+                "isCanonicalNaturePalette": is_canonical_nature_palette,
                 "histogram": color_hist,
                 "meanSaturation": round(mean_sat, 3),
                 "meanLuminance": round(mean_lum, 3),
                 "insight": color_insight,
             },
             "strokes": {
-                "title": "線條品質與筆觸動力",
-                "citation": "Lowenfeld (1987); Malchiodi (1998)",
+                "title": "線條品質與介面筆觸動力",
+                "citation": "Pénzes et al. (2020); Nanayama Tanaka et al. (2020)",
                 "strokeCount": len(draw_strokes),
+                "sensingMode": sensing_mode,
+                "sensingModeLabel": sensing_mode_label,
+                "effectiveForceIndex": round(effective_force_index, 3),
                 "sharpnessIndex": round(sharpness_index, 3),
                 "smoothnessIndex": round(smoothness_index, 3),
                 "velocityIndex": round(velocity_index, 3),
                 "overlapIndex": round(overlap_index, 3),
                 "fragmentationIndex": round(fragmentation_index, 3),
+                "jitterIndex": round(jitter_index, 3),
+                "inAirPauseRatio": round(in_air_pause_ratio, 3),
+                "toolSummary": tool_summary,
+                "interfaceSignals": interface_signals,
                 "insight": stroke_insight,
             },
             "spatial": {
                 "title": "空間構圖與九宮格重心",
-                "citation": "Buck HTP (1948); Koppitz (1968)",
+                "citation": "Burkitt et al. (2003b, 2004); Cao et al. (2023); Buck HTP",
                 "grid3x3": grid_3x3,
                 "centerOfMass": {"x": round(cx, 3), "y": round(cy, 3)},
                 "bboxCoverage": round(bbox_area_ratio, 3),
@@ -1615,9 +1896,12 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             },
             "process": {
                 "title": "完整圖形辨識與繪畫歷程",
-                "citation": "Buck HTP (1948); Koppitz Emotional Indicators (1968)",
+                "citation": "Jolley (2004); Picard (2007, 2012); Misalidi & Bonoti (2014)",
                 "undoCount": undo_count,
                 "eraserCount": eraser_count,
+                "colorChangeCount": color_change_count,
+                "toolSwitchCount": tool_switch_count,
+                "sizeChangeCount": size_change_count,
                 "revisionIndex": round(revision_index, 3),
                 "durationSeconds": round(total_duration_ms / 1000.0, 1),
                 "matchedVerbalCues": {k: v for k, v in matched_words.items() if v},
@@ -1626,7 +1910,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         "references": PSYCHOLOGY_REFERENCES,
         "ethicalNotice": (
-            "本分析參考兒童發展心理學與藝術治療投射理論（HTP 屋樹人、Koppitz 情緒指標、Lowenfeld 發展階段及 Burkitt 色彩研究），"
-            "旨在提供溫柔的情緒探索與親子／自我對話起點，並非臨床心理或醫療診斷。"
+            "本分析結合 14 篇國際心理學同儕審查期刊實證研究（涵蓋 Jolley、Picard、Burkitt、Crawford、Pénzes、Nanayama Tanaka、"
+            "Joiner、Catte & Cox、Thomas & Jolley、Gross & Hayne、Cao 等人）與經典 HTP／Koppitz 理論，"
+            "嚴格遵循「不以單一線索下定論」原則，僅作為溫柔的情緒探索與 Draw & Tell 親子對話起點，並非臨床心理或醫療診斷。"
         ),
     }

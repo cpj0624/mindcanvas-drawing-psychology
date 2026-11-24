@@ -61,6 +61,9 @@ class StrokePoint(BaseModel):
     y: float = Field(..., ge=-5000.0, le=10000.0, allow_inf_nan=False)
     t: float = Field(default=0.0, ge=0.0, le=86_400_000.0, allow_inf_nan=False)
     p: float = Field(default=0.5, ge=0.0, le=1.0, allow_inf_nan=False)
+    tx: float = Field(default=0.0, ge=-90.0, le=90.0, allow_inf_nan=False)
+    ty: float = Field(default=0.0, ge=-90.0, le=90.0, allow_inf_nan=False)
+    w: float = Field(default=0.0, ge=0.0, le=200.0, allow_inf_nan=False)
 
 
 class StrokeItem(BaseModel):
@@ -68,6 +71,7 @@ class StrokeItem(BaseModel):
     tool: str = Field(default="crayon", max_length=24)
     color: str = Field(default="#222222", max_length=16)
     size: float = Field(default=6.0, ge=1.0, le=80.0, allow_inf_nan=False)
+    pointerType: str = Field(default="mouse", max_length=16)
     points: List[StrokePoint] = Field(default_factory=list, max_length=4000)
 
 
@@ -83,11 +87,20 @@ class ProcessMetrics(BaseModel):
     clearCount: int = Field(default=0, ge=0, le=1000)
     eraserStrokeCount: int = Field(default=0, ge=0, le=10000)
     totalDurationMs: float = Field(default=0.0, ge=0.0, le=86_400_000.0, allow_inf_nan=False)
+    activeDrawingMs: float = Field(default=0.0, ge=0.0, le=86_400_000.0, allow_inf_nan=False)
     pauseCount: int = Field(default=0, ge=0, le=10000)
+    colorChangeCount: int = Field(default=0, ge=0, le=10000)
+    toolSwitchCount: int = Field(default=0, ge=0, le=10000)
+    sizeChangeCount: int = Field(default=0, ge=0, le=10000)
+    paperChangeCount: int = Field(default=0, ge=0, le=1000)
+    inputDevices: List[Annotated[str, Field(max_length=16)]] = Field(
+        default_factory=list, max_length=8
+    )
 
 
 class UserContext(BaseModel):
     titleOrNote: str = Field(default="", max_length=300)
+    ageGroup: str = Field(default="unspecified", max_length=16)
     selectedMotifs: List[Annotated[str, Field(max_length=48)]] = Field(
         default_factory=list, max_length=20
     )
