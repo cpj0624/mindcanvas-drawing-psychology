@@ -562,8 +562,39 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
                     self.assertIn(field, ch)
                     self.assertTrue(ch[field], f"Empty {field} in {ch}")
 
+    def test_v3_dialogue_guide_draw_and_tell_non_diagnostic(self):
+        """Analyzer must return a 4-stage non-diagnostic Draw & Tell dialogueGuide adapted to drawing and age."""
+        c = "#2A2B30"
+        strokes = [
+            _make_circle_stroke(105, 420, 17, c, size=4, steps=24, dt_ms=50, tool="pencil"),
+            _make_line_stroke(105, 438, 105, 480, c, size=4, steps=10, dt_ms=52, tool="pencil"),
+            _make_line_stroke(86, 456, 124, 456, c, size=4, steps=8, dt_ms=52, tool="pencil"),
+            _make_line_stroke(105, 480, 91, 506, c, size=4, steps=8, dt_ms=52, tool="pencil"),
+            _make_line_stroke(105, 480, 119, 506, c, size=4, steps=8, dt_ms=52, tool="pencil"),
+        ]
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "3-6"},
+        })
+        dg = res.get("dialogueGuide")
+        self.assertIsInstance(dg, dict)
+        self.assertIn("3–6 歲", dg["ageToneLabel"])
+        self.assertTrue(dg["openingCue"])
+        self.assertEqual(len(dg["stages"]), 4)
+        for st in dg["stages"]:
+            self.assertGreaterEqual(len(st["prompts"]), 2)
+            self.assertTrue(st["followUpTip"])
+        self.assertIn("title", dg["coDrawIdea"])
+        self.assertGreaterEqual(len(dg["avoidPhrases"]), 2)
+        # Monochrome tiny corner drawing should trigger anti-black-bias & anti-size-labeling avoid tips
+        joined_avoid = " ".join(item["avoid"] for item in dg["avoidPhrases"])
+        self.assertIn("黑色", joined_avoid)
+        self.assertIn("小", joined_avoid)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

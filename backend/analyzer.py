@@ -2117,6 +2117,206 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         ],
     }
 
+    # --- 9. Non-Diagnostic Draw & Tell Interactive Dialogue Guide (Gross & Hayne, 1998; Malchiodi, 1998) ---
+    age_tone_meta = {
+        "3-6": {
+            "toneLabel": "3–6 歲｜遊戲與角色扮演語氣",
+            "companionTip": "蹲下來與孩子平視，用好奇玩伴的口吻聊畫裡的小世界，每次只問 1 題並給足 5–10 秒等待回應。",
+        },
+        "7-10": {
+            "toneLabel": "7–10 歲｜故事主角與冒險探索語氣",
+            "companionTip": "把孩子當成這幅畫的「小導演」，邀請他介紹角色與劇情，避免評價畫得像不像或急著給建議。",
+        },
+        "11+": {
+            "toneLabel": "11 歲以上｜平等尊重與內在觀點語氣",
+            "companionTip": "保持輕鬆平等的聊天節奏，尊重創作者決定「要分享到哪裡」，把主導權留給本人。",
+        },
+        "unspecified": {
+            "toneLabel": "通用溫和模式｜開放式非誘導對話",
+            "companionTip": "依 Gross & Hayne (1998) 實驗原則：只描述你看到的畫面細節並問開放問題，不預設立場或替孩子貼情緒標籤。",
+        },
+    }[age_group]
+
+    fig_first = recognized_figures[0] if recognized_figures else None
+    fig_code = fig_first["code"] if fig_first else ""
+    fig_name = fig_first["label"] if fig_first else ""
+
+    if fig_first:
+        opening_cue = f"「我看見你在畫紙上畫了『{fig_name}』，感覺這裡面藏著一個很特別的故事。你可以當小導遊，帶我看看這幅畫嗎？」"
+    elif title_or_note:
+        opening_cue = f"「你幫這幅畫留下了『{title_or_note}』這句話，我很想知道畫裡正在發生什麼事，可以跟我說說看嗎？」"
+    elif sharpness_index >= 0.34 or overlap_index >= 0.44:
+        opening_cue = f"「哇，你用{tool_zh.get(dom_tool, '畫筆')}畫出很有力量的筆觸，感覺剛剛畫得很投入！這裡面最想先介紹給我的是哪一塊？」"
+    else:
+        opening_cue = f"「謝謝你願意用{tool_zh.get(dom_tool, '畫筆')}把腦海裡的畫面畫下來。你最喜歡這幅畫裡的哪一個角落？可以跟我介紹嗎？」"
+
+    # Stage 1: Notice & Warm-up (Purely descriptive, zero judgment)
+    s1_prompts = [
+        f"如果我們一起走進這幅畫裡，你最想先帶我看哪一個地方？（你剛剛是從哪一筆開始畫的？）",
+        (
+            f"我注意到畫裡有「{fig_name}」，你可以告訴我他是誰、或者他正在這裡做什麼嗎？"
+            if fig_first
+            else f"這裡的線條和留白安排得很特別，你畫這一塊的時候心裡想到的是什麼畫面或聲音呢？"
+        ),
+    ]
+
+    # Stage 2: Step Into the Story (Third-person projective bridge — safest way for children to speak)
+    if fig_code in ("face_sad_crying", "face_sad", "rain_cloud_figure"):
+        s2_prompts = [
+            "如果畫裡的角色（或這場雨）會說話，他現在最想跟誰說一句悄悄話？",
+            "在這個畫面出現之前，你覺得剛剛發生了什麼事情？接下來他希望發生什麼事？",
+        ]
+    elif fig_code in ("face_angry", "cross_out_figure"):
+        s2_prompts = [
+            "如果畫裡最有張力的那個部分發出聲音，聽起來會像什麼聲音？他在保護或抗議什麼呢？",
+            "假設這個角色有一張「想說清楚的話」大字報，他會在上面寫什麼？",
+        ]
+    elif fig_code in ("house_open", "house_closed", "cage_bars_figure"):
+        s2_prompts = [
+            "這座空間裡面住了誰？平常誰可以敲門進來，誰要留在外面呢？",
+            "如果畫裡有一個秘密機關或窗戶，打開之後會看到什麼風景？",
+        ]
+    elif fig_code in ("person_tiny_isolated", "face_no_mouth", "person_blank_face"):
+        s2_prompts = [
+            "畫裡的這個主角看起來好安靜，他現在正在看什麼、或是心裡在想什麼小秘密呢？",
+            "如果旁邊有一隻會讀心術的小動物走過來陪他，小動物會對他說什麼？",
+        ]
+    elif fig_code in ("face_happy", "sun_figure", "heart_figure"):
+        s2_prompts = [
+            "畫裡這個亮亮／開心的畫面，讓你想到哪一個好玩的人、地方或回憶呢？",
+            "如果這幅畫可以變成一部小動畫，下一秒畫裡的角色會做什麼好玩的事？",
+        ]
+    else:
+        s2_prompts = [
+            "如果這幅畫是一部短片或繪本的其中一頁，你會幫這一頁取什麼名字？",
+            "如果畫裡的線條或形狀有自己的聲音與動作，它們現在正在說什麼、或是要去哪裡呢？",
+        ]
+
+    # Stage 3: Bridge to Inner Thoughts (Gentle, optional connection to real life)
+    s3_prompts = [
+        "畫完這幅畫之後，你現在身體和心裡的感覺，比較像什麼天氣（晴天、微風、陰陰的、還是雷陣雨）？",
+        (
+            f"剛剛你寫了「{title_or_note}」，最近生活裡有沒有一件事，讓你也有這種感覺，想多跟我聊一點嗎？"
+            if title_or_note
+            else "最近在學校、家裡或跟朋友相處時，有沒有哪個時刻也有一點點像這幅畫裡的感覺？不想說也沒關係喔。"
+        ),
+    ]
+
+    # Stage 4: Co-Create & Empower (Actionable invitation to add one more stroke together)
+    if fig_code in ("face_sad_crying", "face_sad", "rain_cloud_figure"):
+        co_draw_idea = {
+            "title": "幫畫面加上一樣「暖暖的小幫手」",
+            "prompt": "如果你想幫畫裡的主角加一把超能力雨傘、一條毛毯、一隻小寵物或一個好朋友，你想畫在哪裡？現在就一起畫上去吧！",
+            "inviteAction": "邀請孩子選一個他最喜歡的顏色，在畫布上添上一樣「讓人覺得被照顧」的小東西。",
+        }
+    elif fig_code in ("face_angry", "cross_out_figure") or (sharpness_index >= 0.34 and velocity_index >= 0.50):
+        co_draw_idea = {
+            "title": "把這股力量變成「守護盾牌或安全出口」",
+            "prompt": "這幅畫好有能量！如果我們幫這股力量畫一個安全的大框框，或是幫主角畫一個超能力道具來保護他重視的東西，你想畫什麼？",
+            "inviteAction": "邀請孩子一起在畫布邊緣或空白處加上「守護道具」或「宣洩完之後的休息角落」。",
+        }
+    elif fig_code in ("person_tiny_isolated", "house_closed", "cage_bars_figure") or bbox_area_ratio < 0.18:
+        co_draw_idea = {
+            "title": "在空白處邀請一位「想見的夥伴」或開一扇小門",
+            "prompt": "畫紙旁邊還有好寬的空間，如果可以邀請一個你喜歡的角色、寵物或一道小門進來陪他，你想畫在哪裡？",
+            "inviteAction": "先詢問孩子同不同意你一起畫（尊重邊界），再由孩子指揮你想在哪個角落加上夥伴或秘密基地。",
+        }
+    elif fig_code in ("face_happy", "sun_figure", "heart_figure"):
+        co_draw_idea = {
+            "title": "把這份好心情擴建成「秘密遊樂園」",
+            "prompt": "這個畫面好舒服！如果可以再多加一個你最喜歡的食物、遊戲或想一起分享的人，你想把它畫在哪裡？",
+            "inviteAction": "和孩子一人輪流畫一筆，延續這份正向愉快的親子共創時光。",
+        }
+    else:
+        co_draw_idea = {
+            "title": "「你畫一筆、我畫一筆」故事接龍",
+            "prompt": "如果你想幫這幅畫加上一個「讓你覺得安心或好玩的新元素」，你想加什麼？也可以由你出題、我來幫你畫一筆喔！",
+            "inviteAction": "透過共同添上一筆讓孩子感受到「大人願意走進我的世界一起玩」，自然打開更多心裡話。",
+        }
+
+    s4_prompts = [
+        co_draw_idea["prompt"],
+        "今天這幅畫裡，有沒有哪一句話是你想留給明天自己的小提醒或小願望？",
+    ]
+
+    # Tailored "Avoid vs. Better" Non-Leading Phrasing Guide
+    avoid_phrases: List[Dict[str, str]] = []
+    if is_monochrome_sketch:
+        avoid_phrases.append({
+            "avoid": "「你怎麼只用黑色畫？是不是心情不好或發生壞事？」",
+            "better": "「你用了單一顏色把整個畫面畫出來，像鉛筆素描一樣！你最想讓我先注意哪個形狀？」",
+        })
+    if bbox_area_ratio < 0.18 or fig_code == "person_tiny_isolated":
+        avoid_phrases.append({
+            "avoid": "「你怎麼畫得這麼小、縮在角落？是不是很孤單？」",
+            "better": "「這個小小的角落看起來很安靜，畫裡的主角在這裡做什麼呢？」",
+        })
+    if revision_events >= 3 or overlap_index >= 0.44 or sharpness_index >= 0.34:
+        avoid_phrases.append({
+            "avoid": "「不要一直擦掉或亂塗！怎麼畫得這麼亂？」",
+            "better": "「我看見你在這塊反覆修改／用力畫了好幾次，你那時候正在想把它變成什麼樣子呢？」",
+        })
+    if fig_code in ("face_no_mouth", "person_blank_face", "house_closed"):
+        avoid_phrases.append({
+            "avoid": "「怎麼忘了畫嘴巴／門窗？這樣不完整喔！」",
+            "better": "「我發現這裡留了白，如果這個人／這間房子現在有心裡話，他會想怎麼表達呢？」",
+        })
+    if len(avoid_phrases) < 2:
+        avoid_phrases.append({
+            "avoid": "「這是貓咪對不對？／你畫的是爸爸生氣對不對？」（急著猜與誘導）",
+            "better": "「這個形狀好特別，可以告訴我這是什麼、它在做什麼嗎？」",
+        })
+    if len(avoid_phrases) < 3:
+        avoid_phrases.append({
+            "avoid": "「畫得好漂亮／畫得不像喔」（以美醜或像不像評價）",
+            "better": "「你花了很多心思把細節畫出來，畫到哪個部分的時候你最有感覺？」",
+        })
+
+    dialogue_guide = {
+        "title": "Draw & Tell 圖像互動引導指南",
+        "subtitle": "純粹透過畫作陪伴孩子說出內心想法（零診斷標籤・非誘導開放提問）",
+        "ageToneLabel": age_tone_meta["toneLabel"],
+        "openingCue": opening_cue,
+        "companionTip": age_tone_meta["companionTip"],
+        "theoryBasis": "Gross & Hayne (1998) Draw & Tell 實驗；Malchiodi (1998) 藝術治療對話原則；Pénzes et al. (2020)",
+        "stages": [
+            {
+                "id": "stage_notice",
+                "stepLabel": "第 1 步",
+                "stageTitle": "看見畫面（暖身與好奇）",
+                "goal": "先從具體看到的線條、形狀或物件開啟對話，讓孩子知道自己被認真看見，沒有對錯壓力。",
+                "prompts": s1_prompts,
+                "followUpTip": "孩子回答後，可以輕輕複述他的關鍵字（例如：「原來這是你在保護的基地呀」），再自然進入下一步。",
+            },
+            {
+                "id": "stage_story",
+                "stepLabel": "第 2 步",
+                "stageTitle": "走進故事（替畫中主角發聲）",
+                "goal": "透過「聊畫裡的角色」建立安全距離，孩子往往比直接回答「你怎麼了」更願意說出真實心事。",
+                "prompts": s2_prompts,
+                "followUpTip": "順著孩子的想像走，即使故事天馬行空，裡面常藏著他真實的情緒與期待。",
+            },
+            {
+                "id": "stage_feeling",
+                "stepLabel": "第 3 步",
+                "stageTitle": "貼近心裡（溫和連結真實感受）",
+                "goal": "從畫作輕柔橋接到生活經驗，邀請孩子自由表達內心想法，同時尊重他選擇不說的權利。",
+                "prompts": s3_prompts,
+                "followUpTip": "如果孩子沉默或說「不知道」，溫柔回應「沒關係，畫出來本身就很棒了」，切勿追問逼答。",
+            },
+            {
+                "id": "stage_cocreate",
+                "stepLabel": "第 4 步",
+                "stageTitle": "一起共創（賦能與延伸畫作）",
+                "goal": "把對話轉化為正向行動，邀請孩子在畫布上添上一筆新的力量、夥伴或安全空間。",
+                "prompts": s4_prompts,
+                "followUpTip": co_draw_idea["inviteAction"],
+            },
+        ],
+        "coDrawIdea": co_draw_idea,
+        "avoidPhrases": avoid_phrases[:3],
+    }
+
     return {
         "status": "ok",
         "engineMode": "local_empirical_v3",
@@ -2134,6 +2334,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         "structureBalance": structure_balance,
         "strengthsNote": strengths_note,
         "reasoningTree": reasoning_tree,
+        "dialogueGuide": dialogue_guide,
         "primaryEmotion": primary,
         "secondaryEmotion": secondary,
         "emotions": emotion_results,
