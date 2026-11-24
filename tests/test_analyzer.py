@@ -526,7 +526,44 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         self.assertTrue(res["strengthsNote"])
         self.assertTrue(res["expressiveChannels"])
 
+    def test_v3_explainable_reasoning_tree_structure(self):
+        """Analyzer must return a complete 3-level reasoningTree explaining judgment logic and evidence."""
+        c = "#2A2B30"
+        strokes = [
+            _make_circle_stroke(400, 280, 95, c, size=6, steps=36, dt_ms=32, tool="pencil"),
+            _make_circle_stroke(365, 255, 8, c, size=5, steps=16, dt_ms=25, tool="pencil"),
+            _make_circle_stroke(435, 255, 8, c, size=5, steps=16, dt_ms=25, tool="pencil"),
+            _make_arc_stroke(400, 290, 46, math.pi * 0.15, math.pi * 0.85, c, size=6, steps=20, dt_ms=30, tool="pencil"),
+        ]
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"titleOrNote": "開心畫畫", "ageGroup": "7-10"},
+        })
+        tree = res.get("reasoningTree")
+        self.assertIsInstance(tree, dict)
+        self.assertIn("結論總結", tree["rootTitle"])
+        self.assertTrue(tree["rootSummary"])
+        branches = tree["branches"]
+        self.assertEqual([b["id"] for b in branches], ["figures", "strokes", "spatial", "color", "context_guardrail"])
+        # Figure branch must be primary and list face_happy with impact delta
+        fig_branch = branches[0]
+        self.assertEqual(fig_branch["status"], "primary")
+        self.assertTrue(any("face_happy" in ch["id"] and "+" in ch["tag"] for ch in fig_branch["children"]))
+        # Color branch must reflect monochrome debiasing
+        color_branch = branches[3]
+        self.assertEqual(color_branch["status"], "attenuated")
+        self.assertIn("單色", color_branch["badge"])
+        # Every child node must contain title, summary, detail, citation
+        for b in branches:
+            self.assertGreaterEqual(len(b["children"]), 1)
+            for ch in b["children"]:
+                for field in ("id", "title", "tag", "summary", "detail", "citation"):
+                    self.assertIn(field, ch)
+                    self.assertTrue(ch[field], f"Empty {field} in {ch}")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

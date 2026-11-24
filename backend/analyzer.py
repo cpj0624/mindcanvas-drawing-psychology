@@ -355,6 +355,7 @@ def _detect_composite_figures(
             "channel": channel,
             "theory": theory,
             "meaning": meaning,
+            "impact": {emo: round(delta, 2) for emo, delta in emo_delta.items()},
             "bbox": {
                 "x": round(max(0.0, x0), 1),
                 "y": round(max(0.0, y0), 1),
@@ -1829,6 +1830,293 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     if title_or_note:
         inner_thoughts_paragraph += f" 結合你留下的文字「{title_or_note}」，更清楚看見這幅畫正在替此刻的心境發聲。"
 
+    # --- 8. Explainable Reasoning Tree (3-Level Interactive Logic & Evidence Summary) ---
+    emo_short = {k: EMOTION_PROFILES[k]["short_label"] for k in EMOTION_KEYS}
+
+    def _fmt_impact(impact_map: Dict[str, float]) -> str:
+        parts = [
+            f"{emo_short.get(k, k)} {'+' if v >= 0 else ''}{v:.2f}"
+            for k, v in sorted(impact_map.items(), key=lambda kv: abs(kv[1]), reverse=True)
+            if abs(v) >= 0.02
+        ]
+        return "、".join(parts) if parts else "微幅中性影響"
+
+    # Branch 1: Figures & Content (Primary priority)
+    fig_children: List[Dict[str, str]] = []
+    for f in recognized_figures:
+        ch_lbl = "字面表情（Literal）" if f.get("channel") == "literal" else "情境隱喻（Content）"
+        fig_children.append({
+            "id": f"fig_{f['code']}",
+            "title": f"{f['label']}（{ch_lbl}）",
+            "tag": _fmt_impact(f.get("impact") or {}),
+            "summary": f["meaning"],
+            "detail": (
+                f"空間拓樸依據：系統由多筆座標關係定位此結構（範圍 {round(f['bbox']['w'])}×{round(f['bbox']['h'])}px），"
+                f"依「{f['theory']}」賦予情緒方向權重（{_fmt_impact(f.get('impact') or {})}）。"
+            ),
+            "citation": f["theory"],
+        })
+    if not fig_children:
+        fig_children.append({
+            "id": "fig_none",
+            "title": "未偵測到 17 類固定具象圖式",
+            "tag": "改由動力與空間推估",
+            "summary": "畫面為自由抽象線條或非固定幾何物體，未套用固定圖形加權。",
+            "detail": (
+                "方案 A 採幾何拓樸辨識（臉部表情、屋樹門窗、太陽、雨雲、愛心、打叉、柵欄、人物）。"
+                "當未命中固定圖式時，系統不會硬猜物件，而是自動將權重轉移至軟體介面筆觸動力、空間構圖比例與口語脈絡；"
+                "若畫中有動物、複雜場景或多人物故事，可切換方案 B（Gemini 視覺）進行開放式內容判讀。"
+            ),
+            "citation": "Jolley et al. (2004); Picard et al. (2007)",
+        })
+
+    # Branch 2: Software Interface Strokes & Kinematics
+    stroke_children: List[Dict[str, str]] = [
+        {
+            "id": "stroke_sensing",
+            "title": f"裝置感測與畫具設定：{sensing_mode_label}",
+            "tag": f"等效筆力 {round(effective_force_index * 100)}%",
+            "summary": f"{tool_summary}；系統依輸入裝置自動切換壓力計算公式。",
+            "detail": (
+                f"目前感測模式為「{sensing_mode_label}」。"
+                + (
+                    "因偵測到一般滑鼠／觸控板（瀏覽器預設壓力恆定 0.5），系統已自動捨棄無效假筆壓，"
+                    f"改由畫具硬度（均值 {round(mean_tool_hardness * 100)}%）、粗細（{round(mean_raw_size, 1)}px）、"
+                    f"劃速（{round(velocity_index * 100)}%）與重疊密度（{round(overlap_index * 100)}%）合成等效筆觸力道。"
+                    if sensing_mode == "mouse_interface"
+                    else f"系統直接納入感測裝置之硬體訊號（壓力／傾斜角或接觸寬度）結合畫具硬度（{round(mean_tool_hardness * 100)}%）推估筆觸力道。"
+                )
+            ),
+            "citation": "Pointer Events Telemetry × Software Brush Hardness Model",
+        },
+        {
+            "id": "stroke_geometry",
+            "title": f"線條幾何動力：尖銳 {round(sharpness_index * 100)}% ／ 流暢 {round(smoothness_index * 100)}% ／ 重疊 {round(overlap_index * 100)}%",
+            "tag": structure_balance["label"],
+            "summary": stroke_insight,
+            "detail": (
+                f"透過 Ramer-Douglas-Peucker 折角偵測與網格覆蓋分析：尖銳轉折比例 {round(sharpness_index * 100)}%（提升憤怒／緊繃權重）、"
+                f"圓潤弧度比例 {round(smoothness_index * 100)}%（提升平靜／愉悅權重）、"
+                f"劃動速度 {round(velocity_index * 100)}%、反覆重疊塗抹 {round(overlap_index * 100)}%。"
+                f"綜合判定為「{structure_balance['label']}」：{structure_balance['summary']}"
+            ),
+            "citation": "Pénzes et al. (2020); Koppitz (1968); Alschuler & Hattwick (1947)",
+        },
+        {
+            "id": "stroke_hesitation",
+            "title": f"猶豫與修正軌跡：微震顫 {round(jitter_index * 100)}% ／ 提筆停頓 {round(in_air_pause_ratio * 100)}% ／ 修改 {revision_events} 次",
+            "tag": "高猶豫警覺" if (revision_events >= 3 or jitter_index >= 0.40 or in_air_pause_ratio >= 0.65) else "節奏平穩",
+            "summary": f"全作共 {len(draw_strokes)} 筆、歷時 {round(total_duration_ms / 1000.0, 1)} 秒（復原 {undo_count} 次、橡皮擦 {eraser_count} 次）。",
+            "detail": (
+                f"微震顫度（{round(jitter_index * 100)}%）由原始高頻座標與平滑路徑長度差計算，用於偵測手部抖動或緊繃；"
+                f"提筆停頓佔比（{round(in_air_pause_ratio * 100)}%）衡量停筆思考時間；反覆擦除與復原（{revision_events} 次）依 Koppitz 指標對應自我要求或焦慮。"
+            ),
+            "citation": "Koppitz (1968); Pénzes et al. (2020)",
+        },
+    ]
+
+    # Branch 3: Spatial Composition & Size Asymmetry
+    size_asymmetry_tag = (
+        "大畫幅高張力（威脅外放）" if large_tense_threat > 0
+        else ("大畫幅舒展（正向／平和）" if large_open_positive > 0
+              else ("微小縮聚（孤單／內收）" if bbox_area_ratio < 0.18 else "均衡幅面"))
+    )
+    spatial_children: List[Dict[str, str]] = [
+        {
+            "id": "spatial_size",
+            "title": f"主體佔比 {round(bbox_area_ratio * 100)}%（實際著墨 {round(ink_coverage * 100, 1)}%）",
+            "tag": size_asymmetry_tag,
+            "summary": spatial_insight,
+            "detail": (
+                f"依 Burkitt 等人（2003b; 2004）與 Cao 等人（2023）實證，尺寸與情緒呈「非對稱關係」："
+                f"正向／平和畫作會穩定舒展放大（本次大畫幅舒展加權 +{large_open_positive:.2f}），"
+                f"高威脅／憤怒則可能放大且伴隨尖銳重塗（本次高張力加權 +{large_tense_threat:.2f}），"
+                f"唯獨孤單／退縮顯著呈現微小縮聚（主體佔比 < 18%）。"
+            ),
+            "citation": "Burkitt et al. (2003b, 2004); Cao et al. (2023)",
+        },
+        {
+            "id": "spatial_center",
+            "title": f"九宮格重心 X:{round(cx * 100)}% / Y:{round(cy * 100)}%・邊界觸及 {round(edge_touch_ratio * 100)}%",
+            "tag": f"{horiz_pos.split('（')[0]}・{vert_pos.split('（')[0]}",
+            "summary": f"水平{horiz_pos}、垂直{vert_pos}；底部區域著墨佔比 {round(bottom_weight * 100)}%。",
+            "detail": (
+                f"中心距離係數為 {round(center_dist * 100)}%（越靠近中心代表安全感與立足當下；大幅偏隅且畫幅偏小提升孤單權重）；"
+                f"觸及畫布邊緣筆數比例 {round(edge_touch_ratio * 100)}%（>= 30% 視為外放張力或突破框限）。"
+            ),
+            "citation": "Buck HTP (1948); Koppitz (1968)",
+        },
+    ]
+
+    # Branch 4: Color Debiasing & Cultural Context
+    color_mode_tag = (
+        "單色鉛筆去偏（權重×0.20）" if is_monochrome_sketch
+        else ("寫實原色去偏（藍色降權）" if is_canonical_nature_palette else f"多色輔助（權重×{color_scale:.2f}）")
+    )
+    color_children: List[Dict[str, str]] = [
+        {
+            "id": "color_debias",
+            "title": f"色彩去偏機制：{color_mode_tag}",
+            "tag": f"主動換色 {color_change_count} 次",
+            "summary": color_insight,
+            "detail": (
+                f"色彩在本引擎中僅為「次要調整項」（縮放係數 {color_scale:.2f}），絕不凌駕於完整圖形與表情之上。"
+                + (
+                    "本次偵測為單一色系素描，黑色／暗色負向扣分已強制歸零（monoDarkPen = 0.0）。"
+                    if is_monochrome_sketch
+                    else (
+                        "本次偵測到藍天、綠草、暖黃等自然寫實配色，依 Crawford 等人（2012）將藍色悲傷權重調降為 0.38 倍。"
+                        if is_canonical_nature_palette
+                        else "系統已同時提醒：單一顏色受個人日常喜愛色影響，需搭配圖形與對話解讀（Burkitt et al., 2003a）。"
+                    )
+                )
+            ),
+            "citation": "Picard & Gauthier (2012); Crawford et al. (2012); Burkitt et al. (2003a)",
+        },
+        {
+            "id": "color_dist",
+            "title": f"主導色系：{color_bucket_labels.get(dominant_color_bucket, dominant_color_bucket)}",
+            "tag": f"彩度 {round(mean_sat * 100)}% ／ 明度 {round(mean_lum * 100)}%",
+            "summary": (
+                f"暖明 {round(warm_bright * 100)}%・紅 {round(intense_red * 100)}%・綠 {round(fresh_green * 100)}%・"
+                f"藍 {round(cool_blue * 100)}%・暗色 {round(dark_muted * 100)}%。"
+            ),
+            "detail": (
+                "依 Burkitt (2003a) 與 Cao 等人（2023）華語文化實證：暖明與自然綠多支持愉悅／平和，"
+                "高飽和紅在搭配尖銳筆觸或大畫幅時指向威脅警覺或憤怒，冷暗色搭配縮聚或下垂線條時輔助指向低落或孤單。"
+            ),
+            "citation": "Burkitt et al. (2003a); Cao et al. (2023)",
+        },
+    ]
+
+    # Branch 5: Context, Age Norm & Over-Interpretation Guardrail
+    matched_verbal_flat = [f"{emo_short[k]}({','.join(v)})" for k, v in matched_words.items() if v]
+    context_children: List[Dict[str, str]] = [
+        {
+            "id": "ctx_verbal",
+            "title": "自發口語敘說與元素標籤（Draw & Tell）",
+            "tag": "言畫反差提醒" if incongruence_note else ("已納入文字／標籤" if (title_or_note or selected_motifs) else "未填寫"),
+            "summary": (
+                f"文字「{title_or_note}」" if title_or_note else "創作者未填寫文字說明"
+            ) + (f"；命中詞彙：{'、'.join(matched_verbal_flat)}" if matched_verbal_flat else "") + (
+                f"；自選標籤：{'、'.join(selected_motifs)}" if selected_motifs else ""
+            ),
+            "detail": (
+                incongruence_note
+                if incongruence_note
+                else "依 Gross & Hayne (1998) 實驗，讓創作者邊畫邊說能讓真實情緒表達倍增；文字詞彙僅作為輔助加權（最高 +0.36），若與畫面張力相反系統會主動提醒「可能的情緒掩飾」。"
+            ),
+            "citation": "Gross & Hayne (1998)",
+        },
+        {
+            "id": "ctx_age",
+            "title": f"年齡發展常模：{age_norm['label']}",
+            "tag": f"省略細節係數 ×{omitted_detail_scale:.2f}",
+            "summary": age_norm["guidance"],
+            "detail": (
+                f"預期表達風格：{age_norm['expectedStyle']}。當選擇 3–6 歲學齡前常模時，"
+                "系統會將「省略嘴巴、省略門窗、五官留白」等單一細節缺失的負向權重自動縮減為 0.45 倍，避免將正常認知動作發展誤判為焦慮退縮。"
+            ),
+            "citation": "Picard & Gauthier (2012); Jolley et al. (2004)",
+        },
+        {
+            "id": "ctx_guardrail",
+            "title": f"多維證據收斂護欄：{conv_label}",
+            "tag": f"命中 {converging_channels} 維・分數上限 {max_score_cap}",
+            "summary": alt_note,
+            "detail": (
+                f"本次跨「圖形結構、筆觸動力、空間構圖、口語標籤、多色分佈」共命中 {converging_channels} 項收斂證據，"
+                f"因此啟用分數上限 {max_score_cap} 分，嚴格遵守 Joiner (1996) 與 Catte & Cox (1999)「單一線索不足以推斷困擾」的實證倫理護欄；"
+                f"並依 Pénzes (2020) 同步標註正向資源：{strengths_note}"
+            ),
+            "citation": "Joiner et al. (1996); Catte & Cox (1999); Thomas & Jolley (1998); Pénzes et al. (2020)",
+        },
+    ]
+
+    # Build top-level judgment summary explaining WHY primary emotion won
+    lead_reasons: List[str] = []
+    if recognized_figures:
+        lead_reasons.append(f"優先辨識出「{'、'.join(f['label'] for f in recognized_figures[:2])}」")
+    if is_monochrome_sketch:
+        lead_reasons.append("已啟動「單色鉛筆去偏」排除黑筆誤判")
+    elif is_canonical_nature_palette:
+        lead_reasons.append("已啟動「寫實原色去偏」避免把藍天綠草判成低落")
+    if sharpness_index >= 0.34 or overlap_index >= 0.42:
+        lead_reasons.append("結合較高的尖銳／重疊塗抹張力")
+    elif smoothness_index >= 0.42:
+        lead_reasons.append("搭配圓潤流暢的筆觸節奏")
+    if bbox_area_ratio < 0.18:
+        lead_reasons.append("加上偏小縮聚的空間比例")
+    elif large_tense_threat > 0:
+        lead_reasons.append("加上大畫幅高張力外放構圖")
+    if conv_level == "low":
+        lead_reasons.append("因筆跡線索較簡短已套用 66 分上限護欄")
+
+    score_gap = primary["score"] - secondary["score"]
+    gap_desc = (
+        f"領先次高「{secondary['label']}（{secondary['score']}）」達 {score_gap} 分，主導方向明確。"
+        if score_gap >= 12
+        else f"與次高「{secondary['label']}（{secondary['score']}）」僅差 {score_gap} 分，呈現雙重情緒交織狀態。"
+    )
+    root_summary = (
+        f"綜合 5 大維度判斷，本次結果總結為「{primary['label']}（{primary['score']} 分）」：{gap_desc}"
+        + (f"核心判斷依據為：{'，'.join(lead_reasons)}。" if lead_reasons else "")
+        + "點擊下方任一分支節點，可逐層展開查看模型採用了哪些數據、規則與國際期刊文獻。"
+    )
+
+    reasoning_tree = {
+        "rootTitle": f"結論總結：{primary['label']}（{primary['score']} 分）",
+        "rootBadge": conv_label,
+        "rootSummary": root_summary,
+        "engineSource": "local_empirical_v3",
+        "branches": [
+            {
+                "id": "figures",
+                "title": "① 圖像內容與表情辨識（第一優先）",
+                "status": "primary" if recognized_figures else "neutral",
+                "badge": f"辨識 {len(recognized_figures)} 項圖形" if recognized_figures else "無固定圖式（轉由動力推估）",
+                "summary": (
+                    f"已偵測「{'、'.join(f['label'] for f in recognized_figures[:3])}」，對「{primary['shortLabel']}」構成核心判準。"
+                    if recognized_figures
+                    else "未命中 17 類固定圖式，系統自動以筆觸動力、空間比例與文字作為主要推論來源。"
+                ),
+                "children": fig_children,
+            },
+            {
+                "id": "strokes",
+                "title": "② 軟體介面筆觸與形式結構",
+                "status": "supporting",
+                "badge": f"等效筆力 {round(effective_force_index * 100)}% · {structure_balance['label'].split('・')[0]}",
+                "summary": stroke_insight,
+                "children": stroke_children,
+            },
+            {
+                "id": "spatial",
+                "title": "③ 空間構圖與尺寸非對稱",
+                "status": "supporting",
+                "badge": f"幅面 {round(bbox_area_ratio * 100)}% · {size_asymmetry_tag.split('（')[0]}",
+                "summary": spatial_insight,
+                "children": spatial_children,
+            },
+            {
+                "id": "color",
+                "title": "④ 色彩輔助與去偏校準",
+                "status": "attenuated" if (is_monochrome_sketch or is_canonical_nature_palette) else "supporting",
+                "badge": color_mode_tag,
+                "summary": color_insight,
+                "children": color_children,
+            },
+            {
+                "id": "context_guardrail",
+                "title": "⑤ 口語脈絡、年齡常模與防過度解讀護欄",
+                "status": "guardrail" if (conv_level == "low" or incongruence_note or age_group == "3-6") else "neutral",
+                "badge": f"{conv_label.split('（')[0]} · 上限 {max_score_cap}",
+                "summary": alt_note,
+                "children": context_children,
+            },
+        ],
+    }
+
     return {
         "status": "ok",
         "engineMode": "local_empirical_v3",
@@ -1845,6 +2133,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         "structureBalance": structure_balance,
         "strengthsNote": strengths_note,
+        "reasoningTree": reasoning_tree,
         "primaryEmotion": primary,
         "secondaryEmotion": secondary,
         "emotions": emotion_results,

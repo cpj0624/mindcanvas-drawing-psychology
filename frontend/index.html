@@ -129,6 +129,58 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+    /* Interactive Explainable Reasoning Tree */
+    .tree-trunk {
+      position: relative;
+      padding-left: 18px;
+    }
+    .tree-trunk::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 14px;
+      width: 2px;
+      background-color: var(--border);
+      border-radius: 2px;
+    }
+    .tree-branch {
+      position: relative;
+    }
+    .tree-branch::before {
+      content: "";
+      position: absolute;
+      left: -11px;
+      top: 17px;
+      width: 11px;
+      height: 2px;
+      background-color: var(--border);
+    }
+    .tree-leaves {
+      position: relative;
+      margin-left: 12px;
+      padding-left: 14px;
+      border-left: 2px dashed var(--border);
+    }
+    .tree-leaf {
+      position: relative;
+    }
+    .tree-leaf::before {
+      content: "";
+      position: absolute;
+      left: -14px;
+      top: 14px;
+      width: 12px;
+      height: 1.5px;
+      background-color: var(--border);
+    }
+    .tree-chevron {
+      transition: transform 0.18s ease;
+    }
+    button[aria-expanded="true"] .tree-chevron {
+      transform: rotate(90deg);
+    }
   </style>
 </head>
 <body class="bg-[var(--background)] text-[var(--foreground)] antialiased min-h-screen">
@@ -496,6 +548,32 @@
               <div class="text-xs font-semibold text-[var(--warning)]">言畫對照觀察（可能的情緒掩飾）</div>
               <p id="incongruenceText" class="text-xs text-[var(--foreground)] leading-relaxed"></p>
             </div>
+          </div>
+
+          <!-- 1b. Interactive Explainable Reasoning Tree (判斷邏輯、依據與結果總結樹狀圖) -->
+          <div id="reasoningTreeCard" class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-semibold text-[var(--foreground)]">判斷邏輯與實證依據樹狀圖</h3>
+                <p class="text-[11px] text-[var(--muted-foreground)] mt-0.5">點擊任一分支方向或細項節點，逐層展開模型的判斷理由與文獻依據</p>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button id="expandAllTreeBtn" type="button" class="tool-btn px-2 py-1 rounded-md text-[11px] border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)] hover:bg-[var(--secondary)]">全部展開</button>
+                <button id="collapseAllTreeBtn" type="button" class="tool-btn px-2 py-1 rounded-md text-[11px] border border-[var(--border)] bg-[var(--content)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]">全部收合</button>
+              </div>
+            </div>
+
+            <!-- Root Conclusion Summary Node -->
+            <div id="reasoningTreeRoot" class="p-3 rounded-xl bg-[var(--content)] border-2 border-[var(--primary)]/50 space-y-1.5">
+              <div class="flex flex-wrap items-center justify-between gap-1.5">
+                <span id="reasoningRootTitle" class="text-xs font-bold text-[var(--foreground)]">—</span>
+                <span id="reasoningRootBadge" class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[var(--card)] border border-[var(--border)] text-[var(--primary)]">—</span>
+              </div>
+              <p id="reasoningRootSummary" class="text-xs text-[var(--foreground)] leading-relaxed">—</p>
+            </div>
+
+            <!-- Interactive Tree Branches & Leaves -->
+            <div id="reasoningTreeBody" class="tree-trunk space-y-2.5 pt-0.5"></div>
           </div>
 
           <!-- 2. Six-Dimension Emotional Spectrum -->
@@ -1043,8 +1121,13 @@
       function addFig(code, label, category, theory, meaning, bbox, emoDelta, channel = "content") {
         foundCodes.add(code);
         const [x0, y0, x1, y1] = bbox;
+        const impact = {};
+        Object.entries(emoDelta).forEach(([e, d]) => {
+          impact[e] = Number(d.toFixed(2));
+          boosts[e] = (boosts[e] || 0) + d;
+        });
         figures.push({
-          code, label, category, channel, theory, meaning,
+          code, label, category, channel, theory, meaning, impact,
           bbox: {
             x: Number(Math.max(0, x0).toFixed(1)),
             y: Number(Math.max(0, y0).toFixed(1)),
@@ -1052,7 +1135,6 @@
             h: Number(Math.max(8, y1 - y0).toFixed(1))
           }
         });
-        Object.entries(emoDelta).forEach(([e, d]) => { boosts[e] = (boosts[e] || 0) + d; });
       }
 
       function isInside(inner, outer, margin = 0.10) {
@@ -1938,6 +2020,220 @@
       }
       if (titleOrNote) innerThoughts += ` 結合你留下的文字「${titleOrNote}」，更清楚看見這幅畫正在替此刻的心境發聲。`;
 
+      // Explainable Reasoning Tree (3-Level Logic & Evidence Summary)
+      const emoShort = {};
+      EMOTION_KEYS.forEach(k => { emoShort[k] = EMOTION_PROFILES[k].shortLabel; });
+      const fmtImpact = (imp) => {
+        const parts = Object.entries(imp || {})
+          .filter(([, v]) => Math.abs(Number(v)) >= 0.02)
+          .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+          .map(([k, v]) => `${emoShort[k] || k} ${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}`);
+        return parts.length ? parts.join("、") : "微幅中性影響";
+      };
+
+      const figChildren = recognizedFigures.length
+        ? recognizedFigures.map(f => {
+            const chLbl = f.channel === "literal" ? "字面表情（Literal）" : "情境隱喻（Content）";
+            const impStr = fmtImpact(f.impact);
+            return {
+              id: `fig_${f.code}`,
+              title: `${f.label}（${chLbl}）`,
+              tag: impStr,
+              summary: f.meaning,
+              detail: `空間拓樸依據：系統由多筆座標關係定位此結構（範圍 ${Math.round(f.bbox.w)}×${Math.round(f.bbox.h)}px），依「${f.theory}」賦予情緒方向權重（${impStr}）。`,
+              citation: f.theory
+            };
+          })
+        : [{
+            id: "fig_none",
+            title: "未偵測到 17 類固定具象圖式",
+            tag: "改由動力與空間推估",
+            summary: "畫面為自由抽象線條或非固定幾何物體，未套用固定圖形加權。",
+            detail: "方案 A 採幾何拓樸辨識（臉部表情、屋樹門窗、太陽、雨雲、愛心、打叉、柵欄、人物）。當未命中固定圖式時，系統不會硬猜物件，而是自動將權重轉移至軟體介面筆觸動力、空間構圖比例與口語脈絡；若畫中有動物、複雜場景或多人物故事，可切換方案 B（Gemini 視覺）進行開放式內容判讀。",
+            citation: "Jolley et al. (2004); Picard et al. (2007)"
+          }];
+
+      const strokeChildren = [
+        {
+          id: "stroke_sensing",
+          title: `裝置感測與畫具設定：${sensingModeLabel}`,
+          tag: `等效筆力 ${Math.round(effectiveForceIndex * 100)}%`,
+          summary: `${toolSummary}；系統依輸入裝置自動切換壓力計算公式。`,
+          detail: `目前感測模式為「${sensingModeLabel}」。` + (
+            sensingMode === "mouse_interface"
+              ? `因偵測到一般滑鼠／觸控板（瀏覽器預設壓力恆定 0.5），系統已自動捨棄無效假筆壓，改由畫具硬度（均值 ${Math.round(meanToolHardness * 100)}%）、粗細（${meanRawSize.toFixed(1)}px）、劃速（${Math.round(velocityIndex * 100)}%）與重疊密度（${Math.round(overlapIndex * 100)}%）合成等效筆觸力道。`
+              : `系統直接納入感測裝置之硬體訊號（壓力／傾斜角或接觸寬度）結合畫具硬度（${Math.round(meanToolHardness * 100)}%）推估筆觸力道。`
+          ),
+          citation: "Pointer Events Telemetry × Software Brush Hardness Model"
+        },
+        {
+          id: "stroke_geometry",
+          title: `線條幾何動力：尖銳 ${Math.round(sharpnessIndex * 100)}% ／ 流暢 ${Math.round(smoothnessIndex * 100)}% ／ 重疊 ${Math.round(overlapIndex * 100)}%`,
+          tag: structureBalance.label,
+          summary: strokeInsight,
+          detail: `透過 Ramer-Douglas-Peucker 折角偵測與網格覆蓋分析：尖銳轉折比例 ${Math.round(sharpnessIndex * 100)}%（提升憤怒／緊繃權重）、圓潤弧度比例 ${Math.round(smoothnessIndex * 100)}%（提升平靜／愉悅權重）、劃動速度 ${Math.round(velocityIndex * 100)}%、反覆重疊塗抹 ${Math.round(overlapIndex * 100)}%。綜合判定為「${structureBalance.label}」：${structureBalance.summary}`,
+          citation: "Pénzes et al. (2020); Koppitz (1968); Alschuler & Hattwick (1947)"
+        },
+        {
+          id: "stroke_hesitation",
+          title: `猶豫與修正軌跡：微震顫 ${Math.round(jitterIndex * 100)}% ／ 提筆停頓 ${Math.round(inAirPauseRatio * 100)}% ／ 修改 ${revisionEvents} 次`,
+          tag: (revisionEvents >= 3 || jitterIndex >= 0.40 || inAirPauseRatio >= 0.65) ? "高猶豫警覺" : "節奏平穩",
+          summary: `全作共 ${drawStrokes.length} 筆、歷時 ${(totalDurationMs / 1000).toFixed(1)} 秒（復原 ${undoCount} 次、橡皮擦 ${eraserCount} 次）。`,
+          detail: `微震顫度（${Math.round(jitterIndex * 100)}%）由原始高頻座標與平滑路徑長度差計算，用於偵測手部抖動或緊繃；提筆停頓佔比（${Math.round(inAirPauseRatio * 100)}%）衡量停筆思考時間；反覆擦除與復原（${revisionEvents} 次）依 Koppitz 指標對應自我要求或焦慮。`,
+          citation: "Koppitz (1968); Pénzes et al. (2020)"
+        }
+      ];
+
+      const sizeAsymTag = largeTenseThreat > 0
+        ? "大畫幅高張力（威脅外放）"
+        : (largeOpenPositive > 0 ? "大畫幅舒展（正向／平和）" : (bboxAreaRatio < 0.18 ? "微小縮聚（孤單／內收）" : "均衡幅面"));
+      const spatialChildren = [
+        {
+          id: "spatial_size",
+          title: `主體佔比 ${Math.round(bboxAreaRatio * 100)}%（實際著墨 ${(inkCoverage * 100).toFixed(1)}%）`,
+          tag: sizeAsymTag,
+          summary: spatialInsight,
+          detail: `依 Burkitt 等人（2003b; 2004）與 Cao 等人（2023）實證，尺寸與情緒呈「非對稱關係」：正向／平和畫作會穩定舒展放大（本次大畫幅舒展加權 +${largeOpenPositive.toFixed(2)}），高威脅／憤怒則可能放大且伴隨尖銳重塗（本次高張力加權 +${largeTenseThreat.toFixed(2)}），唯獨孤單／退縮顯著呈現微小縮聚（主體佔比 < 18%）。`,
+          citation: "Burkitt et al. (2003b, 2004); Cao et al. (2023)"
+        },
+        {
+          id: "spatial_center",
+          title: `九宮格重心 X:${Math.round(cx * 100)}% / Y:${Math.round(cy * 100)}%・邊界觸及 ${Math.round(edgeTouchRatio * 100)}%`,
+          tag: `${horizPos.split("（")[0]}・${vertPos.split("（")[0]}`,
+          summary: `水平${horizPos}、垂直${vertPos}；底部區域著墨佔比 ${Math.round(bottomWeight * 100)}%。`,
+          detail: `中心距離係數為 ${Math.round(centerDist * 100)}%（越靠近中心代表安全感與立足當下；大幅偏隅且畫幅偏小提升孤單權重）；觸及畫布邊緣筆數比例 ${Math.round(edgeTouchRatio * 100)}%（>= 30% 視為外放張力或突破框限）。`,
+          citation: "Buck HTP (1948); Koppitz (1968)"
+        }
+      ];
+
+      const colorModeTag = isMonochromeSketch
+        ? "單色鉛筆去偏（權重×0.20）"
+        : (isCanonicalNaturePalette ? "寫實原色去偏（藍色降權）" : `多色輔助（權重×${colorScale.toFixed(2)}）`);
+      const domBucketZh = (COLOR_BUCKET_META[domBucket] && COLOR_BUCKET_META[domBucket].label) || domBucket;
+      const colorChildren = [
+        {
+          id: "color_debias",
+          title: `色彩去偏機制：${colorModeTag}`,
+          tag: `主動換色 ${colorChangeCount} 次`,
+          summary: colorInsight,
+          detail: `色彩在本引擎中僅為「次要調整項」（縮放係數 ${colorScale.toFixed(2)}），絕不凌駕於完整圖形與表情之上。` + (
+            isMonochromeSketch
+              ? "本次偵測為單一色系素描，黑色／暗色負向扣分已強制歸零（monoDarkPen = 0.0）。"
+              : (isCanonicalNaturePalette
+                  ? "本次偵測到藍天、綠草、暖黃等自然寫實配色，依 Crawford 等人（2012）將藍色悲傷權重調降為 0.38 倍。"
+                  : "系統已同時提醒：單一顏色受個人日常喜愛色影響，需搭配圖形與對話解讀（Burkitt et al., 2003a）。")
+          ),
+          citation: "Picard & Gauthier (2012); Crawford et al. (2012); Burkitt et al. (2003a)"
+        },
+        {
+          id: "color_dist",
+          title: `主導色系：${domBucketZh}`,
+          tag: `彩度 ${Math.round(meanSat * 100)}% ／ 明度 ${Math.round(meanLum * 100)}%`,
+          summary: `暖明 ${Math.round(warmBright * 100)}%・紅 ${Math.round(intenseRed * 100)}%・綠 ${Math.round(freshGreen * 100)}%・藍 ${Math.round(coolBlue * 100)}%・暗色 ${Math.round(darkMuted * 100)}%。`,
+          detail: "依 Burkitt (2003a) 與 Cao 等人（2023）華語文化實證：暖明與自然綠多支持愉悅／平和，高飽和紅在搭配尖銳筆觸或大畫幅時指向威脅警覺或憤怒，冷暗色搭配縮聚或下垂線條時輔助指向低落或孤單。",
+          citation: "Burkitt et al. (2003a); Cao et al. (2023)"
+        }
+      ];
+
+      const matchedVerbalFlat = EMOTION_KEYS.filter(k => matchedWords[k] && matchedWords[k].length).map(k => `${emoShort[k]}(${matchedWords[k].join(",")})`);
+      const contextChildren = [
+        {
+          id: "ctx_verbal",
+          title: "自發口語敘說與元素標籤（Draw & Tell）",
+          tag: incongruenceNote ? "言畫反差提醒" : ((titleOrNote || selectedMotifs.length) ? "已納入文字／標籤" : "未填寫"),
+          summary: (titleOrNote ? `文字「${titleOrNote}」` : "創作者未填寫文字說明") +
+            (matchedVerbalFlat.length ? `；命中詞彙：${matchedVerbalFlat.join("、")}` : "") +
+            (selectedMotifs.length ? `；自選標籤：${selectedMotifs.join("、")}` : ""),
+          detail: incongruenceNote || "依 Gross & Hayne (1998) 實驗，讓創作者邊畫邊說能讓真實情緒表達倍增；文字詞彙僅作為輔助加權（最高 +0.36），若與畫面張力相反系統會主動提醒「可能的情緒掩飾」。",
+          citation: "Gross & Hayne (1998)"
+        },
+        {
+          id: "ctx_age",
+          title: `年齡發展常模：${ageNorm.label}`,
+          tag: `省略細節係數 ×${omittedDetailScale.toFixed(2)}`,
+          summary: ageNorm.guidance,
+          detail: `預期表達風格：${ageNorm.expectedStyle}。當選擇 3–6 歲學齡前常模時，系統會將「省略嘴巴、省略門窗、五官留白」等單一細節缺失的負向權重自動縮減為 0.45 倍，避免將正常認知動作發展誤判為焦慮退縮。`,
+          citation: "Picard & Gauthier (2012); Jolley et al. (2004)"
+        },
+        {
+          id: "ctx_guardrail",
+          title: `多維證據收斂護欄：${convLabel}`,
+          tag: `命中 ${convergingChannels} 維・分數上限 ${maxScoreCap}`,
+          summary: altNote,
+          detail: `本次跨「圖形結構、筆觸動力、空間構圖、口語標籤、多色分佈」共命中 ${convergingChannels} 項收斂證據，因此啟用分數上限 ${maxScoreCap} 分，嚴格遵守 Joiner (1996) 與 Catte & Cox (1999)「單一線索不足以推斷困擾」的實證倫理護欄；並依 Pénzes (2020) 同步標註正向資源：${strengthsNote}`,
+          citation: "Joiner et al. (1996); Catte & Cox (1999); Thomas & Jolley (1998); Pénzes et al. (2020)"
+        }
+      ];
+
+      const leadReasons = [];
+      if (recognizedFigures.length) leadReasons.push(`優先辨識出「${recognizedFigures.slice(0, 2).map(f => f.label).join("、")}」`);
+      if (isMonochromeSketch) leadReasons.push("已啟動「單色鉛筆去偏」排除黑筆誤判");
+      else if (isCanonicalNaturePalette) leadReasons.push("已啟動「寫實原色去偏」避免把藍天綠草判成低落");
+      if (sharpnessIndex >= 0.34 || overlapIndex >= 0.42) leadReasons.push("結合較高的尖銳／重疊塗抹張力");
+      else if (smoothnessIndex >= 0.42) leadReasons.push("搭配圓潤流暢的筆觸節奏");
+      if (bboxAreaRatio < 0.18) leadReasons.push("加上偏小縮聚的空間比例");
+      else if (largeTenseThreat > 0) leadReasons.push("加上大畫幅高張力外放構圖");
+      if (convLevel === "low") leadReasons.push("因筆跡線索較簡短已套用 66 分上限護欄");
+
+      const scoreGap = primary.score - secondary.score;
+      const gapDesc = scoreGap >= 12
+        ? `領先次高「${secondary.label}（${secondary.score}）」達 ${scoreGap} 分，主導方向明確。`
+        : `與次高「${secondary.label}（${secondary.score}）」僅差 ${scoreGap} 分，呈現雙重情緒交織狀態。`;
+      const rootSummary = `綜合 5 大維度判斷，本次結果總結為「${primary.label}（${primary.score} 分）」：${gapDesc}` +
+        (leadReasons.length ? `核心判斷依據為：${leadReasons.join("，")}。` : "") +
+        "點擊下方任一分支節點，可逐層展開查看模型採用了哪些數據、規則與國際期刊文獻。";
+
+      const reasoningTree = {
+        rootTitle: `結論總結：${primary.label}（${primary.score} 分）`,
+        rootBadge: convLabel,
+        rootSummary,
+        engineSource: "local_empirical_v3",
+        branches: [
+          {
+            id: "figures",
+            title: "① 圖像內容與表情辨識（第一優先）",
+            status: recognizedFigures.length ? "primary" : "neutral",
+            badge: recognizedFigures.length ? `辨識 ${recognizedFigures.length} 項圖形` : "無固定圖式（轉由動力推估）",
+            summary: recognizedFigures.length
+              ? `已偵測「${recognizedFigures.slice(0, 3).map(f => f.label).join("、")}」，對「${primary.shortLabel}」構成核心判準。`
+              : "未命中 17 類固定圖式，系統自動以筆觸動力、空間比例與文字作為主要推論來源。",
+            children: figChildren
+          },
+          {
+            id: "strokes",
+            title: "② 軟體介面筆觸與形式結構",
+            status: "supporting",
+            badge: `等效筆力 ${Math.round(effectiveForceIndex * 100)}% · ${structureBalance.label.split("・")[0]}`,
+            summary: strokeInsight,
+            children: strokeChildren
+          },
+          {
+            id: "spatial",
+            title: "③ 空間構圖與尺寸非對稱",
+            status: "supporting",
+            badge: `幅面 ${Math.round(bboxAreaRatio * 100)}% · ${sizeAsymTag.split("（")[0]}`,
+            summary: spatialInsight,
+            children: spatialChildren
+          },
+          {
+            id: "color",
+            title: "④ 色彩輔助與去偏校準",
+            status: (isMonochromeSketch || isCanonicalNaturePalette) ? "attenuated" : "supporting",
+            badge: colorModeTag,
+            summary: colorInsight,
+            children: colorChildren
+          },
+          {
+            id: "context_guardrail",
+            title: "⑤ 口語脈絡、年齡常模與防過度解讀護欄",
+            status: (convLevel === "low" || incongruenceNote || ageGroup === "3-6") ? "guardrail" : "neutral",
+            badge: `${convLabel.split("（")[0]} · 上限 ${maxScoreCap}`,
+            summary: altNote,
+            children: contextChildren
+          }
+        ]
+      };
+
       return {
         status: "ok",
         engineMode: "local_empirical_v3",
@@ -1950,6 +2246,7 @@
         evidenceConvergence: { level: convLevel, label: convLabel, channelCount: convergingChannels, alternativeNote: altNote },
         structureBalance,
         strengthsNote,
+        reasoningTree,
         primaryEmotion: primary,
         secondaryEmotion: secondary,
         emotions: emotionResults,
@@ -1960,7 +2257,7 @@
         recognizedFigures,
         detectedMotifs,
         pillars: {
-          color: { dominantBucket: (COLOR_BUCKET_META[domBucket] && COLOR_BUCKET_META[domBucket].label) || domBucket, isMonochromeSketch, isCanonicalNaturePalette, histogram: colorHist, meanSaturation: Number(meanSat.toFixed(3)), meanLuminance: Number(meanLum.toFixed(3)), insight: colorInsight },
+          color: { dominantBucket: domBucketZh, isMonochromeSketch, isCanonicalNaturePalette, histogram: colorHist, meanSaturation: Number(meanSat.toFixed(3)), meanLuminance: Number(meanLum.toFixed(3)), insight: colorInsight },
           strokes: { strokeCount: drawStrokes.length, sensingMode, sensingModeLabel, effectiveForceIndex: Number(effectiveForceIndex.toFixed(3)), sharpnessIndex: Number(sharpnessIndex.toFixed(3)), smoothnessIndex: Number(smoothnessIndex.toFixed(3)), velocityIndex: Number(velocityIndex.toFixed(3)), overlapIndex: Number(overlapIndex.toFixed(3)), fragmentationIndex: Number(fragmentationIndex.toFixed(3)), jitterIndex: Number(jitterIndex.toFixed(3)), inAirPauseRatio: Number(inAirPauseRatio.toFixed(3)), toolSummary, interfaceSignals, insight: strokeInsight },
           spatial: { grid3x3, centerOfMass: { x: Number(cx.toFixed(3)), y: Number(cy.toFixed(3)) }, bboxCoverage: Number(bboxAreaRatio.toFixed(3)), inkCoverage: Number(inkCoverage.toFixed(4)), edgeTouchRatio: Number(edgeTouchRatio.toFixed(3)), insight: spatialInsight },
           process: { undoCount, eraserCount, colorChangeCount, toolSwitchCount, sizeChangeCount, revisionIndex: Number(revisionIndex.toFixed(3)), durationSeconds: Number((totalDurationMs / 1000).toFixed(1)), matchedVerbalCues: matchedWords, insight: processInsight }
@@ -2191,6 +2488,14 @@
   "evidenceLevel": "high 或 moderate 或 low（依多維證據是否一致）",
   "alternativeNote": "1句依 Thomas & Jolley (1998) 提供的溫和替代解釋（如畫技風格、好奇嘗試或工具探索）",
   "strengthsNote": "1-2句依 Pénzes (2020) 指出這幅畫展現的正向內在資源、表達勇氣或結構組織彈性",
+  "reasoningSummary": "2-3句清楚總結模型為何得出最高分情緒、主要依據哪些視覺線索與行為數據，以及如何排除誤判",
+  "reasoningBranches": {
+    "figures": {"summary": "一句總結畫面物體與表情如何主導判斷", "detail": "2-3句詳細說明你看到了哪些具體畫面內容、互動與細節，以及對應哪項心理學實驗依據"},
+    "strokes": {"summary": "一句總結筆觸動力與結構平衡的觀察", "detail": "2-3句結合畫具、筆力、震顫、塗抹或擦除行為說明你的推理過程"},
+    "spatial": {"summary": "一句總結構圖位置與大小比例的判斷", "detail": "2-3句結合 Burkitt/Cao 尺寸非對稱與九宮格留白說明你的推理過程"},
+    "color": {"summary": "一句總結色彩輔助與去偏原則", "detail": "2-3句說明單色／寫實原色去偏或主導色系在本次判斷中扮演的角色"},
+    "context_guardrail": {"summary": "一句總結年齡常模、口語與防過度解讀的考量", "detail": "2-3句說明為何保留多元可能、不以單一線索下定論"}
+  },
   "scores": {"sadness": 0-95整數, "anger": 0-95整數, "anxiety": 0-95整數, "loneliness": 0-95整數, "joy": 0-95整數, "calm": 0-95整數},
   "innerVoice": "一句第一人稱「...」溫柔揣摩創作者內心可能想表達的話",
   "innerThoughts": "2-3句具體結合畫中實際物體、表情、年齡常模與介面筆觸歷程的溫柔綜合心理觀察",
@@ -2294,6 +2599,56 @@
         alternativeNote: safeAiText(parsed.alternativeNote, (localBaseResult.evidenceConvergence && localBaseResult.evidenceConvergence.alternativeNote) || "", 260)
       };
 
+      // Merge Gemini's visual reasoning with objective local telemetry leaves
+      const aiBranches = (parsed.reasoningBranches && typeof parsed.reasoningBranches === "object") ? parsed.reasoningBranches : {};
+      const baseTree = localBaseResult.reasoningTree || { branches: [] };
+      const aiMergedBranches = (baseTree.branches || []).map(br => {
+        const aiB = (aiBranches[br.id] && typeof aiBranches[br.id] === "object") ? aiBranches[br.id] : null;
+        const aiSummary = aiB ? safeAiText(aiB.summary, "", 220) : "";
+        const aiDetail = aiB ? safeAiText(aiB.detail, "", 420) : "";
+        let nextChildren = [...(br.children || [])];
+        if (br.id === "figures" && aiObjects.length) {
+          const objLeaves = aiObjects.map((o, i) => ({
+            id: `ai_fig_${i}`,
+            title: safeAiText(o.label, "AI 視覺辨識物件", 80),
+            tag: "Gemini 視覺實景",
+            summary: safeAiText(o.meaning, "", 220),
+            detail: aiDetail || safeAiText(o.meaning, "", 320),
+            citation: safeAiText(o.theory, "Gemini 14 篇國際期刊實證準則", 100)
+          }));
+          nextChildren = aiDetail
+            ? [{ id: "ai_fig_overview", title: "Gemini 整體圖像內容與故事脈絡判讀", tag: "視覺主導結論", summary: aiSummary || safeAiText(pInsights.figures, br.summary, 220), detail: aiDetail, citation: "Jolley (2004); Picard (2007, 2012); Misalidi & Bonoti (2014)" }, ...objLeaves]
+            : objLeaves;
+        } else if (aiDetail) {
+          nextChildren = [
+            {
+              id: `ai_${br.id}_logic`,
+              title: `Gemini 視覺推理（${usedModel}）`,
+              tag: "AI 深度解讀",
+              summary: aiSummary || br.summary,
+              detail: aiDetail,
+              citation: "14 篇國際心理學實證準則 × 客觀筆觸遙測"
+            },
+            ...nextChildren
+          ];
+        }
+        return {
+          ...br,
+          status: (br.id === "figures" && aiObjects.length) ? "primary" : br.status,
+          badge: (br.id === "figures" && aiObjects.length) ? `AI 辨識 ${aiObjects.length} 項內容` : br.badge,
+          summary: aiSummary || br.summary,
+          children: nextChildren
+        };
+      });
+
+      const aiReasoningTree = {
+        rootTitle: `結論總結：${emotions[0].label}（${emotions[0].score} 分）`,
+        rootBadge: mergedConvergence.label || "AI 多維視覺分析",
+        rootSummary: safeAiText(parsed.reasoningSummary, safeAiText(parsed.innerThoughts, baseTree.rootSummary || "", 360), 420),
+        engineSource: `gemini_vision_${usedModel}`,
+        branches: aiMergedBranches
+      };
+
       return {
         ...localBaseResult,
         engineMode: "gemini_vision_hybrid_v3",
@@ -2301,6 +2656,7 @@
         expressiveChannels: aiChannels.length ? aiChannels : localBaseResult.expressiveChannels,
         evidenceConvergence: mergedConvergence,
         strengthsNote: safeAiText(parsed.strengthsNote, localBaseResult.strengthsNote, 320),
+        reasoningTree: aiReasoningTree,
         primaryEmotion: emotions[0],
         secondaryEmotion: emotions[1],
         emotions,
@@ -3100,6 +3456,123 @@
       }
     }
 
+    function renderReasoningTree(tree) {
+      const card = document.getElementById("reasoningTreeCard");
+      const body = document.getElementById("reasoningTreeBody");
+      if (!tree || !Array.isArray(tree.branches) || tree.branches.length === 0) {
+        card.classList.add("hidden");
+        return;
+      }
+      card.classList.remove("hidden");
+      document.getElementById("reasoningRootTitle").textContent = tree.rootTitle || "判斷結論總結";
+      document.getElementById("reasoningRootBadge").textContent = tree.rootBadge || "多維實證分析";
+      document.getElementById("reasoningRootSummary").textContent = tree.rootSummary || "";
+
+      const statusMeta = {
+        primary: { dot: "var(--primary)", label: "核心主導" },
+        supporting: { dot: "var(--success)", label: "支持依據" },
+        attenuated: { dot: "var(--warning)", label: "已去偏降權" },
+        guardrail: { dot: "var(--warning)", label: "護欄校準" },
+        neutral: { dot: "var(--muted-foreground)", label: "輔助參考" }
+      };
+
+      body.innerHTML = "";
+      tree.branches.forEach((br, bIdx) => {
+        const st = statusMeta[br.status] || statusMeta.neutral;
+        const defaultOpen = bIdx === 0;
+        const branchWrap = document.createElement("div");
+        branchWrap.className = "tree-branch space-y-1.5";
+
+        const branchBtn = document.createElement("button");
+        branchBtn.type = "button";
+        branchBtn.className = "w-full text-left p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors space-y-1";
+        branchBtn.setAttribute("aria-expanded", String(defaultOpen));
+        branchBtn.dataset.treeBranchBtn = "true";
+        branchBtn.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <svg class="tree-chevron w-3.5 h-3.5 shrink-0 text-[var(--muted-foreground)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              <span class="w-2 h-2 rounded-full shrink-0" style="background:${st.dot}"></span>
+              <span class="text-xs font-semibold text-[var(--foreground)] truncate">${escapeHtml(br.title)}</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted-foreground)] shrink-0">${escapeHtml(br.badge || st.label)}</span>
+          </div>
+          <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed pl-7">${escapeHtml(br.summary || "")}</p>
+        `;
+
+        const leavesWrap = document.createElement("div");
+        leavesWrap.className = "tree-leaves space-y-1.5 pt-1" + (defaultOpen ? "" : " hidden");
+        leavesWrap.dataset.treeBranchPanel = "true";
+
+        (br.children || []).forEach(ch => {
+          const leafWrap = document.createElement("div");
+          leafWrap.className = "tree-leaf";
+
+          const leafBtn = document.createElement("button");
+          leafBtn.type = "button";
+          leafBtn.className = "w-full text-left p-2 rounded-lg bg-[var(--card)] border border-[var(--card-border)] hover:border-[var(--primary)]/70 transition-colors space-y-0.5";
+          leafBtn.setAttribute("aria-expanded", "false");
+          leafBtn.dataset.treeLeafBtn = "true";
+          leafBtn.innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-1.5">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <svg class="tree-chevron w-3 h-3 shrink-0 text-[var(--muted-foreground)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <span class="text-xs font-medium text-[var(--foreground)]">${escapeHtml(ch.title)}</span>
+              </div>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--content)] text-[var(--primary)] shrink-0">${escapeHtml(ch.tag || "展開詳解")}</span>
+            </div>
+            <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed pl-4.5">${escapeHtml(ch.summary || "")}</p>
+          `;
+
+          const detailBox = document.createElement("div");
+          detailBox.className = "hidden mt-1 ml-4 p-2.5 rounded-lg bg-[var(--content)] border border-[var(--card-border)] text-[11px] space-y-1.5";
+          detailBox.dataset.treeLeafPanel = "true";
+          detailBox.innerHTML = `
+            <p class="text-[var(--foreground)] leading-relaxed">${escapeHtml(ch.detail || ch.summary || "")}</p>
+            ${ch.citation ? `<div class="text-[10px] text-[var(--primary)] font-medium pt-1 border-t border-[var(--card-border)]">依據文獻／模型機制：${escapeHtml(ch.citation)}</div>` : ""}
+          `;
+
+          leafBtn.addEventListener("click", () => {
+            const expanded = leafBtn.getAttribute("aria-expanded") === "true";
+            leafBtn.setAttribute("aria-expanded", String(!expanded));
+            detailBox.classList.toggle("hidden", expanded);
+          });
+
+          leafWrap.appendChild(leafBtn);
+          leafWrap.appendChild(detailBox);
+          leavesWrap.appendChild(leafWrap);
+        });
+
+        branchBtn.addEventListener("click", () => {
+          const expanded = branchBtn.getAttribute("aria-expanded") === "true";
+          branchBtn.setAttribute("aria-expanded", String(!expanded));
+          leavesWrap.classList.toggle("hidden", expanded);
+        });
+
+        branchWrap.appendChild(branchBtn);
+        branchWrap.appendChild(leavesWrap);
+        body.appendChild(branchWrap);
+      });
+    }
+
+    document.getElementById("expandAllTreeBtn").addEventListener("click", () => {
+      document.querySelectorAll("#reasoningTreeBody [data-tree-branch-btn], #reasoningTreeBody [data-tree-leaf-btn]").forEach(btn => {
+        btn.setAttribute("aria-expanded", "true");
+      });
+      document.querySelectorAll("#reasoningTreeBody [data-tree-branch-panel], #reasoningTreeBody [data-tree-leaf-panel]").forEach(p => {
+        p.classList.remove("hidden");
+      });
+    });
+
+    document.getElementById("collapseAllTreeBtn").addEventListener("click", () => {
+      document.querySelectorAll("#reasoningTreeBody [data-tree-branch-btn], #reasoningTreeBody [data-tree-leaf-btn]").forEach(btn => {
+        btn.setAttribute("aria-expanded", "false");
+      });
+      document.querySelectorAll("#reasoningTreeBody [data-tree-branch-panel], #reasoningTreeBody [data-tree-leaf-panel]").forEach(p => {
+        p.classList.add("hidden");
+      });
+    });
+
     function renderReport(res, saveToHistory = true) {
       state.lastAnalysis = res;
       document.getElementById("welcomePanel").classList.add("hidden");
@@ -3170,6 +3643,9 @@
         document.getElementById("incongruenceText").textContent = res.incongruenceNote;
         incBox.classList.remove("hidden");
       } else incBox.classList.add("hidden");
+
+      // Render Interactive 3-Level Explainable Reasoning Tree
+      renderReasoningTree(res.reasoningTree);
 
       renderRadarChart(res.emotions);
       const barsEl = document.getElementById("emotionBars");
