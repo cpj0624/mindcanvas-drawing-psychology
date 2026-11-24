@@ -680,6 +680,71 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         with self.assertRaises(ValidationError):
             AnalyzeRequest(counselorContext={"followUpNotes": "a" * 601})
 
+    def test_v34_image_first_literature_catalog_and_groups(self):
+        """PSYCHOLOGY_REFERENCES must include all 21 categorized entries including the 7 new image-first studies."""
+        from backend.knowledge_base import PSYCHOLOGY_REFERENCES
+
+        ids = {r["id"] for r in PSYCHOLOGY_REFERENCES}
+        self.assertEqual(len(PSYCHOLOGY_REFERENCES), 21)
+        for req_id in (
+            "willis_2010_dapr",
+            "fury_1997_pace_2022",
+            "wegmann_lusebrink_2000",
+            "kaiser_1996_2009_bnd",
+            "bat_or_2022_ppat",
+            "skybo_2007_hfd",
+            "driessnack_2005_meta",
+        ):
+            self.assertIn(req_id, ids)
+        for r in PSYCHOLOGY_REFERENCES:
+            self.assertTrue(r.get("group"), f"Missing group for {r['id']}")
+
+    def test_v34_image_first_frameworks_in_analysis_and_consultation(self):
+        """Counselor verified image motifs (umbrella, encapsulation, nest, ladder, missing hands) trigger exact empirical citations."""
+        strokes = [
+            _make_circle_stroke(360, 260, 48, "#2A2B30", size=5, steps=30, dt_ms=40, tool="pencil"),
+            _make_line_stroke(310, 200, 410, 200, "#2A2B30", size=5, steps=10, dt_ms=40, tool="pencil"),
+        ]
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "7-10"},
+            "counselorContext": {
+                "verifiedObjects": ["主角拿著大雨傘", "外面畫了一個大框框", "旁邊有梯子和小幫手"],
+                "followUpNotes": "孩子說撐雨傘躲雨，梯子是用來拿樹上的果實",
+            },
+        })
+        self.assertEqual(res["status"], "ok")
+        self.assertIn("Driessnack (2005)", res["dialogueGuide"]["theoryBasis"])
+        self.assertIn("Willis", res["dialogueGuide"]["theoryBasis"])
+        fig_branch = res["reasoningTree"]["branches"][0]
+        child_ids = {c["id"] for c in fig_branch["children"]}
+        self.assertIn("fig_fw_dapr_coping", child_ids)
+        self.assertIn("fig_fw_kfd_boundaries", child_ids)
+        self.assertIn("fig_fw_ppat_agency", child_ids)
+        self.assertIn("雨中人", res["strengthsNote"])
+
+        summary = {
+            "primaryLabel": "平靜與安全感",
+            "primaryScore": 72,
+            "secondaryLabel": "焦慮與壓力",
+            "secondaryScore": 58,
+            "convergenceLabel": "中度收斂",
+            "ageNormLabel": "7–10 歲",
+            "recognizedFigures": [],
+        }
+        r_dapr = consult_counselor({"question": "主角在雨中撐著雨傘代表什麼？", "analysisSummary": summary})
+        self.assertIn("Willis", r_dapr["reply"])
+
+        r_bnd = consult_counselor({"question": "畫面裡有一個很穩固的鳥巢和秘密基地", "analysisSummary": summary})
+        self.assertIn("Kaiser", r_bnd["reply"])
+
+        r_hfd = consult_counselor({"question": "人物沒畫手腳而且有大牙齒怎麼解讀？", "analysisSummary": summary})
+        self.assertIn("Skybo", r_hfd["reply"])
+
+        r_silent = consult_counselor({"question": "孩子說不知道不想講，怎麼接話？", "analysisSummary": summary})
+        self.assertIn("Driessnack", r_silent["reply"])
+
 
 if __name__ == "__main__":
     unittest.main()

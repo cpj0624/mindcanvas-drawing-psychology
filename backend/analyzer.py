@@ -34,13 +34,106 @@ CRISIS_KEYWORDS: Tuple[str, ...] = (
 )
 
 COUNSELOR_OBJECT_CUES: Dict[str, Tuple[str, ...]] = {
-    "sadness": ("哭", "淚", "雨", "烏雲", "死", "離開", "想念", "失去", "受傷", "跌倒", "生病", "墓", "枯萎", "眼淚"),
-    "anger": ("生氣", "怪物", "怪獸", "炸彈", "火", "吵架", "打架", "打人", "刺", "武器", "壞人", "火山", "暴龍", "討厭", "撕"),
-    "anxiety": ("躲", "藏", "保護罩", "盾", "牆", "圍牆", "籠", "鎖", "不敢", "害怕", "怕", "緊張", "考試", "迷宮", "黑影", "抖", "惡夢", "門沒開", "縮起來"),
-    "loneliness": ("獨自", "一個人", "角落", "沒人", "沒有朋友", "孤單", "轉學", "新班級", "被排擠", "遠遠的", "空空", "自己待著"),
-    "joy": ("笑", "玩", "好朋友", "朋友", "家人", "寵物", "太陽", "花", "愛心", "禮物", "彩虹", "糖果", "派對", "遊樂園", "蛋糕", "開心"),
-    "calm": ("安靜", "休息", "睡覺", "家", "樹", "山", "海", "散步", "平靜", "安心", "安全", "溫暖", "看書", "風景", "自然"),
+    "sadness": (
+        "哭", "淚", "雨", "烏雲", "閃電", "淋濕", "積水", "沒遮蔽", "死", "離開",
+        "想念", "失去", "受傷", "跌倒", "生病", "墓", "枯萎", "眼淚", "空巢", "無底", "斷掉",
+    ),
+    "anger": (
+        "生氣", "怪物", "怪獸", "炸彈", "火", "吵架", "打架", "打人", "刺", "武器",
+        "壞人", "火山", "暴龍", "討厭", "撕", "牙齒", "大牙齒", "利爪", "尖爪", "交叉雙臂",
+    ),
+    "anxiety": (
+        "躲", "藏", "保護罩", "盾", "牆", "圍牆", "籠", "鎖", "不敢", "害怕", "怕",
+        "緊張", "考試", "迷宮", "黑影", "抖", "惡夢", "門沒開", "縮起來",
+        "框框", "圈起來", "包圍", "隔開", "隔線", "柵欄", "懸空", "浮在空中", "漂浮",
+        "沒地面", "傾斜", "歪斜", "沒畫手", "沒畫腳", "沒有手", "沒有嘴巴",
+    ),
+    "loneliness": (
+        "獨自", "一個人", "角落", "沒人", "沒有朋友", "孤單", "轉學", "新班級",
+        "被排擠", "遠遠的", "空空", "自己待著", "背對", "隔很遠", "沒畫臉", "省略",
+    ),
+    "joy": (
+        "笑", "玩", "好朋友", "朋友", "家人", "寵物", "太陽", "花", "愛心", "禮物",
+        "彩虹", "糖果", "派對", "遊樂園", "蛋糕", "開心",
+        "梯子", "工具", "幫手", "小幫手", "伸手", "摘", "果實", "拿到了", "翅膀", "分享",
+    ),
+    "calm": (
+        "安靜", "休息", "睡覺", "家", "樹", "山", "海", "散步", "平靜", "安心",
+        "安全", "溫暖", "看書", "風景", "自然",
+        "雨傘", "傘", "雨衣", "屋簷", "大樹", "遮蔽", "鳥巢", "巢", "秘密基地",
+        "基地", "帳篷", "床", "地面", "腳踏實地", "草地", "穩固", "抱抱", "牽手", "照顧",
+    ),
 }
+
+# Image-first (non-color) peer-reviewed empirical frameworks (v3.4)
+IMAGE_FIRST_FRAMEWORK_RULES: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "dapr_coping",
+        "label": "壓力源 vs. 保護因應物件（雨中人 DAPR）",
+        "citation": "Willis, Joy, & Kaiser (2010), The Arts in Psychotherapy, 37(3), 233–239",
+        "keywords": ("雨傘", "傘", "雨衣", "屋簷", "遮蔽", "保護罩", "盾", "下雨", "淋濕", "烏雲", "閃電", "積水"),
+        "isResource": True,
+        "summary": "依 Willis 等人（2010）雨中人實證，對照壓力圖像（雨量／烏雲／淋濕）與保護物件（雨傘／雨衣／遮蔽物）可反映知覺壓力與自我導向因應資源（r = .43, p < .01）。",
+        "promptTip": "「如果想幫畫裡的主角再多加一樣能擋雨或保護他的小東西，你會想畫在哪裡？」",
+    },
+    {
+        "id": "kfd_boundaries",
+        "label": "包覆圈、分隔線與人際阻隔物（KFD / 依附表徵）",
+        "citation": "Wegmann & Lusebrink (2000), Arts in Psychotherapy; Fury et al. (1997), Child Development; Pace et al. (2022)",
+        "keywords": ("框框", "圈起來", "包圍", "牆", "圍牆", "隔開", "隔線", "柵欄", "籠", "背對", "隔很遠", "角落", "遠遠的", "懸空", "浮在空中", "漂浮", "地面", "腳踏實地"),
+        "isResource": False,
+        "summary": "依 Wegmann & Lusebrink（2000）與 Fury 等人（1997）／Pace 等人（2022）研究，包覆圈（Encapsulation）、分隔線、阻隔物、人物背對或懸空無地面線皆為重要純圖像關係線索，解讀時須採整體構圖脈絡而非單一符號斷言。",
+        "promptTip": "「這條線／這個框框把裡外分開了，對畫裡的主角來說，這裡是保護他的秘密空間，還是擋住了什麼呢？」",
+    },
+    {
+        "id": "bnd_safe_base",
+        "label": "安全基地與承接容器結構（鳥巢畫 BND）",
+        "citation": "Kaiser (1996), Arts in Psychotherapy; Kaiser & Deaver (2009), Art Therapy, 26(1), 26–33",
+        "keywords": ("鳥巢", "巢", "秘密基地", "基地", "帳篷", "床", "保護殼", "空巢", "無底", "穩固", "照顧", "抱抱"),
+        "isResource": True,
+        "summary": "依 Kaiser（1996）與 Kaiser & Deaver（2009）鳥巢畫十年實證回顧，容器底部是否穩固、有無支撐環境與內部保護感，可溫和反映孩子的內在安全基地感。",
+        "promptTip": "「這個基地／小窩住起來穩不穩固？裡面誰最常來陪伴或照顧主角呢？」",
+    },
+    {
+        "id": "ppat_agency",
+        "label": "主角主動性與問題解決工具（摘蘋果的人 PPAT）",
+        "citation": "Bat Or, Ishai, Barkay, & Shalev (2022), Children, 9(9), 1387",
+        "keywords": ("梯子", "工具", "幫手", "小幫手", "伸手", "摘", "果實", "拿到了", "翅膀", "分享"),
+        "isResource": True,
+        "summary": "依 Bat Or 等人（2022）PPAT 與兒童敘事實證，主角主動伸手或運用梯子／工具／幫手達成目標，顯著關聯自我效能感（Self-potency）與內在韌性資源。",
+        "promptTip": "「主角用這個方法／工具好有創意！他拿到想要的東西之後，接下來最想做什麼？」",
+    },
+    {
+        "id": "skybo_hfd_norms",
+        "label": "人物部位省略、誇大姿態與年齡發展檢核（HFD）",
+        "citation": "Skybo, Ryan-Wenger, & Su (2007), Journal of Pediatric Nursing, 22(1), 15–28",
+        "keywords": ("沒畫手", "沒畫腳", "沒有手", "沒有嘴巴", "沒畫臉", "省略", "牙齒", "大牙齒", "利爪", "尖爪", "交叉雙臂", "傾斜", "歪斜"),
+        "isResource": False,
+        "summary": "依 Skybo 等人（2007）人物畫實務批判回顧，省略手腳／五官或傾斜姿態常與退縮無力相伴，誇大牙齒／利爪／武裝則與防衛張力相關，但必先對照年齡發展階段排除正常省略，並搭配訪談佐證。",
+        "promptTip": "「畫裡這個角色擺出這個姿勢／留白的地方，如果他現在要行動或開口，他最需要什麼幫忙？」",
+    },
+)
+
+
+def _match_image_first_frameworks(texts: List[str]) -> List[Dict[str, Any]]:
+    """Match pure image-centric (non-color) empirical literature rules against text cues."""
+    joined = " ".join(t for t in texts if t).lower()
+    if not joined:
+        return []
+    matched: List[Dict[str, Any]] = []
+    for rule in IMAGE_FIRST_FRAMEWORK_RULES:
+        hits = [kw for kw in rule["keywords"] if kw in joined]
+        if hits:
+            matched.append({
+                "id": rule["id"],
+                "label": rule["label"],
+                "citation": rule["citation"],
+                "hits": hits[:5],
+                "isResource": rule["isResource"],
+                "summary": rule["summary"],
+                "promptTip": rule["promptTip"],
+            })
+    return matched
 
 
 def _detect_safety_alert(texts: List[str]) -> Optional[Dict[str, Any]]:
@@ -1524,13 +1617,29 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "meaning": "多次撤銷或塗改可能代表對自我表現的猶豫、要求完美、緊張，或在思考該如何表達內心想法。",
         })
 
-    # Counselor-Assisted Image Clarification (v3.3 post-analysis human-in-the-loop verification)
+    # Counselor-Assisted Image Clarification (v3.3/v3.4 post-analysis human-in-the-loop verification)
+    matched_image_frameworks = _match_image_first_frameworks([
+        *counselor_verified_objects,
+        counselor_follow_up_notes,
+        title_or_note,
+    ])
     for c_idx, obj_label in enumerate(counselor_verified_objects):
+        obj_fw = _match_image_first_frameworks([obj_label])
+        fw_theory = (
+            obj_fw[0]["citation"]
+            if obj_fw
+            else "輔導人員協助辨識 × Gross & Hayne (1998) / Driessnack (2005) 脈絡驗證"
+        )
+        fw_meaning = (
+            obj_fw[0]["summary"]
+            if obj_fw
+            else "由輔導人員於作畫與訪談後協助確認的實際畫中元素，優先於純幾何猜測作為脈絡判讀與延伸引導依據。"
+        )
         detected_motifs.insert(c_idx, {
             "code": f"counselor_obj_{c_idx}",
             "label": f"輔導員確認：{obj_label}",
-            "theory": "輔導人員協助辨識 × Gross & Hayne (1998) 脈絡驗證",
-            "meaning": "由輔導人員於作畫與訪談後協助確認的實際畫中元素，優先於純幾何猜測作為脈絡判讀與延伸引導依據。",
+            "theory": fw_theory,
+            "meaning": fw_meaning,
         })
 
     # Expressive channels taxonomy (Jolley 2004; Picard 2007, 2012; Misalidi & Bonoti 2014)
@@ -1798,6 +1907,14 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
         strengths_note = "畫面展現良好的結構組織力與情緒調節彈性，能自在地整合圖形、空間與節奏來表達內在世界（Pénzes et al., 2020）。"
 
+    resource_fws = [fw for fw in matched_image_frameworks if fw.get("isResource")]
+    if resource_fws:
+        rfw = resource_fws[0]
+        strengths_note = (
+            f"{strengths_note} 另偵測到正向因應與保護圖像線索（{'、'.join(rfw['hits'][:3])}），"
+            f"呼應 {rfw['label']} 實證所示的內在資源與自我效能。"
+        )
+
     incongruence_note = None
     if title_or_note:
         visual_top = max(visual_scores_snapshot, key=lambda k: visual_scores_snapshot[k])
@@ -1932,10 +2049,22 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "summary": "已由輔導人員於繪畫後協助確認畫中具體物件／角色，優先納入內容脈絡。",
             "detail": (
                 f"輔導人員共補充確認 {len(counselor_verified_objects)} 項畫面元素（{'、'.join(counselor_verified_objects)}）。"
-                "依 Gross & Hayne (1998) 與 Picard 等人（2007）研究，由創作者口頭澄清並經輔導人員確認之畫面主題，"
+                "依 Gross & Hayne (1998)、Driessnack (2005) 與 Picard 等人（2007）研究，由創作者口頭澄清並經輔導人員確認之畫面主題，"
                 "其脈絡可信度高於純幾何猜測，已同步更新至情緒收斂權重與互動引導提問。"
             ),
-            "citation": "輔導人員人工協助辨識 × Gross & Hayne (1998); Picard et al. (2007)",
+            "citation": "輔導人員人工協助辨識 × Gross & Hayne (1998); Driessnack (2005); Picard et al. (2007)",
+        })
+    for fw in matched_image_frameworks[:3]:
+        fig_children.append({
+            "id": f"fig_fw_{fw['id']}",
+            "title": f"純圖像架構匹配：{fw['label']}",
+            "tag": f"命中：{'、'.join(fw['hits'][:3])}",
+            "summary": fw["summary"],
+            "detail": (
+                f"系統於畫面確認元素／口述脈絡中偵測到非色彩圖像線索「{'、'.join(fw['hits'])}」，"
+                f"自動對照 {fw['citation']} 之實證判讀架構。延伸引導建議：{fw['promptTip']}"
+            ),
+            "citation": fw["citation"],
         })
     for f in recognized_figures:
         ch_lbl = "字面表情（Literal）" if f.get("channel") == "literal" else "情境隱喻（Content）"
@@ -2410,7 +2539,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         "ageToneLabel": age_tone_meta["toneLabel"],
         "openingCue": opening_cue,
         "companionTip": age_tone_meta["companionTip"],
-        "theoryBasis": "Gross & Hayne (1998) Draw & Tell 實驗；Malchiodi (1998) 藝術治療對話原則；Pénzes et al. (2020)",
+        "theoryBasis": "Gross & Hayne (1998) Draw & Tell 實驗；Driessnack (2005) 統合分析（d = 0.95）；Malchiodi (1998)；Willis et al. (2010) DAPR；Bat Or et al. (2022) PPAT；Pénzes et al. (2020)",
         "stages": [
             {
                 "id": "stage_notice",
@@ -2607,6 +2736,7 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
     q_lower = question.lower()
     suggested_obj: Optional[str] = None
     suggested_note: Optional[str] = None
+    q_frameworks = _match_image_first_frameworks([question])
 
     # 1. Counselor clarifying ambiguous drawn content
     clarify_markers = ("其實是", "畫的是", "代表", "＝", "=", "左下", "右下", "左上", "右上", "中間那", "角落那", "那一塊", "模糊", "補充辨識")
@@ -2626,11 +2756,18 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             if matched_dirs
             else "此元素屬高度個人化敘事象徵，建議以孩子自己的故事定義為準，避免直接套用制式符號表。"
         )
+        fw_block = ""
+        follow_prompt = "「你剛剛說這裡畫的是這個角色／東西，如果它現在能講一句話，它最想說什麼？」"
+        if q_frameworks:
+            fw0 = q_frameworks[0]
+            fw_block = f"• 純圖像文獻對照（{fw0['citation']}）：{fw0['summary']}\n"
+            follow_prompt = fw0["promptTip"]
         reply = (
             "【協助圖像辨識與脈絡校準】\n"
-            f"感謝您補充畫面實際內容！依 Picard 等人（2007）與 Gross & Hayne（1998）實證，創作者親口澄清並經輔導人員確認的物件意義，準確度遠高於純幾何推估。\n"
+            "感謝您補充畫面實際內容！依 Picard 等人（2007）、Gross & Hayne（1998）與 Driessnack（2005, d = 0.95）實證，創作者親口澄清並經輔導人員確認的物件意義，準確度遠高於純幾何推估。\n"
             f"• 脈絡檢視：{cue_line}\n"
-            "• 建議延伸問法：「你剛剛說這裡畫的是這個角色／東西，如果它現在能講一句話，它最想說什麼？」\n"
+            f"{fw_block}"
+            f"• 建議延伸問法：{follow_prompt}\n"
             "• 下一步：您可以點擊上方「納入補充資訊並重新解析」，系統會將您確認的元素寫入判斷樹狀圖與互動引導分頁。"
         )
     # 2. Explaining scoring, trade-off, or alternative non-emotional hypotheses
@@ -2645,20 +2782,20 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             "【判斷依據與多元替代詮釋（實證核對）】\n"
             f"• 目前結論與差距：{gap_txt}（證據收斂：{conv_label}；常模：{age_label}）\n"
             f"• 模型推理摘要：{root_summary or stroke_insight or '系統採圖形內容優先，其次結合介面筆觸、空間比例與去偏色彩。'}\n"
-            f"• 非情緒替代解釋（Thomas & Jolley, 1998）：{alt_note}\n"
-            f"• 正向資源檢視（Pénzes, 2020）：{strengths_note or '畫面仍展現創作者運用視覺媒介主動表達與整理經驗的彈性。'}\n"
-            "• 實務建議：依 Joiner (1996) 與 Catte & Cox (1999) 原則，請把上述分數視為『假設清單』，搭配後續訪談紀錄再按重新解析檢核。"
+            f"• 非情緒替代解釋（Thomas & Jolley, 1998; Skybo et al., 2007）：{alt_note}\n"
+            f"• 正向資源檢視（Pénzes, 2020; Bat Or et al., 2022）：{strengths_note or '畫面仍展現創作者運用視覺媒介主動表達與整理經驗的彈性。'}\n"
+            "• 實務建議：依 Joiner (1996)、Catte & Cox (1999) 與 Pace 等人（2022）整體量表原則，請把上述分數視為『假設清單』，搭配後續訪談紀錄再按重新解析檢核。"
         )
     # 3. Child is silent, says "不知道", or avoids answering
     elif any(k in question for k in ("不知道", "不想說", "沉默", "不講", "抗拒", "逃避", "怎麼接", "怎麼問", "下一步", "接話", "沒嘴巴", "沒門窗")):
         focus_obj = verified_objects[0] if verified_objects else (figures_list[0] if figures_list else "畫裡最顯眼的那個形狀")
         reply = (
-            "【面對沉默／「不知道」之非誘導接話策略（Gross & Hayne, 1998; Malchiodi, 1998）】\n"
-            "孩子說「不知道」常不是刻意隱瞞，而是還沒找到合適詞彙，或對直接被問「你是不是很……？」感到壓力。\n"
+            "【面對沉默／「不知道」之非誘導接話策略（Gross & Hayne, 1998; Driessnack, 2005; Malchiodi, 1998）】\n"
+            "孩子說「不知道」常不是刻意隱瞞，而是還沒找到合適詞彙，或對直接被問「你是不是很……？」感到壓力。Driessnack（2005）統合分析證實把焦點從「審視孩子」轉移到「一起看畫」可達 d = 0.95 的溝通促進效果。\n"
             "建議改用『降壓＋第三人稱投射』三步驟：\n"
             "1. 先接納沉默：「沒關係喔，不用急著想答案，你願意把它畫下來就已經很棒了。」\n"
             f"2. 回到具體細節而非情緒：「我看見這裡有『{focus_obj}』，如果幫這幅畫配一種聲音或背景音樂，你覺得會像什麼聲音？」\n"
-            "3. 給選擇題或共創邀約：「如果你想幫畫裡加一個小幫手或秘密道具，下次我們可以畫在旁邊嗎？」\n"
+            "3. 給選擇題或共創邀約（Willis et al., 2010; Bat Or et al., 2022）：「如果你想幫畫裡加一把保護傘、秘密基地或小幫手，下次我們可以畫在旁邊嗎？」\n"
             "• 提醒：每次只問 1 題並給足 5–10 秒靜默等待，切勿連環追問或替孩子猜情緒。"
         )
     # 4. Summarize current notes / prepare for re-analysis
@@ -2672,6 +2809,18 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             f"• 後續溝通／訪談紀錄：{note_txt}\n"
             "• 建議操作：確認上方兩欄已補上孩子實際說明的物件與反應後，點擊『納入補充資訊並重新解析』，即可同步刷新「內在情緒分析」與「圖像互動引導」兩個分頁。"
         )
+    # 5. Pure image-first framework inquiry (umbrella/barriers/encapsulation/nest/agency/omission)
+    elif q_frameworks:
+        fw0 = q_frameworks[0]
+        suggested_obj = question.strip(" ：:，,。？?")[:70] if len(question) <= 72 else None
+        suggested_note = None if suggested_obj else question[:180]
+        reply = (
+            f"【純圖像實證脈絡解析：{fw0['label']}】\n"
+            f"• 對應文獻：{fw0['citation']}\n"
+            f"• 圖像涵義依據：{fw0['summary']}\n"
+            f"• 建議非誘導開放問法：{fw0['promptTip']}\n"
+            "• 實務提醒：建議將孩子對此物件／位置的親口說法填入上方補充欄並按重新解析，系統會以『整體構圖＋口述脈絡』同步更新雙分頁。"
+        )
     else:
         suggested_note = question[:180] if len(question) >= 8 else None
         reply = (
@@ -2679,7 +2828,7 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             f"• 當前作品焦點：主要傾向「{pri_label}（{pri_score}）」、次高「{sec_label}（{sec_score}）」，收斂度為「{conv_label}」（常模：{age_label}）。\n"
             f"• 筆觸與正向資源：{stroke_insight or '已整合軟體介面筆觸動力。'} {strengths_note}\n"
             "• 建議後續探索方向：\n"
-            "  1. 若畫中有模糊或抽象部位，可直接於上方『協助辨識畫面元素』填入孩子口述的實際物體並重算。\n"
+            "  1. 若畫中有模糊、框線、保護物、基地或省略部位，可直接於上方『協助辨識畫面元素』填入孩子口述的實際物體並重算。\n"
             "  2. 對話時優先採用開放式描述（如『這裡正在發生什麼事？』），再把孩子補充的重點記於上方『後續訪談反應』。\n"
             "（提示：若您已在右上角啟用方案 B 個人 Gemini API Key，本諮詢區會自動升級為可檢視完整畫作影像的開放式多模態 AI 顧問。）"
         )
