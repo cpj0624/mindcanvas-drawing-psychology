@@ -23,16 +23,16 @@
 - `backend/analyzer.py`：v2.0 圖形優先多維度心理分析引擎（含 Pillow 影像像素統計與空間拓樸辨識）。
 - `backend/server.py`：FastAPI 後端伺服器（`/api/analyze`、`/api/references`、`/api/health`）。
 - `frontend/index.html`：串接 FastAPI `/api/analyze` 之完整前端頁面。
-- `tests/test_analyzer.py`：13 項自動化單元測試（含單色黑筆笑臉、暖黃筆哭臉、天藍筆怒臉＋打叉、黑筆 HTP 房屋與黑筆愛心等跨色驗證）。
+- `tests/test_analyzer.py`：16 項自動化單元測試（含單色黑筆笑臉、暖黃筆哭臉、天藍筆怒臉＋打叉、黑筆 HTP 房屋、黑筆愛心及防 DoS／輸入驗證資安測試）。
 
 ## 本地測試與啟動
 
 ```bash
-# 執行 13 項自動化單元測試
+# 執行 16 項自動化單元測試
 python3 -m unittest discover -s tests -v
 
-# 啟動 FastAPI 後端服務
-uvicorn backend.server:app --host 0.0.0.0 --port 8000
+# 啟動 FastAPI 後端服務（預設僅綁定本機 127.0.0.1 以保護隱私）
+uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 ## 專業倫理提醒

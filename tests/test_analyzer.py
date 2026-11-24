@@ -312,6 +312,60 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         self.assertIsNotNone(res["incongruenceNote"])
         self.assertGreater(res["pillars"]["spatial"]["inkCoverage"], 0.02)
 
+    def test_security_extreme_coordinate_dos_protection(self):
+        """Extreme coordinate jump must not trigger CPU/RAM exhaustion in _resample_points."""
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [{
+                "tool": "pencil",
+                "color": "#222222",
+                "size": 5,
+                "points": [
+                    {"x": 0.0, "y": 0.0, "t": 0.0, "p": 0.5},
+                    {"x": 1e12, "y": 1e12, "t": 100.0, "p": 0.5},
+                ],
+            }],
+        })
+        self.assertEqual(res["status"], "ok")
+
+    def test_security_malformed_client_image_stats_and_nan_fallback(self):
+        """Malformed clientImageStats and non-finite coordinates must safely fall back without 500."""
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [{
+                "tool": "pencil",
+                "color": "#222222",
+                "size": 5,
+                "points": [
+                    {"x": float("nan"), "y": 10.0, "t": 0.0, "p": 0.5},
+                    {"x": 100.0, "y": 100.0, "t": 10.0, "p": 0.5},
+                    {"x": 220.0, "y": 180.0, "t": 50.0, "p": 0.5},
+                ],
+            }],
+            "imageDataUrl": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+            "clientImageStats": {"inkCoverageRatio": 0.5, "grid3x3": [0.1]},
+        })
+        self.assertEqual(res["status"], "ok")
+
+    def test_security_pydantic_request_validation(self):
+        """FastAPI AnalyzeRequest must reject NaN, malformed clientImageStats, and oversized total points."""
+        from pydantic import ValidationError
+        from backend.server import AnalyzeRequest
+
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(strokes=[{"points": [{"x": float("nan"), "y": 10.0}]}])
+
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(strokes=[{"points": [{"x": 1e9, "y": 10.0}]}])
+
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(clientImageStats={"inkCoverageRatio": 0.4})
+
+        # 20 strokes * 3000 points = 60,000 > MAX_TOTAL_STROKE_POINTS (50,000)
+        heavy_pts = [{"x": float(i % 800), "y": 100.0} for i in range(3000)]
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(strokes=[{"points": heavy_pts} for _ in range(20)])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -77,21 +77,41 @@ def classify_rgb_bucket(r: int, g: int, b: int) -> Tuple[str, float, float]:
     return ("neutralGrey", s, lum)
 
 
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    try:
+        f = float(val)
+        return f if math.isfinite(f) else default
+    except (TypeError, ValueError):
+        return default
+
+
 def _resample_points(
-    points: List[Dict[str, Any]], step: float = 12.0
+    points: List[Dict[str, Any]], step: float = 12.0, max_points: int = 800
 ) -> List[Tuple[float, float]]:
     if not points:
         return []
-    out: List[Tuple[float, float]] = [(float(points[0]["x"]), float(points[0]["y"]))]
+    step = max(1.0, _safe_float(step, 12.0))
+    valid_pts: List[Tuple[float, float]] = []
+    for pt in points:
+        if not isinstance(pt, dict):
+            continue
+        px = _safe_float(pt.get("x"), float("nan"))
+        py = _safe_float(pt.get("y"), float("nan"))
+        if math.isfinite(px) and math.isfinite(py):
+            valid_pts.append((px, py))
+    if not valid_pts:
+        return []
+    out: List[Tuple[float, float]] = [valid_pts[0]]
     acc = 0.0
-    prev_x, prev_y = out[0]
-    for pt in points[1:]:
-        cx, cy = float(pt["x"]), float(pt["y"])
+    prev_x, prev_y = valid_pts[0]
+    for cx, cy in valid_pts[1:]:
+        if len(out) >= max_points:
+            break
         dx, dy = cx - prev_x, cy - prev_y
         dist = math.hypot(dx, dy)
-        if dist < 1e-6:
+        if not math.isfinite(dist) or dist < 1e-6:
             continue
-        while acc + dist >= step:
+        while acc + dist >= step and len(out) < max_points:
             rem = step - acc
             t = rem / dist
             nx = prev_x + dx * t
@@ -103,8 +123,8 @@ def _resample_points(
             acc = 0.0
         acc += dist
         prev_x, prev_y = cx, cy
-    last = (float(points[-1]["x"]), float(points[-1]["y"]))
-    if math.hypot(last[0] - out[-1][0], last[1] - out[-1][1]) > step * 0.35:
+    last = valid_pts[-1]
+    if len(out) < max_points and math.hypot(last[0] - out[-1][0], last[1] - out[-1][1]) > step * 0.35:
         out.append(last)
     return out
 
@@ -112,29 +132,39 @@ def _resample_points(
 def _rdp_simplify(
     points: List[Tuple[float, float]], epsilon: float = 5.5
 ) -> List[Tuple[float, float]]:
-    if len(points) <= 2:
-        return points
-    x1, y1 = points[0]
-    x2, y2 = points[-1]
-    dx, dy = x2 - x1, y2 - y1
-    seg_len = math.hypot(dx, dy)
-    max_dist = -1.0
-    max_idx = 0
-    for i in range(1, len(points) - 1):
-        px, py = points[i]
-        d = (
-            math.hypot(px - x1, py - y1)
-            if seg_len < 1e-6
-            else abs(dy * px - dx * py + x2 * y1 - y2 * x1) / seg_len
-        )
-        if d > max_dist:
-            max_dist = d
-            max_idx = i
-    if max_dist > epsilon:
-        left = _rdp_simplify(points[: max_idx + 1], epsilon)
-        right = _rdp_simplify(points[max_idx:], epsilon)
-        return left[:-1] + right
-    return [points[0], points[-1]]
+    """Iterative Ramer-Douglas-Peucker simplification (safe against recursion limits)."""
+    n = len(points)
+    if n <= 2:
+        return list(points)
+    keep = [False] * n
+    keep[0] = True
+    keep[-1] = True
+    stack: List[Tuple[int, int]] = [(0, n - 1)]
+    while stack:
+        start_i, end_i = stack.pop()
+        if end_i - start_i <= 1:
+            continue
+        x1, y1 = points[start_i]
+        x2, y2 = points[end_i]
+        dx, dy = x2 - x1, y2 - y1
+        seg_len = math.hypot(dx, dy)
+        max_dist = -1.0
+        max_idx = start_i
+        for i in range(start_i + 1, end_i):
+            px, py = points[i]
+            d = (
+                math.hypot(px - x1, py - y1)
+                if seg_len < 1e-6
+                else abs(dy * px - dx * py + x2 * y1 - y2 * x1) / seg_len
+            )
+            if d > max_dist:
+                max_dist = d
+                max_idx = i
+        if max_dist > epsilon and start_i < max_idx < end_i:
+            keep[max_idx] = True
+            stack.append((start_i, max_idx))
+            stack.append((max_idx, end_i))
+    return [pt for pt, flag in zip(points, keep) if flag]
 
 
 def _segments_intersect(
@@ -153,10 +183,68 @@ def _segments_intersect(
     return (d1 * d2 < 0) and (d3 * d4 < 0)
 
 
+_ALLOWED_IMAGE_PREFIXES = (
+    "data:image/png;base64,",
+    "data:image/jpeg;base64,",
+    "data:image/jpg;base64,",
+    "data:image/webp;base64,",
+)
+
+
+def _sanitize_pixel_stats(raw: Any) -> Optional[Dict[str, Any]]:
+    """Defensively validate untrusted clientImageStats payloads."""
+    if not isinstance(raw, dict):
+        return None
+    cov = _safe_float(raw.get("inkCoverageRatio"), -1.0)
+    sat = _safe_float(raw.get("meanSaturation"), -1.0)
+    lum = _safe_float(raw.get("meanLuminance"), -1.0)
+    grid = raw.get("grid3x3")
+    hist = raw.get("colorHistogram")
+    if not (0.0 <= cov <= 1.0 and 0.0 <= sat <= 1.0 and 0.0 <= lum <= 1.0):
+        return None
+    if not isinstance(grid, (list, tuple)) or len(grid) != 9:
+        return None
+    clean_grid: List[float] = []
+    for cell in grid:
+        v = _safe_float(cell, -1.0)
+        if not (0.0 <= v <= 1.0):
+            return None
+        clean_grid.append(v)
+    if not isinstance(hist, dict) or len(hist) > 16:
+        return None
+    clean_hist: Dict[str, float] = {}
+    for k, v in hist.items():
+        if not isinstance(k, str) or len(k) > 32:
+            continue
+        fv = _safe_float(v, -1.0)
+        if 0.0 <= fv <= 1.0:
+            clean_hist[k] = fv
+    if not clean_hist:
+        return None
+    out: Dict[str, Any] = {
+        "inkCoverageRatio": cov,
+        "grid3x3": clean_grid,
+        "colorHistogram": clean_hist,
+        "meanSaturation": sat,
+        "meanLuminance": lum,
+    }
+    center = raw.get("pixelCenter")
+    if isinstance(center, (list, tuple)) and len(center) == 2:
+        cx = _safe_float(center[0], -1.0)
+        cy = _safe_float(center[1], -1.0)
+        if 0.0 <= cx <= 1.0 and 0.0 <= cy <= 1.0:
+            out["pixelCenter"] = (cx, cy)
+    return out
+
+
 def _analyze_image_buffer(
     image_data_url: str, bg_hex: str
 ) -> Optional[Dict[str, Any]]:
-    if not image_data_url or "," not in image_data_url or len(image_data_url) > 6_000_000:
+    if (
+        not isinstance(image_data_url, str)
+        or len(image_data_url) > 6_000_000
+        or not image_data_url.lower().startswith(_ALLOWED_IMAGE_PREFIXES)
+    ):
         return None
     try:
         _, b64_part = image_data_url.split(",", 1)
@@ -164,7 +252,13 @@ def _analyze_image_buffer(
         if len(raw) > 4_500_000:
             return None
         with Image.open(io.BytesIO(raw)) as opened:
-            if opened.width * opened.height > 4_000_000:
+            if (
+                opened.width <= 0
+                or opened.height <= 0
+                or opened.width > 4096
+                or opened.height > 4096
+                or opened.width * opened.height > 4_000_000
+            ):
                 return None
             img = opened.convert("RGB")
         target_w = 180
@@ -806,26 +900,26 @@ def _detect_composite_figures(
 def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Run v2.0 Shape-First child psychology analysis on drawing telemetry."""
     canvas_info = payload.get("canvas") or {}
-    width = float(canvas_info.get("width") or 800.0)
-    height = float(canvas_info.get("height") or 550.0)
+    width = _clamp(_safe_float(canvas_info.get("width"), 800.0), 50.0, 4096.0)
+    height = _clamp(_safe_float(canvas_info.get("height"), 550.0), 50.0, 4096.0)
     bg_hex = str(canvas_info.get("backgroundColor") or "#FDFBF7")
     canvas_area = max(1.0, width * height)
 
     all_strokes: List[Dict[str, Any]] = payload.get("strokes") or []
     draw_strokes = [
-        s for s in all_strokes if s.get("tool") != "eraser" and len(s.get("points") or []) >= 1
+        s for s in all_strokes if isinstance(s, dict) and s.get("tool") != "eraser" and len(s.get("points") or []) >= 1
     ]
-    eraser_strokes = [s for s in all_strokes if s.get("tool") == "eraser"]
+    eraser_strokes = [s for s in all_strokes if isinstance(s, dict) and s.get("tool") == "eraser"]
 
     process = payload.get("processMetrics") or {}
-    undo_count = int(process.get("undoCount") or 0)
-    eraser_count = max(int(process.get("eraserStrokeCount") or 0), len(eraser_strokes))
-    total_duration_ms = float(process.get("totalDurationMs") or 0.0)
-    pause_count = int(process.get("pauseCount") or 0)
+    undo_count = max(0, int(_safe_float(process.get("undoCount"), 0)))
+    eraser_count = max(max(0, int(_safe_float(process.get("eraserStrokeCount"), 0))), len(eraser_strokes))
+    total_duration_ms = max(0.0, _safe_float(process.get("totalDurationMs"), 0.0))
+    pause_count = max(0, int(_safe_float(process.get("pauseCount"), 0)))
 
     user_context = payload.get("userContext") or {}
-    title_or_note = str(user_context.get("titleOrNote") or "").strip()
-    selected_motifs: List[str] = list(user_context.get("selectedMotifs") or [])
+    title_or_note = str(user_context.get("titleOrNote") or "").strip()[:300]
+    selected_motifs: List[str] = [str(m)[:48] for m in list(user_context.get("selectedMotifs") or [])[:20]]
 
     if not draw_strokes:
         return {
@@ -874,10 +968,24 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     stroke_prims: List[Dict[str, Any]] = []
 
     for s_idx, stroke in enumerate(draw_strokes):
-        pts = stroke.get("points") or []
+        raw_pts = stroke.get("points") or []
+        pts = [
+            {
+                "x": _clamp(_safe_float(p.get("x"), 0.0), -5000.0, 10000.0),
+                "y": _clamp(_safe_float(p.get("y"), 0.0), -5000.0, 10000.0),
+                "t": max(0.0, _safe_float(p.get("t"), 0.0)),
+                "p": _clamp(_safe_float(p.get("p"), 0.5), 0.05, 1.0),
+            }
+            for p in raw_pts
+            if isinstance(p, dict)
+            and math.isfinite(_safe_float(p.get("x"), float("nan")))
+            and math.isfinite(_safe_float(p.get("y"), float("nan")))
+        ]
+        if not pts:
+            continue
         color_hex = str(stroke.get("color") or "#2A2B30").lower()
         tool = str(stroke.get("tool") or "crayon")
-        size = float(stroke.get("size") or 7.0)
+        size = _clamp(_safe_float(stroke.get("size"), 7.0), 1.0, 80.0)
         eff_width = size * {"pencil": 0.65, "crayon": 1.15, "marker": 1.3, "watercolor": 1.65}.get(tool, 1.0)
         widths.append(eff_width)
 
@@ -890,9 +998,9 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         touches_edge = False
 
         for idx, pt in enumerate(pts):
-            x = float(pt.get("x", 0.0))
-            y = float(pt.get("y", 0.0))
-            pressures.append(_clamp(float(pt.get("p", 0.5)), 0.05, 1.0))
+            x = pt["x"]
+            y = pt["y"]
+            pressures.append(pt["p"])
             min_x, max_x = min(min_x, x), max(max_x, x)
             min_y, max_y = min(min_y, y), max(max_y, y)
             s_min_x, s_max_x = min(s_min_x, x), max(s_max_x, x)
@@ -900,9 +1008,9 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             if x < width * 0.055 or x > width * 0.945 or y < height * 0.055 or y > height * 0.945:
                 touches_edge = True
             if idx > 0:
-                px = float(pts[idx - 1].get("x", x))
-                py = float(pts[idx - 1].get("y", y))
-                dt = max(4.0, float(pt.get("t", 0.0)) - float(pts[idx - 1].get("t", 0.0)))
+                px = pts[idx - 1]["x"]
+                py = pts[idx - 1]["y"]
+                dt = max(4.0, pt["t"] - pts[idx - 1]["t"])
                 seg_d = math.hypot(x - px, y - py)
                 s_len += seg_d
                 if seg_d > 0.5 and dt < 1500.0:
@@ -964,8 +1072,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 smooth_turns += 1
 
         start_pt, end_pt = pts[0], pts[-1]
-        x0, y0 = float(start_pt["x"]), float(start_pt["y"])
-        x1, y1 = float(end_pt["x"]), float(end_pt["y"])
+        x0, y0 = start_pt["x"], start_pt["y"]
+        x1, y1 = end_pt["x"], end_pt["y"]
         dx_total, dy_total = x1 - x0, y1 - y0
         chord = math.hypot(dx_total, dy_total)
         straightness = chord / max(1.0, s_len)
@@ -1033,10 +1141,16 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "resamp": resamp,
         })
 
+    if not stroke_prims:
+        return {
+            "status": "empty",
+            "message": "畫布目前沒有有效的筆跡座標，請重新繪製後再進行分析。",
+        }
+
     # --- 2. Combine Vector Telemetry with Pixel Stats & Detect Monochrome Sketch Mode ---
     pixel_stats = _analyze_image_buffer(str(payload.get("imageDataUrl") or ""), bg_hex)
     if not pixel_stats and payload.get("clientImageStats"):
-        pixel_stats = payload.get("clientImageStats")
+        pixel_stats = _sanitize_pixel_stats(payload.get("clientImageStats"))
 
     vec_total_area = max(1.0, sum(vec_buckets.values()))
     vec_hist = {k: round(v / vec_total_area, 4) for k, v in vec_buckets.items()}
