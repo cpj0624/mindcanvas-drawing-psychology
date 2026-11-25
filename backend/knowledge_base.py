@@ -1,14 +1,15 @@
-"""Child drawing psychology knowledge base and theoretical references.
+"""Child drawing psychology knowledge base and theoretical references (v3.5).
 
-Grounds the analysis engine in established developmental psychology and
-projective art therapy frameworks:
-- John N. Buck (1948): House-Tree-Person (HTP) projective drawing technique
-- Elizabeth M. Koppitz (1968): Emotional Indicators on Human Figure Drawings (HFD)
+Grounds the analysis engine for 3–13 year old (pre-adolescent) children in 29
+peer-reviewed international empirical studies (image-first, 3C/tablet debiasing,
+pop-culture debiasing, and neurodiversity/ASD guardrails) plus 6 classic
+foundational frameworks used under strict modern empirical limits:
+- John N. Buck (1948): House-Tree-Person (HTP) structural vocabulary (dialogue cues only)
+- Elizabeth M. Koppitz (1968): Human Figure Drawings (HFD) — zeroed for ages 3–6, never standalone
 - Viktor Lowenfeld (1947/1987): Creative and Mental Growth / developmental stages
 - Cathy A. Malchiodi (1998): Understanding Children's Drawings
-- Esther Burkitt, Martyn Barrett & Alyson Davis (2003-2005): Affective color & size studies
-- Rose H. Alschuler & La Berta W. Hattwick (1947): Painting and Personality
-- Max Pulver: Spatial symbolism in projective graphology/drawing
+- Rose H. Alschuler & La Berta W. Hattwick (1947): Pressure inference restricted to hardware stylus only
+- Max Pulver (1931/1953): Spatial grid geometry only (graphological psychological inference weight = 0)
 """
 
 from typing import Dict, List, Any
@@ -343,10 +344,66 @@ PSYCHOLOGY_REFERENCES: List[Dict[str, str]] = [
         "focus": "以圖引談溝通促進效果量 d = 0.95；從「審視孩子」轉為「一起看畫」賦予控制權",
         "description": "跨研究統合分析證實將繪畫當作由兒童主導敘事的溝通媒介可帶來大型效果量（d = 0.95），降低被盤問的壓力，讓孩子自然分享原本難以純口語表達的內在感受與脈絡。",
     },
-    # --- 6. 多證據收斂護欄與非診斷多元解釋 ---
+    # --- 6. 3C 數位媒材、流行文化去偏與神經多樣性護欄（v3.5 新增） ---
+    {
+        "id": "ivashkevich_2009_popculture",
+        "group": "六、3C 數位媒材、流行文化去偏與神經多樣性護欄",
+        "category": "國際期刊實證",
+        "author": "Ivashkevich, O. (2009)",
+        "journal": "Studies in Art Education, 51(1), 50–63",
+        "doi": "10.1080/00393541.2009.11518790",
+        "title": "兒童繪畫作為社會文化實踐：流行文化與媒體符號模仿研究",
+        "focus": "動漫、遊戲角色（怪物、尖牙、武器、誇張表情）流行文化去偏，避免誤判為攻擊性或創傷",
+        "description": "指出兒童繪畫深受大眾文化、動畫、漫畫與遊戲角色影響，畫出怪獸、武器或誇張戰鬥表情常是同儕文化交流與角色創作，輔導前應先以開放提問檢核媒體來源，不可直接推論為攻擊性或創傷。",
+    },
+    {
+        "id": "price_2015_ipads",
+        "group": "六、3C 數位媒材、流行文化去偏與神經多樣性護欄",
+        "category": "國際期刊實證",
+        "author": "Price, S., Jewitt, C., & Crescenzi-Lanna, L. (2015)",
+        "journal": "Computers & Education, 87, 131–141",
+        "doi": "10.1016/j.compedu.2015.04.003",
+        "title": "iPad 平板在學齡前兒童標記發展中的角色實證研究",
+        "focus": "區分平板觸控與傳統實體紙筆標記差異，防止將觸控重複滑動誤判為情緒重塗或焦慮",
+        "description": "比較學齡前兒童使用平板觸控與實體紙筆的塗繪行為，證實觸控介面的滑順度、手指接觸與快速疊畫特性會自然產生較多連續重複與填色痕跡，不應直接等同傳統紙筆的焦慮重塗。",
+    },
+    {
+        "id": "mohd_shukri_2014_tablet",
+        "group": "六、3C 數位媒材、流行文化去偏與神經多樣性護欄",
+        "category": "國際會議實證",
+        "author": "Mohd Shukri, S. R. (2014)",
+        "journal": "CHI '14 Extended Abstracts on Human Factors in Computing Systems, 1177–1182",
+        "doi": "10.1145/2559206.2581278",
+        "title": "兒童在平板上繪畫之策略調適實證（多段短筆畫與觸控誤觸）",
+        "focus": "平板／觸控螢幕自然採「多段短筆畫（multi-stroke）」降低失誤並易有手指誤觸，禁誤判焦慮退縮",
+        "description": "觀察兒童於平板繪圖的適應策略，發現孩子為降低畫錯風險常主動把長線拆成多段短筆畫並頻繁復原，亦容易產生手指誤觸，因此禁止將斷續短線條或復原動作直接誤判為焦慮或退縮。",
+    },
+    {
+        "id": "papangelo_2020_asd_hfd",
+        "group": "六、3C 數位媒材、流行文化去偏與神經多樣性護欄",
+        "category": "國際期刊實證",
+        "author": "Papangelo, P., Pinzino, M., Pelagatti, S., Fabbri-Destro, M., & Narzisi, A. (2020)",
+        "journal": "Brain Sciences, 10(6), 398",
+        "doi": "10.3390/brainsci10060398",
+        "title": "自閉症譜系兒童人物畫評估限制：內在或外在世界之窗？",
+        "focus": "神經多樣性（ASD）護欄：嚴格限制傳統人物畫（HFD）不可直接套用於評估 ASD 兒童情緒或社會知覺",
+        "description": "系統檢視自閉症譜系（ASD）兒童的人物畫研究，證實其構圖、細節關注與人物呈現受獨特認知與知覺風格影響，傳統投射 HFD 指標不可直接用於推論其內在情緒或社會依附能力。",
+    },
+    {
+        "id": "kotroni_2018_asd_emotions",
+        "group": "六、3C 數位媒材、流行文化去偏與神經多樣性護欄",
+        "category": "國際期刊實證",
+        "author": "Kotroni, P., Bonoti, F., & Mavropoulou, S. (2018)",
+        "journal": "International Journal of Developmental Disabilities, 65(4), 248–256 (PMC8115598; PMID: 34141345)",
+        "doi": "10.1080/20473869.2018.1434855",
+        "title": "自閉症譜系兒童繪畫表達社會情緒之實證研究",
+        "focus": "ASD 兒童畫中視覺情緒線索通常較少，避免將偏重機械／物件細節或重複幾何誤判為冷漠疏離",
+        "description": "證實自閉症譜系兒童具備透過繪畫表達社會情緒的能力，但整體使用的情緒視覺線索數量通常較少；若畫面偏重機械、交通工具、物件細節或高度重複幾何，應尊重神經發展風格差異而非判定依附疏離。",
+    },
+    # --- 7. 多證據收斂護欄與非診斷多元解釋 ---
     {
         "id": "joiner_1996_catte_1999",
-        "group": "六、多證據收斂護欄與非診斷多元解釋",
+        "group": "七、多證據收斂護欄與非診斷多元解釋",
         "category": "國際期刊實驗",
         "author": "Joiner, T. E. Jr., Schmidt, K. L., & Barnett, J. (1996); Catte, M., & Cox, M. V. (1999)",
         "journal": "Journal of Personality Assessment, 67(1), 127–141; European Child & Adolescent Psychiatry, 8(2), 86–91",
@@ -357,7 +414,7 @@ PSYCHOLOGY_REFERENCES: List[Dict[str, str]] = [
     },
     {
         "id": "thomas_jolley_1998",
-        "group": "六、多證據收斂護欄與非診斷多元解釋",
+        "group": "七、多證據收斂護欄與非診斷多元解釋",
         "category": "國際期刊實驗",
         "author": "Thomas, G. V., & Jolley, R. P. (1998)",
         "journal": "British Journal of Clinical Psychology, 37(2), 127–139",
@@ -366,44 +423,44 @@ PSYCHOLOGY_REFERENCES: List[Dict[str, str]] = [
         "focus": "多重成因與替代性溫和解釋、畫作為多源證據之一",
         "description": "指出同一繪畫特徵可能源自畫技、空間規劃習慣或個人風格而非情緒困擾，繪畫應作為多源收斂線索之一並誠實呈現替代可能解釋。",
     },
-    # --- 7. 經典投射測驗與兒童藝術發展基礎架構 ---
+    # --- 8. 經典投射測驗與兒童藝術發展基礎架構（受限參考） ---
     {
         "id": "classic_foundations",
-        "group": "七、經典投射測驗與兒童藝術發展架構",
+        "group": "八、經典投射測驗與兒童藝術發展架構（受限參考）",
         "category": "經典理論架構",
         "author": "Buck (1948); Koppitz (1968); Lowenfeld (1987); Malchiodi (1998); Alschuler & Hattwick (1947); Pulver (1953)",
-        "journal": "HTP 屋樹人 / HFD 人物畫情緒指標 / 空間象徵與藝術治療基礎文獻",
+        "journal": "HTP 屋樹人 / HFD 人物畫情緒指標 / 空間幾何與藝術治療基礎文獻",
         "doi": "Classic Foundations",
-        "title": "兒童繪畫心理學六大經典投射、空間與藝術發展架構",
-        "focus": "屋樹人門窗空間、30 項 HFD 指標、九宮格重心、線條發展階段與藝術治療陪伴倫理",
-        "description": "構成空間九宮格、房屋門窗界線、重度陰影與反覆擦除等經典符號基礎，並結合上述現代國際期刊實驗進行去偏與多證據收斂校準。",
+        "title": "兒童繪畫心理學六大經典投射、空間與藝術發展架構（現代實證限縮版）",
+        "focus": "僅供結構詞彙與對話起點：Pulver 心理權重歸零、Alschuler 僅限感壓筆、Koppitz 3–6 歲省略歸零、Buck HTP 不僵化扣分",
+        "description": "保留屋樹人門窗結構詞彙、藝術發展階段與陪伴倫理作為對話切入點；v3.5 全面以 29 篇現代實證優先，將 Pulver 空間心理推論歸零、限制 Alschuler 筆壓推論僅於真壓電繪板低權重啟用，並於 3–6 歲停用 Koppitz 部位省略扣分。",
     },
 ]
 
 AGE_GROUP_NORMS: Dict[str, Dict[str, Any]] = {
     "unspecified": {
-        "label": "未指定（通用模式）",
+        "label": "未指定（3–13 歲通用模式）",
         "expectedStyle": "綜合字面表情、情境內容與形式結構",
         "omittedDetailScale": 1.0,
-        "guidance": "未提供創作者年齡，採用通用圖形結構優先與多證據收斂常模。",
+        "guidance": "未提供創作者年齡，採用 3–13 歲通用圖形結構優先、數位媒材降權與多證據收斂常模。",
     },
     "3-6": {
         "label": "3–6 歲（學齡前）",
         "expectedStyle": "字面表情與簡易幾何圖式（蝌蚪人階段）",
-        "omittedDetailScale": 0.45,
-        "guidance": "依 Picard & Gauthier (2012) 與 Jolley et al. (2004)，3–6 歲筆觸簡略、省略細節或比例誇張屬正常動作認知發展，系統已自動降低單一省略／尺寸權重。",
+        "omittedDetailScale": 0.0,
+        "guidance": "依 Picard & Gauthier (2012)、Price 等人 (2015) 與 Mohd Shukri (2014)，3–6 歲省略五官／門窗屬正常動作認知發展，系統已完全停用 Koppitz 部位省略扣分（係數 ×0.00），並提醒排除平板手指誤觸與多段短筆畫。",
     },
     "7-10": {
         "label": "7–10 歲（國小中低年級）",
-        "expectedStyle": "字面表情＋情境隱喻並行期",
+        "expectedStyle": "字面表情＋情境隱喻＋流行文化角色並行期",
         "omittedDetailScale": 0.85,
-        "guidance": "依 Picard et al. (2007; 2012)，7–10 歲已具備穩定情緒表達力（失敗率 < 2%），常以人物表情搭配太陽、雨雲、房屋門窗等情境線索傳達心情。",
+        "guidance": "依 Picard et al. (2007; 2012) 與 Ivashkevich (2009)，7–10 歲已具穩定情緒表達力，同時為動漫與遊戲接觸高峰期；出現怪獸、尖牙或武器時系統將自動降權負向張力並優先提供媒體來源檢核提問。",
     },
-    "11+": {
-        "label": "11 歲以上（高年級／青少年／成人）",
-        "expectedStyle": "字面＋情境＋抽象形式複合表達期",
+    "11-13": {
+        "label": "11–13 歲（國小高年級／青春期前）",
+        "expectedStyle": "寫實前期＋複合隱喻＋個人審美風格期",
         "omittedDetailScale": 1.0,
-        "guidance": "依 Picard & Gauthier (2012)，11 歲以上逐漸增加非字面隱喻與形式張力（構圖留白、線條動態、結構重複）來表達細微且多層次的情緒。",
+        "guidance": "依 Picard & Gauthier (2012) 與 Lowenfeld (1987)，11–13 歲常因寫實前期「怕畫不像」而採極簡火柴人、省略細節或頻繁復原，亦常見暗黑酷炫風格，系統將優先提供畫技顧慮與審美風格等溫和替代解釋。",
     },
 }
 
@@ -427,7 +484,8 @@ VERBAL_LEXICON: Dict[str, List[str]] = {
         "angry", "mad", "hate", "furious", "annoyed", "storm", "fight",
     ],
     "anxiety": [
-        "緊張", "焦慮", "害怕", "怕", "擔心", "壓力", "考試", "功課", "迷宮", "亂",
+        "緊張", "焦慮", "害怕", "怕", "擔心", "壓力", "考試", "考試卷", "考卷", "分數", "成績",
+        "功課", "作業", "時鐘", "鬧鐘", "螢幕", "補習", "迷宮", "亂",
         "做不好", "犯錯", "恐懼", "噩夢", "黑", "發抖", "不安", "不知所措", "喘不過氣",
         "anxious", "scared", "fear", "worry", "stress", "nervous", "maze",
     ],
@@ -438,12 +496,12 @@ VERBAL_LEXICON: Dict[str, List[str]] = {
     ],
     "joy": [
         "開心", "快樂", "高興", "好玩", "喜歡", "愛", "陽光", "太陽", "花", "彩虹",
-        "笑", "微笑", "朋友", "慶祝", "禮物", "幸福", "棒", "溫暖", "自由", "飛",
+        "笑", "微笑", "朋友", "遊戲夥伴", "隊友", "寵物", "慶祝", "禮物", "幸福", "棒", "溫暖", "自由", "飛",
         "happy", "joy", "fun", "sun", "rainbow", "smile", "love", "play",
     ],
     "calm": [
-        "平靜", "安靜", "舒服", "放鬆", "安心", "安全", "溫柔", "家", "森林", "海邊",
-        "星星", "月亮", "休息", "睡覺", "微風", "和平", "穩定", "靜靜",
+        "平靜", "安靜", "舒服", "放鬆", "安心", "安全", "溫柔", "家", "秘密基地", "帳篷",
+        "棉被", "毛毯", "耳機", "森林", "海邊", "星星", "月亮", "休息", "睡覺", "微風", "和平", "穩定", "靜靜",
         "calm", "peace", "quiet", "safe", "relax", "home", "gentle", "rest",
     ],
 }

@@ -1,10 +1,8 @@
-"""Multi-dimensional child drawing psychology analysis engine (v3.0 Empirical).
+"""Multi-dimensional child drawing psychology analysis engine (v3.5 Empirical).
 
-Integrates 14 peer-reviewed international journal empirical studies (Jolley et al.
-2004; Picard et al. 2007, 2012; Misalidi & Bonoti 2014; Nanayama Tanaka et al.
-2020; Burkitt et al. 2003a/b, 2004; Crawford et al. 2012; Pénzes et al. 2020;
-Joiner et al. 1996; Catte & Cox 1999; Thomas & Jolley 1998; Gross & Hayne 1998;
-Cao et al. 2023) with device-adaptive software drawing interface stroke sensing.
+Targets children aged 3–13 (pre-adolescent) using 29 peer-reviewed international
+empirical studies (image-first, 3C/tablet debiasing, pop-culture debiasing, and
+neurodiversity/ASD guardrails) plus 6 classic frameworks under modern limits.
 """
 
 from __future__ import annotations
@@ -40,11 +38,12 @@ COUNSELOR_OBJECT_CUES: Dict[str, Tuple[str, ...]] = {
     ),
     "anger": (
         "生氣", "怪物", "怪獸", "炸彈", "火", "吵架", "打架", "打人", "刺", "武器",
-        "壞人", "火山", "暴龍", "討厭", "撕", "牙齒", "大牙齒", "利爪", "尖爪", "交叉雙臂",
+        "壞人", "火山", "暴龍", "討厭", "撕", "牙齒", "大牙齒", "尖牙", "利爪", "尖爪", "交叉雙臂",
     ),
     "anxiety": (
         "躲", "藏", "保護罩", "盾", "牆", "圍牆", "籠", "鎖", "不敢", "害怕", "怕",
-        "緊張", "考試", "迷宮", "黑影", "抖", "惡夢", "門沒開", "縮起來",
+        "緊張", "考試", "考試卷", "考卷", "分數", "成績", "時鐘", "鬧鐘", "作業", "功課", "螢幕", "補習", "聯絡簿",
+        "迷宮", "黑影", "抖", "惡夢", "門沒開", "縮起來",
         "框框", "圈起來", "包圍", "隔開", "隔線", "柵欄", "懸空", "浮在空中", "漂浮",
         "沒地面", "傾斜", "歪斜", "沒畫手", "沒畫腳", "沒有手", "沒有嘴巴",
     ),
@@ -53,28 +52,45 @@ COUNSELOR_OBJECT_CUES: Dict[str, Tuple[str, ...]] = {
         "被排擠", "遠遠的", "空空", "自己待著", "背對", "隔很遠", "沒畫臉", "省略",
     ),
     "joy": (
-        "笑", "玩", "好朋友", "朋友", "家人", "寵物", "太陽", "花", "愛心", "禮物",
-        "彩虹", "糖果", "派對", "遊樂園", "蛋糕", "開心",
+        "笑", "玩", "好朋友", "朋友", "遊戲夥伴", "隊友", "家人", "寵物", "小狗", "小貓",
+        "太陽", "花", "愛心", "禮物", "彩虹", "糖果", "派對", "遊樂園", "蛋糕", "開心",
         "梯子", "工具", "幫手", "小幫手", "伸手", "摘", "果實", "拿到了", "翅膀", "分享",
     ),
     "calm": (
         "安靜", "休息", "睡覺", "家", "樹", "山", "海", "散步", "平靜", "安心",
         "安全", "溫暖", "看書", "風景", "自然",
         "雨傘", "傘", "雨衣", "屋簷", "大樹", "遮蔽", "鳥巢", "巢", "秘密基地",
-        "基地", "帳篷", "床", "地面", "腳踏實地", "草地", "穩固", "抱抱", "牽手", "照顧",
+        "基地", "帳篷", "床", "耳機", "棉被", "被子", "毛毯", "玩偶", "娃娃",
+        "地面", "腳踏實地", "草地", "穩固", "抱抱", "牽手", "照顧",
     ),
 }
 
-# Image-first (non-color) peer-reviewed empirical frameworks (v3.4)
+# Contemporary 3C / pop-culture / gaming cues (Ivashkevich, 2009)
+POP_CULTURE_CUES: Tuple[str, ...] = (
+    "怪物", "怪獸", "尖牙", "大牙齒", "利爪", "尖爪", "武器", "刀", "劍", "槍", "雷射",
+    "恐龍", "暴龍", "動漫", "漫畫", "卡通", "遊戲", "電玩", "影片", "youtube", "超人",
+    "英雄", "寶可夢", "麥塊", "minecraft", "薩爾達", "奧特曼", "機器人", "魔王", "boss",
+)
+
+# Neurodiversity / mechanical / repetitive-detail cues (Papangelo et al., 2020; Kotroni et al., 2018)
+NEURODIVERSITY_CUES: Tuple[str, ...] = (
+    "機械", "齒輪", "零件", "火車", "軌道", "捷運", "高鐵", "地圖", "路線圖", "交通工具",
+    "幾何", "重複", "對稱", "規律", "數字", "字母", "自閉", "亞斯", "asd", "星兒", "神經多樣",
+)
+
+# Image-first (non-color) peer-reviewed empirical frameworks (v3.4 / v3.5)
 IMAGE_FIRST_FRAMEWORK_RULES: Tuple[Dict[str, Any], ...] = (
     {
         "id": "dapr_coping",
-        "label": "壓力源 vs. 保護因應物件（雨中人 DAPR）",
+        "label": "壓力源 vs. 保護因應物件（雨中人 DAPR × 當代日常資源）",
         "citation": "Willis, Joy, & Kaiser (2010), The Arts in Psychotherapy, 37(3), 233–239",
-        "keywords": ("雨傘", "傘", "雨衣", "屋簷", "遮蔽", "保護罩", "盾", "下雨", "淋濕", "烏雲", "閃電", "積水"),
+        "keywords": (
+            "雨傘", "傘", "雨衣", "屋簷", "遮蔽", "保護罩", "盾", "耳機", "棉被", "被子", "毛毯", "寵物",
+            "下雨", "淋濕", "烏雲", "閃電", "積水", "考試卷", "考卷", "分數", "成績", "時鐘", "鬧鐘", "作業", "螢幕",
+        ),
         "isResource": True,
-        "summary": "依 Willis 等人（2010）雨中人實證，對照壓力圖像（雨量／烏雲／淋濕）與保護物件（雨傘／雨衣／遮蔽物）可反映知覺壓力與自我導向因應資源（r = .43, p < .01）。",
-        "promptTip": "「如果想幫畫裡的主角再多加一樣能擋雨或保護他的小東西，你會想畫在哪裡？」",
+        "summary": "依 Willis 等人（2010）雨中人實證，對照畫面中的壓力源（雨量／烏雲／考試卷／時鐘／作業／螢幕）與保護資源物件（雨傘／遮蔽物／耳機／棉被／寵物），可溫和理解孩子的知覺壓力與自我調節資源（r = .43, p < .01）。",
+        "promptTip": "「如果想幫畫裡的主角再多加一樣能擋雨、隔開吵雜或讓他覺得安心的小東西（像雨傘、耳機或棉被），你會想畫在哪裡？」",
     },
     {
         "id": "kfd_boundaries",
@@ -89,30 +105,227 @@ IMAGE_FIRST_FRAMEWORK_RULES: Tuple[Dict[str, Any], ...] = (
         "id": "bnd_safe_base",
         "label": "安全基地與承接容器結構（鳥巢畫 BND）",
         "citation": "Kaiser (1996), Arts in Psychotherapy; Kaiser & Deaver (2009), Art Therapy, 26(1), 26–33",
-        "keywords": ("鳥巢", "巢", "秘密基地", "基地", "帳篷", "床", "保護殼", "空巢", "無底", "穩固", "照顧", "抱抱"),
+        "keywords": ("鳥巢", "巢", "秘密基地", "基地", "帳篷", "床", "棉被", "保護殼", "空巢", "無底", "穩固", "照顧", "抱抱"),
         "isResource": True,
-        "summary": "依 Kaiser（1996）與 Kaiser & Deaver（2009）鳥巢畫十年實證回顧，容器底部是否穩固、有無支撐環境與內部保護感，可溫和反映孩子的內在安全基地感。",
-        "promptTip": "「這個基地／小窩住起來穩不穩固？裡面誰最常來陪伴或照顧主角呢？」",
+        "summary": "依 Kaiser（1996）與 Kaiser & Deaver（2009）鳥巢畫十年實證回顧，容器底部是否穩固、有無支撐環境與內部保護感（如鳥巢、帳篷、棉被、秘密基地），可溫和反映孩子的內在安全基地感。",
+        "promptTip": "「這個秘密基地／小窩住起來穩不穩固？裡面誰（或哪隻寵物／夥伴）最常來陪伴主角呢？」",
     },
     {
         "id": "ppat_agency",
         "label": "主角主動性與問題解決工具（摘蘋果的人 PPAT）",
         "citation": "Bat Or, Ishai, Barkay, & Shalev (2022), Children, 9(9), 1387",
-        "keywords": ("梯子", "工具", "幫手", "小幫手", "伸手", "摘", "果實", "拿到了", "翅膀", "分享"),
+        "keywords": ("梯子", "工具", "幫手", "小幫手", "遊戲夥伴", "隊友", "伸手", "摘", "果實", "拿到了", "翅膀", "分享"),
         "isResource": True,
-        "summary": "依 Bat Or 等人（2022）PPAT 與兒童敘事實證，主角主動伸手或運用梯子／工具／幫手達成目標，顯著關聯自我效能感（Self-potency）與內在韌性資源。",
-        "promptTip": "「主角用這個方法／工具好有創意！他拿到想要的東西之後，接下來最想做什麼？」",
+        "summary": "依 Bat Or 等人（2022）PPAT 與兒童敘事實證，主角主動伸手或運用梯子／工具／小幫手與遊戲夥伴克服困難，顯著關聯自我效能感（Self-potency）與內在韌性資源。",
+        "promptTip": "「主角用這個方法／找來的幫手好有創意！他拿到想要的東西或完成挑戰後，接下來最想做什麼？」",
     },
     {
         "id": "skybo_hfd_norms",
         "label": "人物部位省略、誇大姿態與年齡發展檢核（HFD）",
         "citation": "Skybo, Ryan-Wenger, & Su (2007), Journal of Pediatric Nursing, 22(1), 15–28",
-        "keywords": ("沒畫手", "沒畫腳", "沒有手", "沒有嘴巴", "沒畫臉", "省略", "牙齒", "大牙齒", "利爪", "尖爪", "交叉雙臂", "傾斜", "歪斜"),
+        "keywords": ("沒畫手", "沒畫腳", "沒有手", "沒有嘴巴", "沒畫臉", "省略", "牙齒", "大牙齒", "尖牙", "利爪", "尖爪", "交叉雙臂", "傾斜", "歪斜"),
         "isResource": False,
-        "summary": "依 Skybo 等人（2007）人物畫實務批判回顧，省略手腳／五官或傾斜姿態常與退縮無力相伴，誇大牙齒／利爪／武裝則與防衛張力相關，但必先對照年齡發展階段排除正常省略，並搭配訪談佐證。",
+        "summary": "依 Skybo 等人（2007）人物畫實務批判回顧，省略手腳／五官或傾斜姿態常與退縮無力相伴，誇大牙齒／利爪／武裝則與防衛張力相關，但必先對照年齡發展階段（3–6 歲不扣分）與流行文化模仿，並搭配訪談佐證。",
         "promptTip": "「畫裡這個角色擺出這個姿勢／留白的地方，如果他現在要行動或開口，他最需要什麼幫忙？」",
     },
+    {
+        "id": "pop_culture_media",
+        "label": "3C 流行文化與媒體角色模仿去偏",
+        "citation": "Ivashkevich (2009), Studies in Art Education, 51(1), 50–63",
+        "keywords": POP_CULTURE_CUES,
+        "isResource": False,
+        "summary": "依 Ivashkevich（2009）社會文化繪畫研究，兒童繪製怪物、尖牙、武器或誇張動漫／遊戲角色常為同儕文化交流與媒體角色模仿，輔導時應先檢核來源，避免直接誤判為攻擊性或創傷。",
+        "promptTip": "「這個角色（或武器／怪物）好有特色！它是你自己發明的，還是你在影片、漫畫或遊戲裡看過的呢？」",
+    },
+    {
+        "id": "neurodiversity_asd",
+        "label": "神經多樣性（ASD）繪畫風格護欄",
+        "citation": "Papangelo et al. (2020), Brain Sciences, 10(6), 398; Kotroni et al. (2018), IJDD, 65(4), 248–256",
+        "keywords": NEURODIVERSITY_CUES,
+        "isResource": False,
+        "summary": "依 Papangelo 等人（2020）與 Kotroni 等人（2018）實證，自閉症譜系（ASD）兒童常偏好機械、交通工具、結構細節或重複幾何，且使用較少外顯視覺情緒線索，傳統 HFD 不可直接套用，也不應誤判為情緒冷漠或依附疏離。",
+        "promptTip": "「你把這裡的結構／機械細節畫得好仔細！可以跟我介紹一下它是怎麼運作的、你最喜歡哪一個部分嗎？」",
+    },
 )
+
+ZONE_3X3_LABELS: Tuple[str, ...] = ("左上", "正上", "右上", "正左", "中央", "正右", "左下", "正下", "右下")
+
+
+def _zone_label_for_point(x: float, y: float, width: float, height: float) -> str:
+    col = min(2, max(0, int((x / max(1.0, width)) * 3)))
+    row = min(2, max(0, int((y / max(1.0, height)) * 3)))
+    return ZONE_3X3_LABELS[row * 3 + col]
+
+
+def _extract_process_highlights(
+    raw_highlights: Any,
+    stroke_prims: List[Dict[str, Any]],
+    draw_strokes: List[Dict[str, Any]],
+    eraser_strokes: List[Dict[str, Any]],
+    width: float,
+    height: float,
+) -> Dict[str, Any]:
+    """Merge client-recorded drawing process highlights with stroke-derived fallbacks."""
+    rh = raw_highlights if isinstance(raw_highlights, dict) else {}
+
+    def _clean_box(b: Any) -> Optional[Dict[str, float]]:
+        if not isinstance(b, dict):
+            return None
+        w_val = _clamp(_safe_float(b.get("w"), 0.0), 0.0, width * 2.0)
+        h_val = _clamp(_safe_float(b.get("h"), 0.0), 0.0, height * 2.0)
+        if w_val <= 1.0 or h_val <= 1.0:
+            return None
+        return {
+            "x": round(_clamp(_safe_float(b.get("x"), 0.0), 0.0, width), 1),
+            "y": round(_clamp(_safe_float(b.get("y"), 0.0), 0.0, height), 1),
+            "w": round(w_val, 1),
+            "h": round(h_val, 1),
+        }
+
+    # 1. Repeat / dense redraw hotspot
+    repeat_hotspot: Optional[Dict[str, Any]] = None
+    raw_rep = rh.get("repeatHotspot")
+    if isinstance(raw_rep, dict) and str(raw_rep.get("zone") or "").strip():
+        repeat_hotspot = {
+            "zone": str(raw_rep.get("zone")).strip()[:24],
+            "strokeCount": max(1, int(_safe_float(raw_rep.get("strokeCount"), 1))),
+            "bbox": _clean_box(raw_rep.get("bbox")),
+        }
+    elif len(stroke_prims) >= 3:
+        zone_buckets: Dict[str, List[Dict[str, Any]]] = {}
+        for p in stroke_prims:
+            z = _zone_label_for_point(p["cx"], p["cy"], width, height)
+            zone_buckets.setdefault(z, []).append(p)
+        top_zone, top_items = max(zone_buckets.items(), key=lambda kv: len(kv[1]))
+        if len(top_items) >= 3:
+            bx0 = min(i["minX"] for i in top_items)
+            by0 = min(i["minY"] for i in top_items)
+            bx1 = max(i["maxX"] for i in top_items)
+            by1 = max(i["maxY"] for i in top_items)
+            repeat_hotspot = {
+                "zone": top_zone,
+                "strokeCount": len(top_items),
+                "bbox": {
+                    "x": round(bx0, 1),
+                    "y": round(by0, 1),
+                    "w": round(max(24.0, bx1 - bx0), 1),
+                    "h": round(max(24.0, by1 - by0), 1),
+                },
+            }
+
+    # 2. Revision / undo / eraser hotspot
+    revision_hotspot: Optional[Dict[str, Any]] = None
+    raw_rev = rh.get("revisionHotspot")
+    if isinstance(raw_rev, dict) and str(raw_rev.get("zone") or "").strip():
+        revision_hotspot = {
+            "zone": str(raw_rev.get("zone")).strip()[:24],
+            "count": max(1, int(_safe_float(raw_rev.get("count"), 1))),
+            "bbox": _clean_box(raw_rev.get("bbox")),
+        }
+    elif len(eraser_strokes) >= 1:
+        er_zones: Dict[str, List[Tuple[float, float, float, float]]] = {}
+        for es in eraser_strokes:
+            pts = es.get("points") or []
+            if not pts:
+                continue
+            xs = [_safe_float(pt.get("x"), 0.0) for pt in pts if isinstance(pt, dict)]
+            ys = [_safe_float(pt.get("y"), 0.0) for pt in pts if isinstance(pt, dict)]
+            if not xs or not ys:
+                continue
+            ex0, ex1, ey0, ey1 = min(xs), max(xs), min(ys), max(ys)
+            ez = _zone_label_for_point((ex0 + ex1) * 0.5, (ey0 + ey1) * 0.5, width, height)
+            er_zones.setdefault(ez, []).append((ex0, ey0, ex1, ey1))
+        if er_zones:
+            ez_top, ez_boxes = max(er_zones.items(), key=lambda kv: len(kv[1]))
+            bx0 = min(b[0] for b in ez_boxes)
+            by0 = min(b[1] for b in ez_boxes)
+            bx1 = max(b[2] for b in ez_boxes)
+            by1 = max(b[3] for b in ez_boxes)
+            revision_hotspot = {
+                "zone": ez_top,
+                "count": len(ez_boxes),
+                "bbox": {
+                    "x": round(bx0, 1),
+                    "y": round(by0, 1),
+                    "w": round(max(28.0, bx1 - bx0), 1),
+                    "h": round(max(28.0, by1 - by0), 1),
+                },
+            }
+
+    # 3. Drawing sequence (first stroke vs last stroke)
+    sequence: Optional[Dict[str, Any]] = None
+    raw_seq = rh.get("sequence")
+    if isinstance(raw_seq, dict) and str(raw_seq.get("firstZone") or "").strip():
+        sequence = {
+            "firstZone": str(raw_seq.get("firstZone")).strip()[:24],
+            "lastZone": str(raw_seq.get("lastZone") or raw_seq.get("firstZone")).strip()[:24],
+            "totalDrawStrokes": max(1, int(_safe_float(raw_seq.get("totalDrawStrokes"), len(stroke_prims)))),
+        }
+    elif len(stroke_prims) >= 2:
+        first_p, last_p = stroke_prims[0], stroke_prims[-1]
+        sequence = {
+            "firstZone": _zone_label_for_point(first_p["cx"], first_p["cy"], width, height),
+            "lastZone": _zone_label_for_point(last_p["cx"], last_p["cy"], width, height),
+            "totalDrawStrokes": len(stroke_prims),
+        }
+
+    # 4. Tempo / tool-size transition (long pause > 2.5s OR notable tool/size shift)
+    tempo_shift: Optional[Dict[str, Any]] = None
+    raw_ts = rh.get("tempoShift")
+    if isinstance(raw_ts, dict) and str(raw_ts.get("type") or "").strip():
+        tempo_shift = {
+            "type": str(raw_ts.get("type")).strip()[:32],
+            "zone": str(raw_ts.get("zone") or "").strip()[:24],
+            "pauseSec": round(_safe_float(raw_ts.get("pauseSec"), 0.0), 1) if raw_ts.get("pauseSec") is not None else None,
+            "detail": str(raw_ts.get("detail") or "").strip()[:80],
+            "strokeIdx": max(0, int(_safe_float(raw_ts.get("strokeIdx"), 0))),
+        }
+    elif len(draw_strokes) >= 2 and len(stroke_prims) == len(draw_strokes):
+        tool_zh_map = {"marker": "麥克筆", "crayon": "蠟筆", "pencil": "鉛筆", "watercolor": "水彩"}
+        best_pause = 0.0
+        best_pause_info = None
+        best_shift_info = None
+        for idx in range(1, len(draw_strokes)):
+            prev_s, cur_s = draw_strokes[idx - 1], draw_strokes[idx]
+            prev_pts = prev_s.get("points") or []
+            cur_pts = cur_s.get("points") or []
+            if prev_pts and cur_pts:
+                t_prev = _safe_float(prev_pts[-1].get("t"), 0.0)
+                t_cur = _safe_float(cur_pts[0].get("t"), 0.0)
+                gap_ms = t_cur - t_prev
+                if gap_ms > 2500.0 and gap_ms > best_pause and gap_ms < 600_000.0:
+                    best_pause = gap_ms
+                    best_pause_info = {
+                        "type": "long_pause",
+                        "zone": _zone_label_for_point(stroke_prims[idx]["cx"], stroke_prims[idx]["cy"], width, height),
+                        "pauseSec": round(gap_ms / 1000.0, 1),
+                        "detail": "",
+                        "strokeIdx": idx,
+                    }
+            prev_size = _safe_float(prev_s.get("size"), 7.0)
+            cur_size = _safe_float(cur_s.get("size"), 7.0)
+            prev_tool = str(prev_s.get("tool") or "crayon")
+            cur_tool = str(cur_s.get("tool") or "crayon")
+            if best_shift_info is None and (abs(cur_size - prev_size) >= 7.0 or cur_tool != prev_tool):
+                shift_desc = (
+                    "更粗的筆觸" if cur_size - prev_size >= 7.0
+                    else ("更細的筆觸" if prev_size - cur_size >= 7.0 else tool_zh_map.get(cur_tool, cur_tool))
+                )
+                best_shift_info = {
+                    "type": "tool_size_shift",
+                    "zone": _zone_label_for_point(stroke_prims[idx]["cx"], stroke_prims[idx]["cy"], width, height),
+                    "pauseSec": None,
+                    "detail": shift_desc,
+                    "strokeIdx": idx,
+                }
+        tempo_shift = best_pause_info or best_shift_info
+
+    return {
+        "repeatHotspot": repeat_hotspot,
+        "revisionHotspot": revision_hotspot,
+        "sequence": sequence,
+        "tempoShift": tempo_shift,
+    }
 
 
 def _match_image_first_frameworks(texts: List[str]) -> List[Dict[str, Any]]:
@@ -876,14 +1089,15 @@ def _detect_composite_figures(
                     {"calm": 0.36, "joy": 0.18, "loneliness": -0.14},
                 )
             else:
+                sc = omitted_detail_scale
                 add_fig(
                     "house_closed",
-                    "無門窗／緊閉的房屋（HTP）",
-                    "屋樹人 HTP 結構",
-                    "Buck (1948) 屋樹人測驗：省略門窗反映防衛與孤立感",
-                    "辨識出房屋外框但內部缺少門窗（或充滿塗抹），常反映較高的心理防衛、緊繃、害怕外界干擾或覺得難以被人走近。",
+                    "簡易外框房屋（未繪門窗・HTP 結構）",
+                    "屋樹人情境結構",
+                    "Picard et al. (2007); Buck (1948) 房屋結構詞彙（限作開放對話起點）",
+                    "辨識出屋頂與牆體外框（未繪門窗）。依 Buck HTP 結構詞彙僅作為開放式對話切入點，未繪門窗常見於簡化畫法、尚未畫完或偏好外觀輪廓，不直接等同封閉退縮（3–6 歲不扣分）。",
                     house_bbox,
-                    {"anxiety": 0.28, "loneliness": 0.26, "calm": -0.14},
+                    {"anxiety": 0.10 * sc, "loneliness": 0.10 * sc, "calm": -0.04 * sc},
                 )
             break
 
@@ -980,10 +1194,10 @@ def _detect_composite_figures(
                 "cage_bars_figure",
                 "柵欄／受困格線結構",
                 "空間界線與受困指標",
-                "Buck HTP 與藝術治療空間束縛象徵",
-                "辨識出整齊排列的柵欄或格柵框線，常呼應內在感到受限、壓力沉重、需要自我保護或覺得被困住的心情。",
+                "Wegmann & Lusebrink (2000) KFD; Pénzes (2020) 結構界線指標",
+                "辨識出整齊排列的柵欄或格柵框線，常呼應內在感到受限、需要自我保護邊界或想整理秩序的心情（建議結合對話釐清）。",
                 xb,
-                {"anxiety": 0.36, "loneliness": 0.24, "calm": -0.20, "joy": -0.18},
+                {"anxiety": 0.32, "loneliness": 0.22, "calm": -0.18, "joy": -0.16},
             )
 
     # -------------------------------------------------------------------------
@@ -1032,34 +1246,37 @@ def _detect_composite_figures(
             p_center_dist = math.hypot(pcx - 0.5, pcy - 0.5) / 0.7071
 
             if p_area_ratio < 0.11 and p_center_dist > 0.30:
+                sc = max(0.55, omitted_detail_scale)
                 add_fig(
                     "person_tiny_isolated",
                     "角落中的微小人物",
-                    "Koppitz 人物畫指標",
-                    "Koppitz (1968) 微小人物指標（Tiny Figure）",
-                    "辨識出縮在畫紙角落的微小人物，周圍伴隨大片留白，在兒童人物畫中常反映孤單感、害羞退縮或希望被看見。",
+                    "人物尺寸空間指標",
+                    "Burkitt (2003b); Cao et al. (2023) 孤單縮聚尺寸實證",
+                    "辨識出縮在畫紙角落的微小人物，周圍伴隨大片留白，在跨文化與華語實證中常對應孤單、害羞退縮或渴望被看見（3–6 歲已自動降權）。",
                     (px0, py0, px1, py1),
-                    {"loneliness": 0.46, "sadness": 0.18, "joy": -0.18},
+                    {"loneliness": 0.46 * sc, "sadness": 0.18 * sc, "joy": -0.18 * sc},
                 )
             elif "face_sad" not in found_codes and "face_sad_crying" not in found_codes and "face_angry" not in found_codes:
                 # Check if head has zero internal strokes (blank omitted face on a larger figure)
                 head_inner = [q for q in prims if q["idx"] != head["idx"] and is_inside(q, head, margin=0.05)]
                 if len(head_inner) == 0 and head["diag"] >= 38.0:
+                    sc = omitted_detail_scale
                     add_fig(
                         "person_blank_face",
                         "五官留白的人物輪廓",
                         "Koppitz 人物畫指標",
-                        "Koppitz (1968) 五官省略指標",
-                        "人物頭部保留空白未畫五官，可能呈現逃避對視、不知如何表達心情、防備心較高或單純勾勒遠景輪廓。",
+                        "Koppitz (1968); Skybo et al. (2007); Papangelo et al. (2020) 發展常模檢核",
+                        "人物頭部保留空白未畫五官，可能源自學齡前簡化畫法、寫實前期怕畫不像、神經發展認知風格或單純勾勒遠景輪廓（3–6 歲完全不扣分）。",
                         (px0, py0, px1, py1),
-                        {"loneliness": 0.22, "anxiety": 0.16},
+                        {"loneliness": 0.22 * sc, "anxiety": 0.16 * sc},
+                        channel="literal",
                     )
                 else:
                     add_fig(
                         "person_figure",
                         "人物輪廓",
-                        "Koppitz 人物畫結構",
-                        "Koppitz HFD 與 Buck HTP 人物投射",
+                        "人物畫結構",
+                        "Skybo et al. (2007); Koppitz HFD 人物結構",
                         "辨識出頭身完整的人物圖形，反映創作者以自我或重要他人作為畫面的情感聚焦中心。",
                         (px0, py0, px1, py1),
                         {"calm": 0.10, "joy": 0.08},
@@ -1070,7 +1287,7 @@ def _detect_composite_figures(
 
 
 def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Run v3.0 Empirical Shape-First + Software-Interface stroke psychology analysis."""
+    """Run v3.5 Empirical Image-First + 3C/Neurodiversity Debiased psychology analysis."""
     canvas_info = payload.get("canvas") or {}
     width = _clamp(_safe_float(canvas_info.get("width"), 800.0), 50.0, 4096.0)
     height = _clamp(_safe_float(canvas_info.get("height"), 550.0), 50.0, 4096.0)
@@ -1098,6 +1315,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     user_context = payload.get("userContext") or {}
     title_or_note = str(user_context.get("titleOrNote") or "").strip()[:300]
     raw_age_group = str(user_context.get("ageGroup") or "unspecified").strip()
+    if raw_age_group == "11+":
+        raw_age_group = "11-13"
     age_group = raw_age_group if raw_age_group in AGE_GROUP_NORMS else "unspecified"
     age_norm = AGE_GROUP_NORMS[age_group]
     omitted_detail_scale = float(age_norm["omittedDetailScale"])
@@ -1612,12 +1831,22 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         motif_codes.add("heavy_revision")
         detected_motifs.append({
             "code": "heavy_revision",
-            "label": "反覆擦除與修正歷程",
-            "theory": "Koppitz (1968) 與 Buck HTP 擦除焦慮指標",
-            "meaning": "多次撤銷或塗改可能代表對自我表現的猶豫、要求完美、緊張，或在思考該如何表達內心想法。",
+            "label": "多次復原與擦除修正歷程",
+            "theory": "Mohd Shukri (2014); Price et al. (2015); Koppitz (1968) 數位歷程降權觀察",
+            "meaning": "平板／觸控板上的復原與擦除常見於手指誤觸、多段調整或力求完美，系統已大幅降權其情緒扣分（約降權 56%），主要提供輔導員回放檢視與開放對話參考。",
         })
 
-    # Counselor-Assisted Image Clarification (v3.3/v3.4 post-analysis human-in-the-loop verification)
+    # Dynamic Process Highlights for Replay & Open-Ended Dialogue (v3.5)
+    process_highlights = _extract_process_highlights(
+        payload.get("processHighlights"),
+        stroke_prims,
+        draw_strokes,
+        eraser_strokes,
+        width,
+        height,
+    )
+
+    # Counselor-Assisted Image Clarification (v3.3/v3.4/v3.5 post-analysis human-in-the-loop verification)
     matched_image_frameworks = _match_image_first_frameworks([
         *counselor_verified_objects,
         counselor_follow_up_notes,
@@ -1651,6 +1880,39 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not expressive_channels or (sharpness_index > 0.34 or overlap_index > 0.42 or active_buckets >= 2):
         expressive_channels.append("抽象形式（Abstract）")
 
+    # 3C Pop-Culture Detection (Ivashkevich, 2009) & Neurodiversity Guardrail Detection (Papangelo 2020; Kotroni 2018)
+    all_context_blob = " ".join([title_or_note, *counselor_verified_objects, counselor_follow_up_notes]).lower()
+    pop_culture_hits = [kw for kw in POP_CULTURE_CUES if kw in all_context_blob]
+    if "monster_storm" in selected_motifs and "怪獸／風暴標籤" not in pop_culture_hits:
+        pop_culture_hits.append("怪獸／風暴標籤")
+    has_pop_culture_cues = bool(pop_culture_hits)
+    pop_culture_attenuation = 0.55 if (age_group == "7-10" and has_pop_culture_cues) else 1.0
+
+    neuro_text_hits = [kw for kw in NEURODIVERSITY_CUES if kw in all_context_blob]
+    straight_count = sum(1 for p in stroke_prims if p["isStraight"])
+    has_explicit_emotion_fig = any(
+        f["code"] in ("face_happy", "face_sad", "face_sad_crying", "face_angry", "heart_figure", "sun_figure", "rain_cloud_figure")
+        for f in recognized_figures
+    )
+    is_high_geometric_repeat = (
+        (closed_loops >= 4 or straight_count >= 8)
+        and sharpness_index < 0.32
+        and not has_explicit_emotion_fig
+    )
+    is_sparse_emotion_structured = (
+        len(draw_strokes) >= 6
+        and not has_explicit_emotion_fig
+        and (bool(neuro_text_hits) or straight_count >= 6 or closed_loops >= 3 or "person_blank_face" in fig_codes)
+    )
+    neurodiversity_triggered = bool(neuro_text_hits) or is_high_geometric_repeat or is_sparse_emotion_structured
+    neurodiversity_note: Optional[str] = None
+    if neurodiversity_triggered:
+        neurodiversity_note = (
+            "神經多樣性護欄（Papangelo et al., 2020; Kotroni et al., 2018）："
+            "畫面呈現高度重複幾何、專注物件／機械細節或外顯情緒符號偏少時，請優先考量神經發展與認知風格差異"
+            "（例如自閉症譜系 ASD 兒童在繪畫中常使用較少視覺情緒線索，且傳統 HFD 人物畫指標不可直接套用），切勿直接推論為情緒冷漠或依附疏離。"
+        )
+
     # --- 5. Spontaneous Verbalization & Counselor Follow-Up Context (Gross & Hayne, 1998) ---
     verbal_scores = {k: 0.0 for k in EMOTION_KEYS}
     matched_words: Dict[str, List[str]] = {k: [] for k in EMOTION_KEYS}
@@ -1660,7 +1922,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             hits = [w for w in words if w in lower_note]
             if hits:
                 matched_words[emo] = hits
-                verbal_scores[emo] = _clamp(0.18 + 0.08 * (len(hits) - 1), 0.0, 0.36)
+                base_v = _clamp(0.18 + 0.08 * (len(hits) - 1), 0.0, 0.36)
+                if emo in ("anger", "anxiety") and pop_culture_attenuation < 1.0:
+                    base_v *= pop_culture_attenuation
+                verbal_scores[emo] = base_v
 
     counselor_scores = {k: 0.0 for k in EMOTION_KEYS}
     counselor_matched_cues: Dict[str, List[str]] = {k: [] for k in EMOTION_KEYS}
@@ -1671,9 +1936,12 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             c_hits = [w for w in combined_lex if w in c_blob]
             if c_hits:
                 counselor_matched_cues[emo] = c_hits[:6]
-                counselor_scores[emo] = _clamp(0.18 + 0.06 * (len(c_hits) - 1), 0.0, 0.34)
+                base_c = _clamp(0.18 + 0.06 * (len(c_hits) - 1), 0.0, 0.34)
+                if emo in ("anger", "anxiety") and pop_culture_attenuation < 1.0:
+                    base_c *= pop_culture_attenuation
+                counselor_scores[emo] = base_c
 
-    # --- 6. Shape-First + Empirical Calibrated Six-Dimension Psychological Inference ---
+    # --- 6. Shape-First + Empirical Calibrated Six-Dimension Psychological Inference (v3.5) ---
     scores: Dict[str, float] = {k: 0.10 + fig_boosts.get(k, 0.0) for k in EMOTION_KEYS}
 
     mono_dark_pen = 0.0 if is_monochrome_sketch else 1.0
@@ -1691,15 +1959,20 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         else 0.0
     )
 
-    # (A) ANGER & FRUSTRATION
+    # Alschuler & Hattwick (1947) v3.5 device split:
+    # Disable pressure-to-emotion weight on mouse/trackpad & tablet touch; retain low weight only on hardware stylus with real pressure variance.
+    pen_pressure_active = sensing_mode == "pen_hardware" and has_real_pressure_variance
+    force_emotion_weight = 0.07 if pen_pressure_active else 0.0
+
+    # (A) ANGER & FRUSTRATION (v3.5: overlap attenuated -55%, force weight disabled on mouse/touch)
     scores["anger"] += (
         sharpness_index * 0.34
         + velocity_index * 0.20
-        + effective_force_index * 0.15
-        + overlap_index * (0.20 if (sharpness_index > 0.3 or intense_red > 0.15) else 0.06)
+        + effective_force_index * force_emotion_weight
+        + overlap_index * (0.09 if (sharpness_index > 0.3 or intense_red > 0.15) else 0.03)
         + edge_touch_ratio * 0.15
         + large_tense_threat
-        + (0.22 if "dense_scribble_knot" in motif_codes and (velocity_index > 0.48 or intense_red > 0.15) else 0.0)
+        + (0.22 if "dense_scribble_knot" in motif_codes and ((velocity_index > 0.56 and bbox_area_ratio >= 0.25) or intense_red > 0.15) else 0.0)
         + (0.14 if radiating_hub_tense else 0.0)
         + color_scale * (
             intense_red * 0.50
@@ -1709,7 +1982,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         - smoothness_index * 0.12
     )
 
-    # (B) SADNESS & MELANCHOLY
+    # (B) SADNESS & MELANCHOLY (v3.5: Pulver vertical bottom_weight psychological inference zeroed = 0.0)
     bottom_weight = grid_3x3[6] + grid_3x3[7] + grid_3x3[8]
     downward_ratio = downward_strokes / max(1, len(draw_strokes))
     low_speed = 1.0 - velocity_index
@@ -1717,7 +1990,6 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     scores["sadness"] += (
         downward_ratio * 0.34
         + low_speed * 0.15
-        + _clamp((bottom_weight - 0.33) * 1.4) * 0.18
         + (0.22 if "downward_streaks" in motif_codes else 0.0)
         + (0.12 if "tiny_corner_cluster" in motif_codes else 0.0)
         + color_scale * (
@@ -1729,18 +2001,18 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         )
     )
 
-    # (C) ANXIETY & TENSION
+    # (C) ANXIETY & TENSION (v3.5: dynamic digital process weights attenuated by ~55%-62% per Price 2015 & Mohd Shukri 2014)
     scores["anxiety"] += (
-        revision_index * 0.36
-        + fragmentation_index * 0.26
-        + overlap_index * 0.26
+        revision_index * 0.15
+        + fragmentation_index * 0.10
+        + overlap_index * 0.11
         + sharpness_index * 0.15
-        + jitter_index * 0.12
-        + (0.08 if in_air_pause_ratio > 0.65 and len(draw_strokes) >= 4 else 0.0)
-        + (0.18 if "heavy_revision" in motif_codes else 0.0)
-        + (0.14 if "enclosed_shelter_or_barrier" in motif_codes and (overlap_index > 0.30 or revision_events >= 2) else 0.0)
+        + jitter_index * 0.05
+        + (0.03 if in_air_pause_ratio > 0.65 and len(draw_strokes) >= 4 else 0.0)
+        + (0.08 if "heavy_revision" in motif_codes else 0.0)
+        + (0.08 if "enclosed_shelter_or_barrier" in motif_codes and (overlap_index > 0.30 or revision_events >= 2) else 0.0)
         + (0.14 if "dense_scribble_knot" in motif_codes and intense_red < 0.25 else 0.0)
-        + _clamp(pause_count / 5.0) * 0.10
+        + _clamp(pause_count / 5.0) * 0.04
         + color_scale * ((dark_muted + neutral_grey) * 0.24 * mono_dark_pen - warm_bright * 0.10)
         - smoothness_index * 0.10
     )
@@ -1758,7 +2030,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         - (0.14 if bbox_area_ratio > 0.55 else 0.0)
     )
 
-    # (E) JOY & VITALITY
+    # (E) JOY & VITALITY (v3.5: overlap penalty attenuated -57% so watercolor layering/filling does not depress joy)
     generous_balanced = 1.0 - abs(bbox_area_ratio - 0.50) / 0.50
     color_richness = _clamp((active_buckets - 1) / 3.0)
     upward_ratio = upward_strokes / max(1, len(draw_strokes))
@@ -1778,13 +2050,13 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             - dark_heavy_palette * 0.28 * mono_dark_pen
         )
         - sharpness_index * 0.18
-        - overlap_index * 0.14
+        - overlap_index * 0.06
     )
 
     # (F) CALM & GROUNDEDNESS (Cao 2023: Chinese '平和' is positive-valence & expansive)
     centeredness = 1.0 - center_dist
     steady_tempo = 1.0 - abs(velocity_index - 0.34) / 0.66
-    low_tension = (1.0 - sharpness_index) * (1.0 - overlap_index) * (1.0 - revision_index)
+    low_tension = (1.0 - sharpness_index) * (1.0 - overlap_index * 0.5) * (1.0 - revision_index * 0.5)
     serene_blue = cool_blue * (
         0.46 if (is_canonical_nature_palette or (mean_lum >= 0.44 and "downward_streaks" not in motif_codes and "rain_cloud_figure" not in motif_codes)) else 0.08
     )
@@ -1794,7 +2066,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         + large_open_positive * 0.65
         + _clamp(steady_tempo) * 0.14
         + low_tension * 0.20
-        + (1.0 - fragmentation_index) * 0.06
+        + (1.0 - fragmentation_index) * 0.03
         + color_scale * (
             fresh_green * 0.56
             + serene_blue
@@ -1812,17 +2084,22 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     visual_scores_snapshot = {k: max(0.02, v) for k, v in scores.items()}
     for tag in selected_motifs:
         for emo, w in USER_MOTIF_WEIGHTS.get(tag, {}).items():
-            scores[emo] += w
+            adj_w = w * pop_culture_attenuation if (tag == "monster_storm" and emo in ("anger", "anxiety")) else w
+            scores[emo] += adj_w
     for emo, v_score in verbal_scores.items():
         scores[emo] += v_score
     for emo, c_score in counselor_scores.items():
         scores[emo] += c_score
 
     # --- 6b. Multi-Evidence Convergence Guardrail (Joiner 1996; Catte & Cox 1999; Thomas & Jolley 1998) ---
+    # Do not count zero-weighted omission indicators (e.g. ages 3-6) as converging distress evidence.
+    active_recognized_figures = [
+        f for f in recognized_figures if any(abs(v) >= 0.01 for v in (f.get("impact") or {}).values())
+    ]
     converging_channels = 0
-    if recognized_figures or counselor_verified_objects:
-        converging_channels += 2 if (len(recognized_figures) + len(counselor_verified_objects)) >= 2 else 1
-    if sharpness_index >= 0.34 or overlap_index >= 0.42 or smoothness_index >= 0.44 or revision_events >= 3:
+    if active_recognized_figures or counselor_verified_objects:
+        converging_channels += 2 if (len(active_recognized_figures) + len(counselor_verified_objects)) >= 2 else 1
+    if sharpness_index >= 0.34 or overlap_index >= 0.48 or smoothness_index >= 0.44:
         converging_channels += 1
     if bbox_area_ratio < 0.18 or edge_touch_ratio >= 0.30 or centeredness >= 0.72:
         converging_channels += 1
@@ -1831,7 +2108,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not is_monochrome_sketch and not is_canonical_nature_palette and active_buckets >= 2:
         converging_channels += 1
 
-    if converging_channels >= 4 or ((recognized_figures or counselor_verified_objects) and converging_channels >= 3):
+    if converging_channels >= 4 or ((active_recognized_figures or counselor_verified_objects) and converging_channels >= 3):
         conv_level = "high"
         conv_label = "高收斂（多維證據一致）"
         alt_note = "本次圖形結構、筆觸動力與構圖呈現多維度一致線索；仍建議傾聽創作者自己的故事作為最終理解（Thomas & Jolley, 1998）。"
@@ -1839,13 +2116,32 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     elif converging_channels >= 2 or len(draw_strokes) >= 5:
         conv_level = "moderate"
         conv_label = "中度收斂（探索性參考）"
-        alt_note = "部分特徵具情緒線索，但也可能與當下畫技習慣、靈感嘗試或工具操作有關，適合當作開啟對話的起點（Thomas & Jolley, 1998）。"
+        alt_note = "部分特徵具情緒線索，但也可能與當下畫技習慣、平板多段短筆畫或工具探索有關，適合當作開啟對話的起點（Thomas & Jolley, 1998; Mohd Shukri, 2014）。"
         max_score_cap = 88
     else:
         conv_level = "low"
         conv_label = "低線索（高度多元可能）"
         alt_note = "目前筆跡較簡短或缺少多維收斂證據。依 Joiner (1996) 與 Catte & Cox (1999) 實證，單一線條或尺寸不可直接推斷情緒困擾，系統已自動調降極端分數。"
         max_score_cap = 66
+
+    # v3.5 Three-Stage Age (3-13) & 3C / Neurodiversity Alternative Explanations
+    if age_group == "3-6":
+        alt_note += " 針對 3–6 歲學齡前：已完全停用 Koppitz 部位省略扣分（×0.00），並請優先排除平板手指誤觸與多段短筆畫操作特性（Price et al., 2015; Mohd Shukri, 2014）。"
+    elif age_group == "7-10" and has_pop_culture_cues:
+        alt_note += f" 偵測到 7–10 歲常見動漫／遊戲符號（{'、'.join(pop_culture_hits[:3])}），已依 Ivashkevich (2009) 自動降權負向張力，建議先以開放問題確認是否源自影片或遊戲角色。"
+    elif age_group == "11-13":
+        has_preadolescent_style = (
+            bool(fig_codes & {"person_blank_face", "face_no_mouth", "person_tiny_isolated", "house_closed"})
+            or len(draw_strokes) <= 8
+            or revision_events >= 3
+            or is_monochrome_sketch
+            or dark_muted >= 0.35
+            or has_pop_culture_cues
+        )
+        if has_preadolescent_style:
+            alt_note += " 針對 11–13 歲寫實前期：極簡火柴人、細節省略、頻繁復原或暗黑酷炫畫風，常源於「怕畫不像的畫技顧慮」或「青少年前期同儕審美風格」（Lowenfeld, 1987; Ivashkevich, 2009），不應直接解讀為負面困擾。"
+    if neurodiversity_note:
+        alt_note += " 另已觸發神經多樣性護欄（Papangelo et al., 2020; Kotroni et al., 2018），請勿將偏重幾何／物件細節或較少表情線索誤判為冷漠疏離。"
 
     clamped = {k: max(0.03, v) for k, v in scores.items()}
     max_val = max(clamped.values())
@@ -1881,17 +2177,17 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     if overlap_index >= 0.44 or revision_index >= 0.42 or jitter_index >= 0.42:
         structure_balance = {
             "code": "tight_controlled",
-            "label": "高張力重複／緊繃結構",
-            "summary": "依 Pénzes 等人（2020）形式元素研究，畫面重複塗抹、修正或線條震顫偏高，反映內在緊繃與高度警覺。",
+            "label": "高重複疊畫／細修結構",
+            "summary": "依 Pénzes 等人（2020）與 Price 等人（2015），畫面疊畫或反覆修改比例偏高；在數位畫布上可能源於仔細填色、調整位置或內在思量，系統已大幅降權其焦慮分數。",
         }
-        strengths_note = "即使當下承載緊繃或壓力，創作者仍透過反覆描繪與界線建構嘗試整理內在感受，顯示具自我覺察與尋求秩序的內在資源（Pénzes et al., 2020）。"
-    elif sharpness_index >= 0.34 and (velocity_index >= 0.50 or effective_force_index >= 0.62):
+        strengths_note = "創作者透過反覆描繪、調整與界線整理用心完成畫面，展現高度專注、自我覺察與尋求秩序的內在資源（Pénzes et al., 2020）。"
+    elif sharpness_index >= 0.34 and (velocity_index >= 0.50 or (pen_pressure_active and effective_force_index >= 0.62)):
         structure_balance = {
             "code": "expansive_dynamic",
             "label": "高動態外放結構",
             "summary": "線條動態感與落筆能量強烈，展現充沛的情緒外化與突破框限張力（Pénzes et al., 2020）。",
         }
-        strengths_note = "畫面呈現鮮明的表達勇氣與主動外化能量，能把內在挫折直接轉化為視覺張力，是健康的情緒宣洩與溝通起點（Pénzes et al., 2020）。"
+        strengths_note = "畫面呈現鮮明的表達勇氣與主動外化能量，能把內在想法直接轉化為視覺張力，是健康的表達與溝通起點（Pénzes et al., 2020）。"
     elif bbox_area_ratio < 0.18 and len(draw_strokes) <= 8:
         structure_balance = {
             "code": "sparse_tentative",
@@ -1968,6 +2264,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     dom_tool = max(tool_counts, key=lambda k: tool_counts[k]) if tool_counts else "crayon"
     tool_summary = f"主畫具：{tool_zh.get(dom_tool, dom_tool)}（平均粗細 {round(mean_raw_size, 1)}px）"
     interface_signals: List[str] = [sensing_mode_label, tool_summary]
+    if pen_pressure_active:
+        interface_signals.append("硬體壓感低權重啟用")
+    else:
+        interface_signals.append("數位筆壓情緒權重歸零")
     if color_change_count > 0:
         interface_signals.append(f"主動換色 {color_change_count} 次")
     elif is_monochrome_sketch:
@@ -1980,35 +2280,40 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         interface_signals.append(f"提筆停頓佔比 {round(in_air_pause_ratio * 100)}%")
 
     if sharpness_index >= 0.34 and velocity_index >= 0.50:
-        stroke_insight = f"透過「{sensing_mode_label}」觀察，筆觸呈現明顯尖銳折角、較快劃速與高張力（等效筆力 {round(effective_force_index * 100)}%），呈現強烈情緒喚起或宣洩動力。"
+        stroke_insight = (
+            f"透過「{sensing_mode_label}」觀察，筆觸呈現明顯尖銳折角與較快劃速"
+            + (f"（真壓感輔助筆力 {round(effective_force_index * 100)}%）" if pen_pressure_active else "（滑鼠／觸控已停用筆壓情緒推論）")
+            + "，展現較強動態能量。"
+        )
     elif overlap_index >= 0.44:
-        stroke_insight = f"多處出現反覆重疊與密集塗抹痕跡（結構分類：{structure_balance['label']}），對應 Koppitz（1968）與 Pénzes 等人（2020）高重複緊繃特徵。"
+        stroke_insight = f"多處出現重複疊畫或填色痕跡（結構分類：{structure_balance['label']}）。依 Price 等人（2015），平板／數位畫布上的疊色與重塗權重已調降約 58%，建議搭配輔導員縮時回放觀察底層圖案。"
     elif jitter_index >= 0.40 or in_air_pause_ratio >= 0.65:
-        stroke_insight = f"軟體介面偵測到較高的線條微震顫（{round(jitter_index * 100)}%）或提筆停頓比例（{round(in_air_pause_ratio * 100)}%），顯示落筆過程帶有猶豫、謹慎思量或內在緊繃。"
+        stroke_insight = f"軟體介面記錄到微震顫（{round(jitter_index * 100)}%）或停筆思考時間（{round(in_air_pause_ratio * 100)}%）；因數位操作常含自然停頓，已調降約 60% 情緒加權並優先轉化為分頁 2 對話切入點。"
     elif fragmentation_index >= 0.45:
-        stroke_insight = "線條偏短且較多斷續與停頓，顯示落筆時帶著小心翼翼、試探或能量偏低的心境。"
+        stroke_insight = "畫面採用較多短段筆畫。依 Mohd Shukri（2014），兒童在平板／觸控板上常主動採「多段短筆畫」降低畫錯風險，系統已大幅降權（-62%）避免誤判焦慮或退縮。"
     elif smoothness_index >= 0.42:
-        stroke_insight = f"整體線條圓潤連貫、轉折柔和（{tool_summary}），依 Pénzes 等人（2020）顯示情緒流動順暢、內在防禦較低。"
+        stroke_insight = f"整體線條圓潤連貫、轉折柔和（{tool_summary}），依 Pénzes 等人（2020）顯示運筆流動順暢、結構協調。"
     else:
         stroke_insight = f"筆觸兼具直線結構與柔和曲線（{tool_summary}），節奏平穩可控，反映創作者正以有條理的方式組織畫面。"
 
-    horiz_pos = "偏左（內向回顧／尋求依附）" if cx < 0.38 else ("偏右（面向外界／探索環境）" if cx > 0.62 else "水平居中（平衡穩定）")
-    vert_pos = "偏上（想像思緒／渴望抽離）" if cy < 0.38 else ("偏下（尋求踏實／情緒沉重）" if cy > 0.62 else "垂直居中（立足當下）")
+    # Pulver (1931/1953) graphology psychological symbolism REMOVED (weight = 0); pure objective geometry ONLY
+    horiz_pos = "水平偏左" if cx < 0.38 else ("水平偏右" if cx > 0.62 else "水平居中")
+    vert_pos = "垂直偏上" if cy < 0.38 else ("垂直偏下" if cy > 0.62 else "垂直居中")
     if bbox_area_ratio < 0.18:
-        spatial_insight = f"作品主體僅佔畫布約 {round(bbox_area_ratio * 100)}% 且重心{horiz_pos}、{vert_pos}。依 Burkitt (2003b) 與 Cao 等人（2023）實證，偏小縮聚構圖常與孤單、害羞或退縮相關。"
+        spatial_insight = f"作品主體僅佔畫布約 {round(bbox_area_ratio * 100)}% 且幾何重心位於{horiz_pos}、{vert_pos}。依 Burkitt (2003b) 與 Cao 等人（2023）實證，偏小縮聚構圖常與孤單、害羞或退縮相關（不含 Pulver 方位心理推論）。"
     elif edge_touch_ratio >= 0.30 or bbox_area_ratio > 0.78:
-        spatial_insight = f"畫面大幅延展至畫布邊緣（覆蓋約 {round(bbox_area_ratio * 100)}%）。依 Burkitt (2004) 與 Cao 等人（2023）實驗，大畫幅可能是正向開展，也可能是高威脅／高張力外放，需結合線條與表情判讀。"
+        spatial_insight = f"畫面大幅延展至畫布邊緣（覆蓋約 {round(bbox_area_ratio * 100)}%，重心位於{horiz_pos}、{vert_pos}）。依 Burkitt (2004) 與 Cao 等人（2023）實驗，大畫幅可能是正向開展，也可能是高張力外放，需結合表情與對話判讀。"
     else:
-        spatial_insight = f"畫面佔比約 {round(bbox_area_ratio * 100)}%，空間重心位於{horiz_pos}、{vert_pos}，留白與主體比例協調舒展（Buck HTP; Cao et al., 2023）。"
+        spatial_insight = f"畫面佔比約 {round(bbox_area_ratio * 100)}%，客觀幾何重心位於{horiz_pos}、{vert_pos}，留白與主體比例協調舒展（Burkitt et al., 2004; Cao et al., 2023）。"
 
     ch_str = " ＋ ".join(expressive_channels)
     if recognized_figures:
         fig_names = "、".join(f["label"] for f in recognized_figures[:3])
-        process_insight = f"系統透過多筆空間拓樸辨識出「{fig_names}」（表達通道：{ch_str}），並依國際期刊實證原則以完整圖形與情境內容為優先判準。"
+        process_insight = f"系統透過多筆空間拓樸辨識出「{fig_names}」（表達通道：{ch_str}），並依 29 篇國際期刊實證原則以完整圖形與情境內容為優先判準。"
     elif revision_events >= 3:
-        process_insight = f"繪畫過程中進行了 {revision_events} 次復原或擦除動作（表達通道：{ch_str}），反映對自我表現的猶豫、高標準或緊張感。"
+        process_insight = f"繪畫過程中進行了 {revision_events} 次復原或擦除動作（表達通道：{ch_str}），已依數位媒材實證降權情緒分數，建議於下方輔導員區使用「作畫歷程縮時回放」觀察修改熱區。"
     else:
-        process_insight = f"全作共 {len(draw_strokes)} 筆完成（表達通道：{ch_str}），未偵測到固定具象圖式，主要綜合軟體介面筆觸動力與空間比例進行探索推估。"
+        process_insight = f"全作共 {len(draw_strokes)} 筆完成（表達通道：{ch_str}），未偵測到固定具象圖式，系統以低權重動力特徵與空間比例作探索參考，建議透過分頁 2 開放式對話了解孩子想法。"
 
     prof_primary = EMOTION_PROFILES[primary_key]
     voice_idx = (len(draw_strokes) + len(detected_motifs)) % len(prof_primary["inner_voices"])
@@ -2036,7 +2341,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             for k, v in sorted(impact_map.items(), key=lambda kv: abs(kv[1]), reverse=True)
             if abs(v) >= 0.02
         ]
-        return "、".join(parts) if parts else "微幅中性影響"
+        return "、".join(parts) if parts else "僅作對話參考（0 扣分）"
 
     # Branch 1: Figures & Content (Primary priority)
     fig_children: List[Dict[str, str]] = []
@@ -2087,30 +2392,28 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "summary": "畫面為自由抽象線條或非固定幾何物體，未套用固定圖形加權。",
             "detail": (
                 "方案 A 採幾何拓樸辨識（臉部表情、屋樹門窗、太陽、雨雲、愛心、打叉、柵欄、人物）。"
-                "當未命中固定圖式時，系統不會硬猜物件，而是自動將權重轉移至軟體介面筆觸動力、空間構圖比例與口語脈絡；"
-                "輔導人員亦可直接於下方「輔導人員 AI 諮詢與圖像補充區」輸入實際辨識內容並重新解析，或切換方案 B（Gemini 視覺）。"
+                "當未命中固定圖式時，系統不會硬猜物件，而是自動將權重轉移至低權重筆觸動力、空間比例與口語脈絡；"
+                "輔導人員亦可直接於下方「輔導人員 AI 諮詢與圖像補充區」觀看作畫縮時回放、輸入實際辨識內容並重新解析，或切換方案 B（Gemini 視覺）。"
             ),
             "citation": "Jolley et al. (2004); Picard et al. (2007)",
         })
 
-    # Branch 2: Software Interface Strokes & Kinematics
+    # Branch 2: Software Interface Strokes & Kinematics (v3.5 device split & digital debiasing)
     stroke_children: List[Dict[str, str]] = [
         {
             "id": "stroke_sensing",
-            "title": f"裝置感測與畫具設定：{sensing_mode_label}",
-            "tag": f"等效筆力 {round(effective_force_index * 100)}%",
-            "summary": f"{tool_summary}；系統依輸入裝置自動切換壓力計算公式。",
+            "title": f"裝置感測與筆壓分流：{sensing_mode_label}",
+            "tag": f"真壓低權重 ×0.07" if pen_pressure_active else "筆壓情緒權重歸零",
+            "summary": f"{tool_summary}；Alschuler & Hattwick (1947) 筆壓推論僅限真壓電繪板啟用。",
             "detail": (
                 f"目前感測模式為「{sensing_mode_label}」。"
                 + (
-                    "因偵測到一般滑鼠／觸控板（瀏覽器預設壓力恆定 0.5），系統已自動捨棄無效假筆壓，"
-                    f"改由畫具硬度（均值 {round(mean_tool_hardness * 100)}%）、粗細（{round(mean_raw_size, 1)}px）、"
-                    f"劃速（{round(velocity_index * 100)}%）與重疊密度（{round(overlap_index * 100)}%）合成等效筆觸力道。"
-                    if sensing_mode == "mouse_interface"
-                    else f"系統直接納入感測裝置之硬體訊號（壓力／傾斜角或接觸寬度）結合畫具硬度（{round(mean_tool_hardness * 100)}%）推估筆觸力道。"
+                    f"偵測到硬體感壓筆且具真實壓感變化，已保留低權重動作張力參考（等效筆力 {round(effective_force_index * 100)}%，情緒權重 ×0.07）。"
+                    if pen_pressure_active
+                    else f"在滑鼠／筆電觸控板或平板手指觸控模式下，已完全停用筆壓輕重的情緒推論（權重 0.00；遙測參考值 {round(effective_force_index * 100)}%），避免把無壓感硬體特性誤判為情緒力道。"
                 )
             ),
-            "citation": "Pointer Events Telemetry × Software Brush Hardness Model",
+            "citation": "Price et al. (2015); Mohd Shukri (2014); Alschuler & Hattwick (1947 裝置限縮)",
         },
         {
             "id": "stroke_geometry",
@@ -2118,27 +2421,26 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "tag": structure_balance["label"],
             "summary": stroke_insight,
             "detail": (
-                f"透過 Ramer-Douglas-Peucker 折角偵測與網格覆蓋分析：尖銳轉折比例 {round(sharpness_index * 100)}%（提升憤怒／緊繃權重）、"
-                f"圓潤弧度比例 {round(smoothness_index * 100)}%（提升平靜／愉悅權重）、"
-                f"劃動速度 {round(velocity_index * 100)}%、反覆重疊塗抹 {round(overlap_index * 100)}%。"
-                f"綜合判定為「{structure_balance['label']}」：{structure_balance['summary']}"
+                f"透過 Ramer-Douglas-Peucker 折角偵測與網格覆蓋分析：尖銳轉折比例 {round(sharpness_index * 100)}%、"
+                f"圓潤弧度比例 {round(smoothness_index * 100)}%、劃動速度 {round(velocity_index * 100)}%、"
+                f"重疊塗抹 {round(overlap_index * 100)}%（v3.5 已調降重疊與斷續短線權重 55%–62%，防止將平板多段短筆畫與疊色填塗誤判為焦慮）。"
             ),
-            "citation": "Pénzes et al. (2020); Koppitz (1968); Alschuler & Hattwick (1947)",
+            "citation": "Pénzes et al. (2020); Price et al. (2015); Mohd Shukri (2014)",
         },
         {
             "id": "stroke_hesitation",
-            "title": f"猶豫與修正軌跡：微震顫 {round(jitter_index * 100)}% ／ 提筆停頓 {round(in_air_pause_ratio * 100)}% ／ 修改 {revision_events} 次",
-            "tag": "高猶豫警覺" if (revision_events >= 3 or jitter_index >= 0.40 or in_air_pause_ratio >= 0.65) else "節奏平穩",
+            "title": f"作畫歷程軌跡（轉作回放與對話錨點）：微震顫 {round(jitter_index * 100)}% ／ 停頓 {round(in_air_pause_ratio * 100)}% ／ 修改 {revision_events} 次",
+            "tag": "已降權 58%・供回放與對話用",
             "summary": f"全作共 {len(draw_strokes)} 筆、歷時 {round(total_duration_ms / 1000.0, 1)} 秒（復原 {undo_count} 次、橡皮擦 {eraser_count} 次）。",
             "detail": (
-                f"微震顫度（{round(jitter_index * 100)}%）由原始高頻座標與平滑路徑長度差計算，用於偵測手部抖動或緊繃；"
-                f"提筆停頓佔比（{round(in_air_pause_ratio * 100)}%）衡量停筆思考時間；反覆擦除與復原（{revision_events} 次）依 Koppitz 指標對應自我要求或焦慮。"
+                f"微震顫（{round(jitter_index * 100)}%）、提筆停頓（{round(in_air_pause_ratio * 100)}%）與復原／擦除（{revision_events} 次）在平板與觸控板常源於手指誤觸或微調位置，"
+                "v3.5 已將其情緒加權全面調降 56%–62%，改為驅動下方「輔導員縮時回放熱區」與分頁 2 的自然開放式提問。"
             ),
-            "citation": "Koppitz (1968); Pénzes et al. (2020)",
+            "citation": "Mohd Shukri (2014); Price et al. (2015); Pénzes et al. (2020)",
         },
     ]
 
-    # Branch 3: Spatial Composition & Size Asymmetry
+    # Branch 3: Spatial Composition & Size Asymmetry (Pulver graphology zeroed)
     size_asymmetry_tag = (
         "大畫幅高張力（威脅外放）" if large_tense_threat > 0
         else ("大畫幅舒展（正向／平和）" if large_open_positive > 0
@@ -2160,14 +2462,14 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         {
             "id": "spatial_center",
-            "title": f"九宮格重心 X:{round(cx * 100)}% / Y:{round(cy * 100)}%・邊界觸及 {round(edge_touch_ratio * 100)}%",
-            "tag": f"{horiz_pos.split('（')[0]}・{vert_pos.split('（')[0]}",
-            "summary": f"水平{horiz_pos}、垂直{vert_pos}；底部區域著墨佔比 {round(bottom_weight * 100)}%。",
+            "title": f"客觀幾何重心 X:{round(cx * 100)}% / Y:{round(cy * 100)}%・邊界觸及 {round(edge_touch_ratio * 100)}%",
+            "tag": f"{horiz_pos}・{vert_pos}",
+            "summary": f"客觀位置：{horiz_pos}、{vert_pos}；底部著墨比例 {round(bottom_weight * 100)}%（Pulver 左右上下心理推論權重已歸零）。",
             "detail": (
-                f"中心距離係數為 {round(center_dist * 100)}%（越靠近中心代表安全感與立足當下；大幅偏隅且畫幅偏小提升孤單權重）；"
-                f"觸及畫布邊緣筆數比例 {round(edge_touch_ratio * 100)}%（>= 30% 視為外放張力或突破框限）。"
+                f"v3.5 已移除傳統筆跡學左右／上下空間象徵（Pulver 心理推論權重 = 0.00），此欄僅記錄客觀幾何位置與中心距離（{round(center_dist * 100)}%）；"
+                f"僅結合 Burkitt／Cao 縮聚尺寸實證與邊界觸及比例（{round(edge_touch_ratio * 100)}%）進行空間輔助判讀。"
             ),
-            "citation": "Buck HTP (1948); Koppitz (1968)",
+            "citation": "Burkitt et al. (2003b, 2004); Cao et al. (2023); Pulver (1953 僅限幾何座標)",
         },
     ]
 
@@ -2212,7 +2514,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
     ]
 
-    # Branch 5: Context, Age Norm & Over-Interpretation Guardrail
+    # Branch 5: Context, 3-13 Age Norm, 3C Media & Neurodiversity Guardrail
     matched_verbal_flat = [f"{emo_short[k]}({','.join(v)})" for k, v in matched_words.items() if v]
     context_children: List[Dict[str, str]] = [
         {
@@ -2227,20 +2529,21 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "detail": (
                 incongruence_note
                 if incongruence_note
-                else "依 Gross & Hayne (1998) 實驗，讓創作者邊畫邊說能讓真實情緒表達倍增；文字詞彙僅作為輔助加權（最高 +0.36），若與畫面張力相反系統會主動提醒「可能的情緒掩飾」。"
+                else "依 Gross & Hayne (1998) 與 Driessnack (2005, d = 0.95) 實證，讓兒童透過畫作敘說能大幅提升表達細節；文字詞彙僅作為輔助加權（最高 +0.36），若與畫面張力相反系統會主動提醒「可能的情緒掩飾」。"
             ),
-            "citation": "Gross & Hayne (1998)",
+            "citation": "Gross & Hayne (1998); Driessnack (2005)",
         },
         {
             "id": "ctx_age",
-            "title": f"年齡發展常模：{age_norm['label']}",
+            "title": f"3–13 歲年齡發展常模：{age_norm['label']}",
             "tag": f"省略細節係數 ×{omitted_detail_scale:.2f}",
             "summary": age_norm["guidance"],
             "detail": (
-                f"預期表達風格：{age_norm['expectedStyle']}。當選擇 3–6 歲學齡前常模時，"
-                "系統會將「省略嘴巴、省略門窗、五官留白」等單一細節缺失的負向權重自動縮減為 0.45 倍，避免將正常認知動作發展誤判為焦慮退縮。"
+                f"預期表達風格：{age_norm['expectedStyle']}。"
+                "3–6 歲學齡前完全停用 Koppitz 部位省略扣分（×0.00）並排除平板誤觸；"
+                "7–10 歲自動啟動流行文化／遊戲角色去偏；11–13 歲提供寫實前期畫技顧慮與暗黑酷炫風格替代解釋。"
             ),
-            "citation": "Picard & Gauthier (2012); Jolley et al. (2004)",
+            "citation": "Picard & Gauthier (2012); Ivashkevich (2009); Price et al. (2015); Lowenfeld (1987)",
         },
         {
             "id": "ctx_guardrail",
@@ -2255,6 +2558,32 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "citation": "Joiner et al. (1996); Catte & Cox (1999); Thomas & Jolley (1998); Pénzes et al. (2020)",
         },
     ]
+
+    if has_pop_culture_cues:
+        context_children.insert(2, {
+            "id": "ctx_pop_culture",
+            "title": "3C 媒體與流行文化去偏檢核",
+            "tag": "負向張力 ×0.55" if pop_culture_attenuation < 1.0 else "建議檢核媒體來源",
+            "summary": f"偵測到流行文化／角色線索：{'、'.join(pop_culture_hits[:4])}，避免直接將動漫或遊戲角色誤判為攻擊性或創傷。",
+            "detail": (
+                "依 Ivashkevich (2009) 實證，7–10 歲為動漫與遊戲模仿高峰期，繪製怪獸、尖牙、武器或誇張戰鬥畫面常屬同儕文化創作；"
+                "分頁 2 已優先安排「媒體來源檢核提問」，協助大人以好奇而非責備口吻確認角色靈感來源。"
+            ),
+            "citation": "Ivashkevich (2009), Studies in Art Education, 51(1), 50–63",
+        })
+
+    if neurodiversity_note:
+        context_children.append({
+            "id": "ctx_neurodiversity",
+            "title": "神經多樣性（ASD）評估護欄",
+            "tag": "不可直接套用傳統 HFD",
+            "summary": neurodiversity_note,
+            "detail": (
+                "Papangelo 等人（2020）指出傳統人物畫（HFD）不可直接套用於推論自閉症譜系兒童的情緒或社會知覺；"
+                "Kotroni 等人（2018）亦證實 ASD 兒童雖具表達社會情緒的能力，但繪畫中的視覺情緒線索通常較少，偏好機械、結構細節或重複幾何屬於獨特認知優勢與風格。"
+            ),
+            "citation": "Papangelo et al. (2020), Brain Sciences; Kotroni et al. (2018), IJDD",
+        })
 
     if has_counselor_context:
         c_matched_flat = [
@@ -2275,7 +2604,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 + (f"（命中語意線索：{'、'.join(c_matched_flat)}，上限 +0.34）" if c_matched_flat else "（維持客觀中性權重，未硬性加權）")
                 + "；系統仍遵循 Thomas & Jolley (1998) 多元詮釋原則，不以單一線索下診斷定論。"
             ),
-            "citation": "Human-in-the-Loop Counselor Context × Gross & Hayne (1998)",
+            "citation": "Human-in-the-Loop Counselor Context × Gross & Hayne (1998); Driessnack (2005)",
         })
 
     # Build top-level judgment summary explaining WHY primary emotion won
@@ -2368,8 +2697,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             },
             {
                 "id": "context_guardrail",
-                "title": "⑤ 口語脈絡、年齡常模與防過度解讀護欄",
-                "status": "guardrail" if (conv_level == "low" or incongruence_note or age_group == "3-6" or safety_alert) else "neutral",
+                "title": "⑤ 口語脈絡、3–13 歲常模、3C 媒體與神經多樣性護欄",
+                "status": "guardrail" if (conv_level == "low" or incongruence_note or age_group == "3-6" or safety_alert or neurodiversity_note or has_pop_culture_cues) else "neutral",
                 "badge": f"{conv_label.split('（')[0]} · 上限 {max_score_cap}",
                 "summary": alt_note,
                 "children": context_children,
@@ -2377,23 +2706,23 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         ],
     }
 
-    # --- 9. Non-Diagnostic Draw & Tell Interactive Dialogue Guide (Gross & Hayne, 1998; Malchiodi, 1998) ---
+    # --- 9. Non-Diagnostic Draw & Tell Interactive Dialogue Guide (Gross & Hayne, 1998; Driessnack, 2005; Malchiodi, 1998) ---
     age_tone_meta = {
         "3-6": {
             "toneLabel": "3–6 歲｜遊戲與角色扮演語氣",
-            "companionTip": "蹲下來與孩子平視，用好奇玩伴的口吻聊畫裡的小世界，每次只問 1 題並給足 5–10 秒等待回應。",
+            "companionTip": "蹲下來與孩子平視，用好奇玩伴的口吻聊畫裡的小世界；在平板上多段短筆畫或誤觸很正常，每次只問 1 題並給足 5–10 秒等待回應。",
         },
         "7-10": {
             "toneLabel": "7–10 歲｜故事主角與冒險探索語氣",
-            "companionTip": "把孩子當成這幅畫的「小導演」，邀請他介紹角色與劇情，避免評價畫得像不像或急著給建議。",
+            "companionTip": "把孩子當成這幅畫的「小導演」，邀請他介紹角色與靈感來源（是否來自影片、漫畫或遊戲），避免評價畫得像不像或急著貼情緒標籤。",
         },
-        "11+": {
-            "toneLabel": "11 歲以上｜平等尊重與內在觀點語氣",
-            "companionTip": "保持輕鬆平等的聊天節奏，尊重創作者決定「要分享到哪裡」，把主導權留給本人。",
+        "11-13": {
+            "toneLabel": "11–13 歲｜平等尊重與青春期前視角語氣",
+            "companionTip": "保持輕鬆平等的聊天節奏，接納「怕畫不像而畫得簡略或暗黑風格」的自我要求，尊重孩子決定要分享到哪裡。",
         },
         "unspecified": {
-            "toneLabel": "通用溫和模式｜開放式非誘導對話",
-            "companionTip": "依 Gross & Hayne (1998) 實驗原則：只描述你看到的畫面細節並問開放問題，不預設立場或替孩子貼情緒標籤。",
+            "toneLabel": "3–13 歲通用模式｜開放式非誘導對話",
+            "companionTip": "依 Gross & Hayne (1998) 與 Driessnack (2005, d = 0.95) 實證原則：只描述你看到的畫面細節與作畫歷程並問開放問題，不預設立場或替孩子貼標籤。",
         },
     }[age_group]
 
@@ -2407,21 +2736,58 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     elif title_or_note:
         opening_cue = f"「你幫這幅畫留下了『{title_or_note}』這句話，我很想知道畫裡正在發生什麼事，可以跟我說說看嗎？」"
     elif sharpness_index >= 0.34 or overlap_index >= 0.44:
-        opening_cue = f"「哇，你用{tool_zh.get(dom_tool, '畫筆')}畫出很有力量的筆觸，感覺剛剛畫得很投入！這裡面最想先介紹給我的是哪一塊？」"
+        opening_cue = f"「哇，你用{tool_zh.get(dom_tool, '畫筆')}畫出很有存在感的筆觸，感覺剛剛畫得很投入！這裡面最想先介紹給我的是哪一塊？」"
     else:
         opening_cue = f"「謝謝你願意用{tool_zh.get(dom_tool, '畫筆')}把腦海裡的畫面畫下來。你最喜歡這幅畫裡的哪一個角落？可以跟我介紹嗎？」"
 
-    # Stage 1: Notice & Warm-up (Purely descriptive, zero judgment)
-    s1_prompts = [
-        f"如果我們一起走進這幅畫裡，你最想先帶我看哪一個地方？（你剛剛是從哪一筆開始畫的？）",
-        (
+    # Build Process-Driven Open-Ended Prompts (v3.5)
+    ph_repeat = process_highlights.get("repeatHotspot")
+    ph_revision = process_highlights.get("revisionHotspot")
+    ph_seq = process_highlights.get("sequence")
+    ph_tempo = process_highlights.get("tempoShift")
+
+    process_s1_prompts: List[str] = []
+    process_s3_prompts: List[str] = []
+
+    if ph_repeat and ph_repeat.get("zone"):
+        process_s1_prompts.append(
+            f"我看見你在畫「畫面{ph_repeat['zone']}」這個部分的時候好像重複畫了很久、疊了好幾層，畫這裡的時候心裡在想什麼呢？"
+        )
+    if ph_revision and ph_revision.get("zone"):
+        process_s1_prompts.append(
+            f"我注意到你剛剛在「畫面{ph_revision['zone']}」這一塊修改了好幾次，你原本想把它畫成什麼樣子呢？"
+        )
+    if ph_seq and ph_seq.get("firstZone") and ph_seq.get("lastZone") and ph_seq["firstZone"] != ph_seq["lastZone"]:
+        process_s3_prompts.append(
+            f"你一開始先畫了畫面{ph_seq['firstZone']}的地方，最後才在{ph_seq['lastZone']}加上那一筆，這中間發生了什麼事呀？"
+        )
+    if ph_tempo and ph_tempo.get("type") == "long_pause" and ph_tempo.get("zone"):
+        p_sec = ph_tempo.get("pauseSec")
+        sec_txt = f"（停了約 {p_sec} 秒）" if p_sec else ""
+        process_s3_prompts.append(
+            f"剛剛停下來想了一下{sec_txt}之後才畫出畫面{ph_tempo['zone']}這一塊，那時候腦海裡浮現了什麼畫面？"
+        )
+    elif ph_tempo and ph_tempo.get("type") == "tool_size_shift" and ph_tempo.get("zone"):
+        detail_txt = ph_tempo.get("detail") or "不同的筆刷"
+        process_s3_prompts.append(
+            f"剛剛你換了「{detail_txt}」才畫出畫面{ph_tempo['zone']}這一塊，那時候腦海裡浮現了什麼畫面？"
+        )
+
+    # Stage 1: Notice & Warm-up (Purely descriptive, zero judgment, prioritizing process highlights)
+    s1_prompts: List[str] = []
+    if process_s1_prompts:
+        s1_prompts.extend(process_s1_prompts[:2])
+    if len(s1_prompts) < 2:
+        s1_prompts.append(
             f"我注意到畫裡有「{fig_name}」，你可以告訴我他是誰、或者他正在這裡做什麼嗎？"
             if fig_name
-            else f"這裡的線條和留白安排得很特別，你畫這一塊的時候心裡想到的是什麼畫面或聲音呢？"
-        ),
-    ]
+            else "如果我們一起走進這幅畫裡，你最想先帶我看哪一個地方？（你剛剛是從哪一筆開始畫的？）"
+        )
+    if len(s1_prompts) < 2:
+        s1_prompts.append("這裡的線條和留白安排得很特別，你畫這一塊的時候心裡想到的是什麼畫面或聲音呢？")
+    s1_prompts = s1_prompts[:3]
 
-    # Stage 2: Step Into the Story (Third-person projective bridge — safest way for children to speak)
+    # Stage 2: Step Into the Story (Third-person projective bridge + 7-10 3C Media Source Check)
     if fig_code in ("face_sad_crying", "face_sad", "rain_cloud_figure"):
         s2_prompts = [
             "如果畫裡的角色（或這場雨）會說話，他現在最想跟誰說一句悄悄話？",
@@ -2453,22 +2819,32 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
             "如果畫裡的線條或形狀有自己的聲音與動作，它們現在正在說什麼、或是要去哪裡呢？",
         ]
 
-    # Stage 3: Bridge to Inner Thoughts (Gentle, optional connection to real life)
-    s3_prompts = [
-        "畫完這幅畫之後，你現在身體和心裡的感覺，比較像什麼天氣（晴天、微風、陰陰的、還是雷陣雨）？",
-        (
+    # Prioritize 3C Media Source Check Prompt for 7-10 peak media age or whenever pop-culture cues appear (Ivashkevich, 2009)
+    if has_pop_culture_cues or (age_group == "7-10" and fig_code in ("face_angry", "cross_out_figure")):
+        media_check_q = "這個角色（或武器／怪物）好有氣勢！它是你自己想出來的，還是你在影片、漫畫或遊戲裡看過的呢？"
+        s2_prompts = [media_check_q, s2_prompts[0]]
+
+    # Stage 3: Bridge to Inner Thoughts (Gentle, optional connection to real life + process sequence/tempo anchor)
+    s3_prompts: List[str] = []
+    if process_s3_prompts:
+        s3_prompts.append(process_s3_prompts[0])
+    s3_prompts.append(
+        "畫完這幅畫之後，你現在身體和心裡的感覺，比較像什麼天氣（晴天、微風、陰陰的、還是雷陣雨）？"
+    )
+    if len(s3_prompts) < 3:
+        s3_prompts.append(
             f"剛剛你寫了「{title_or_note}」，最近生活裡有沒有一件事，讓你也有這種感覺，想多跟我聊一點嗎？"
             if title_or_note
             else "最近在學校、家裡或跟朋友相處時，有沒有哪個時刻也有一點點像這幅畫裡的感覺？不想說也沒關係喔。"
-        ),
-    ]
+        )
+    s3_prompts = s3_prompts[:3]
 
     # Stage 4: Co-Create & Empower (Actionable invitation to add one more stroke together)
     if fig_code in ("face_sad_crying", "face_sad", "rain_cloud_figure"):
         co_draw_idea = {
             "title": "幫畫面加上一樣「暖暖的小幫手」",
-            "prompt": "如果你想幫畫裡的主角加一把超能力雨傘、一條毛毯、一隻小寵物或一個好朋友，你想畫在哪裡？現在就一起畫上去吧！",
-            "inviteAction": "邀請孩子選一個他最喜歡的顏色，在畫布上添上一樣「讓人覺得被照顧」的小東西。",
+            "prompt": "如果你想幫畫裡的主角加一把超能力雨傘、耳機、一條棉被、一隻小寵物或一個好朋友，你想畫在哪裡？現在就一起畫上去吧！",
+            "inviteAction": "邀請孩子選一個他最喜歡的顏色，在畫布上添上一樣「讓人覺得被照顧或安心」的小東西。",
         }
     elif fig_code in ("face_angry", "cross_out_figure") or (sharpness_index >= 0.34 and velocity_index >= 0.50):
         co_draw_idea = {
@@ -2478,8 +2854,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
     elif fig_code in ("person_tiny_isolated", "house_closed", "cage_bars_figure") or bbox_area_ratio < 0.18:
         co_draw_idea = {
-            "title": "在空白處邀請一位「想見的夥伴」或開一扇小門",
-            "prompt": "畫紙旁邊還有好寬的空間，如果可以邀請一個你喜歡的角色、寵物或一道小門進來陪他，你想畫在哪裡？",
+            "title": "在空白處邀請一位「想見的夥伴」或秘密基地",
+            "prompt": "畫紙旁邊還有好寬的空間，如果可以邀請一個你喜歡的角色、寵物、遊戲夥伴或一道小門進來陪他，你想畫在哪裡？",
             "inviteAction": "先詢問孩子同不同意你一起畫（尊重邊界），再由孩子指揮你想在哪個角落加上夥伴或秘密基地。",
         }
     elif fig_code in ("face_happy", "sun_figure", "heart_figure"):
@@ -2502,6 +2878,16 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # Tailored "Avoid vs. Better" Non-Leading Phrasing Guide
     avoid_phrases: List[Dict[str, str]] = []
+    if has_pop_culture_cues or (age_group == "7-10" and fig_code in ("face_angry", "cross_out_figure")):
+        avoid_phrases.append({
+            "avoid": "「怎麼畫怪獸／武器／尖牙？你是不是很生氣或想打人？」",
+            "better": "「這個角色好有氣勢！他是你在影片、漫畫或遊戲裡看過的，還是你自己發明的呢？」",
+        })
+    if age_group == "3-6" or sensing_mode == "touch_contact":
+        avoid_phrases.append({
+            "avoid": "「怎麼畫得一段一段的、還一直按復原？是不是很緊張？」",
+            "better": "「在平板上慢慢一段一段畫、調整到喜歡的樣子很棒喔！你剛剛最專心畫哪裡？」",
+        })
     if is_monochrome_sketch:
         avoid_phrases.append({
             "avoid": "「你怎麼只用黑色畫？是不是心情不好或發生壞事？」",
@@ -2515,7 +2901,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     if revision_events >= 3 or overlap_index >= 0.44 or sharpness_index >= 0.34:
         avoid_phrases.append({
             "avoid": "「不要一直擦掉或亂塗！怎麼畫得這麼亂？」",
-            "better": "「我看見你在這塊反覆修改／用力畫了好幾次，你那時候正在想把它變成什麼樣子呢？」",
+            "better": "「我看見你在這塊反覆修改／疊畫了好幾次，你那時候正在想把它變成什麼樣子呢？」",
         })
     if fig_code in ("face_no_mouth", "person_blank_face", "house_closed"):
         avoid_phrases.append({
@@ -2535,41 +2921,41 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     dialogue_guide = {
         "title": "Draw & Tell 圖像互動引導指南",
-        "subtitle": "純粹透過畫作陪伴孩子說出內心想法（零診斷標籤・非誘導開放提問）",
+        "subtitle": "針對 3–13 歲兒童：純粹透過畫作與作畫歷程陪伴孩子說出內心想法（零診斷標籤・非誘導開放提問）",
         "ageToneLabel": age_tone_meta["toneLabel"],
         "openingCue": opening_cue,
         "companionTip": age_tone_meta["companionTip"],
-        "theoryBasis": "Gross & Hayne (1998) Draw & Tell 實驗；Driessnack (2005) 統合分析（d = 0.95）；Malchiodi (1998)；Willis et al. (2010) DAPR；Bat Or et al. (2022) PPAT；Pénzes et al. (2020)",
+        "theoryBasis": "Gross & Hayne (1998) Draw & Tell 實驗；Driessnack (2005) 統合分析（d = 0.95）；Ivashkevich (2009) 流行文化去偏；Price et al. (2015) / Mohd Shukri (2014) 數位繪畫策略；Papangelo et al. (2020) / Kotroni et al. (2018) 神經多樣性護欄；Willis et al. (2010) DAPR；Bat Or et al. (2022) PPAT",
         "stages": [
             {
                 "id": "stage_notice",
                 "stepLabel": "第 1 步",
-                "stageTitle": "看見畫面（暖身與好奇）",
-                "goal": "先從具體看到的線條、形狀或物件開啟對話，讓孩子知道自己被認真看見，沒有對錯壓力。",
+                "stageTitle": "看見畫面（暖身與作畫歷程好奇）",
+                "goal": "從具體看到的形狀、重複描繪或修改熱區開啟對話，讓孩子知道過程被溫柔看見，沒有對錯壓力。",
                 "prompts": s1_prompts,
                 "followUpTip": "孩子回答後，可以輕輕複述他的關鍵字（例如：「原來這是你在保護的基地呀」），再自然進入下一步。",
             },
             {
                 "id": "stage_story",
                 "stepLabel": "第 2 步",
-                "stageTitle": "走進故事（替畫中主角發聲）",
-                "goal": "透過「聊畫裡的角色」建立安全距離，孩子往往比直接回答「你怎麼了」更願意說出真實心事。",
+                "stageTitle": "走進故事（替畫中主角發聲與媒體來源檢核）",
+                "goal": "透過「聊畫裡的角色」建立安全距離並釐清動漫／遊戲靈感來源，孩子往往比直接回答「你怎麼了」更願意分享。",
                 "prompts": s2_prompts,
-                "followUpTip": "順著孩子的想像走，即使故事天馬行空，裡面常藏著他真實的情緒與期待。",
+                "followUpTip": "順著孩子的想像走，若角色來自遊戲或動畫，也可以順口問「你最喜歡這個角色的哪個能力？」。",
             },
             {
                 "id": "stage_feeling",
                 "stepLabel": "第 3 步",
-                "stageTitle": "貼近心裡（溫和連結真實感受）",
-                "goal": "從畫作輕柔橋接到生活經驗，邀請孩子自由表達內心想法，同時尊重他選擇不說的權利。",
+                "stageTitle": "貼近心裡（從作畫順序與停頓溫和連結感受）",
+                "goal": "結合先畫／後畫順序與停頓轉折輕柔橋接到生活經驗，邀請孩子表達想法，同時尊重他選擇不說的權利。",
                 "prompts": s3_prompts,
                 "followUpTip": "如果孩子沉默或說「不知道」，溫柔回應「沒關係，畫出來本身就很棒了」，切勿追問逼答。",
             },
             {
                 "id": "stage_cocreate",
                 "stepLabel": "第 4 步",
-                "stageTitle": "一起共創（賦能與延伸畫作）",
-                "goal": "把對話轉化為正向行動，邀請孩子在畫布上添上一筆新的力量、夥伴或安全空間。",
+                "stageTitle": "一起共創（賦能與添畫保護資源）",
+                "goal": "把對話轉化為正向行動，邀請孩子在畫布上添上一筆新的力量、保護物、夥伴或安全基地。",
                 "prompts": s4_prompts,
                 "followUpTip": co_draw_idea["inviteAction"],
             },
@@ -2581,11 +2967,15 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "status": "ok",
         "engineMode": "local_empirical_v3",
+        "engineVersion": "3.5.0",
         "isMonochromeSketch": is_monochrome_sketch,
         "isCanonicalNaturePalette": is_canonical_nature_palette,
         "ageGroup": age_group,
         "ageNorm": age_norm,
         "expressiveChannels": expressive_channels,
+        "processHighlights": process_highlights,
+        "popCultureHits": pop_culture_hits,
+        "neurodiversityNote": neurodiversity_note,
         "evidenceConvergence": {
             "level": conv_level,
             "label": conv_label,
@@ -2624,11 +3014,12 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "insight": color_insight,
             },
             "strokes": {
-                "title": "線條品質與介面筆觸動力",
-                "citation": "Pénzes et al. (2020); Nanayama Tanaka et al. (2020)",
+                "title": "線條品質與介面筆觸動力（v3.5 數位降權）",
+                "citation": "Pénzes et al. (2020); Price et al. (2015); Mohd Shukri (2014)",
                 "strokeCount": len(draw_strokes),
                 "sensingMode": sensing_mode,
                 "sensingModeLabel": sensing_mode_label,
+                "penPressureEmotionActive": pen_pressure_active,
                 "effectiveForceIndex": round(effective_force_index, 3),
                 "sharpnessIndex": round(sharpness_index, 3),
                 "smoothnessIndex": round(smoothness_index, 3),
@@ -2642,8 +3033,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "insight": stroke_insight,
             },
             "spatial": {
-                "title": "空間構圖與九宮格重心",
-                "citation": "Burkitt et al. (2003b, 2004); Cao et al. (2023); Buck HTP",
+                "title": "空間構圖與客觀重心（不含方位心理推論）",
+                "citation": "Burkitt et al. (2003b, 2004); Cao et al. (2023); Pulver (1953 僅限幾何)",
                 "grid3x3": grid_3x3,
                 "centerOfMass": {"x": round(cx, 3), "y": round(cy, 3)},
                 "bboxCoverage": round(bbox_area_ratio, 3),
@@ -2652,8 +3043,8 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "insight": spatial_insight,
             },
             "process": {
-                "title": "完整圖形辨識與繪畫歷程",
-                "citation": "Jolley (2004); Picard (2007, 2012); Misalidi & Bonoti (2014)",
+                "title": "完整圖形辨識與作畫歷程",
+                "citation": "Jolley (2004); Picard (2007, 2012); Mohd Shukri (2014); Price et al. (2015)",
                 "undoCount": undo_count,
                 "eraserCount": eraser_count,
                 "colorChangeCount": color_change_count,
@@ -2667,9 +3058,10 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         "references": PSYCHOLOGY_REFERENCES,
         "ethicalNotice": (
-            "本分析結合 14 篇國際心理學同儕審查期刊實證研究（涵蓋 Jolley、Picard、Burkitt、Crawford、Pénzes、Nanayama Tanaka、"
-            "Joiner、Catte & Cox、Thomas & Jolley、Gross & Hayne、Cao 等人）與經典 HTP／Koppitz 理論，"
-            "嚴格遵循「不以單一線索下定論」原則，僅作為溫柔的情緒探索與 Draw & Tell 親子對話起點，並非臨床心理或醫療診斷。"
+            "本分析針對 3–13 歲兒童整合 29 篇國際心理學同儕審查期刊實證研究（涵蓋 Jolley、Picard、Willis、Fury/Pace、Wegmann、"
+            "Kaiser、Bat Or、Skybo、Nanayama Tanaka、Burkitt、Crawford、Pénzes、Gross & Hayne、Driessnack、Cao，以及 3C 時代與神經多樣性文獻 "
+            "Ivashkevich、Price、Mohd Shukri、Papangelo、Kotroni）與 6 部受限經典架構（共 35 項來源），嚴格遵循「不以單一線索下定論」原則，"
+            "僅作為溫柔的情緒探索與開放式溝通引導起點，絕非臨床心理或醫療診斷。"
         ),
     }
 
@@ -2726,7 +3118,7 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
     sec_label = str(report.get("secondaryLabel") or "次要傾向")[:40]
     sec_score = int(_safe_float(report.get("secondaryScore"), 0))
     conv_label = str(report.get("convergenceLabel") or "探索性參考")[:60]
-    age_label = str(report.get("ageNormLabel") or "未指定（通用常模）")[:40]
+    age_label = str(report.get("ageNormLabel") or "未指定（3–13 歲通用）")[:40]
     root_summary = str(report.get("reasoningSummary") or "")[:420]
     alt_note = str(report.get("alternativeNote") or "同一特徵也可能源自畫技習慣或工具探索（Thomas & Jolley, 1998）。")[:260]
     strengths_note = str(report.get("strengthsNote") or "")[:260]
@@ -2760,7 +3152,7 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
         follow_prompt = "「你剛剛說這裡畫的是這個角色／東西，如果它現在能講一句話，它最想說什麼？」"
         if q_frameworks:
             fw0 = q_frameworks[0]
-            fw_block = f"• 純圖像文獻對照（{fw0['citation']}）：{fw0['summary']}\n"
+            fw_block = f"• 現代實證文獻對照（{fw0['citation']}）：{fw0['summary']}\n"
             follow_prompt = fw0["promptTip"]
         reply = (
             "【協助圖像辨識與脈絡校準】\n"
@@ -2770,7 +3162,15 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             f"• 建議延伸問法：{follow_prompt}\n"
             "• 下一步：您可以點擊上方「納入補充資訊並重新解析」，系統會將您確認的元素寫入判斷樹狀圖與互動引導分頁。"
         )
-    # 2. Explaining scoring, trade-off, or alternative non-emotional hypotheses
+    # 2. Tablet / Touchpad / Undo / Multi-stroke inquiry (Price et al., 2015; Mohd Shukri, 2014)
+    elif any(k in question for k in ("平板", "觸控", "誤觸", "多段", "短筆", "一直復原", "一直擦", "重塗")):
+        reply = (
+            "【3C 數位媒材與平板作畫去偏說明（Price et al., 2015; Mohd Shukri, 2014）】\n"
+            "• 實證依據：Price 等人（2015）與 Mohd Shukri（2014）證實兒童在平板／觸控板上作畫時，為避免畫錯常採「多段短筆畫」與頻繁復原，也常因手指接觸滑順而產生疊畫或誤觸。\n"
+            "• 系統處理：心畫室 v3.5 已將復原、斷續短線、疊畫、微震顫與停頓的情緒加權全面調降 55%–62%，並停用滑鼠／手指觸控的筆壓情緒推論。\n"
+            "• 建議操作：請直接開啟上方「作畫歷程縮時回放檢視」並勾選「標示重複描繪／修改熱區」，先看清楚底層原本畫了什麼，再以開放問句邀請孩子分享。"
+        )
+    # 3. Explaining scoring, trade-off, or alternative non-emotional hypotheses
     elif any(k in question for k in ("為什麼", "為何", "依據", "分數", "取捨", "次高", "替代", "誤判", "判斷", "差異", "邏輯")):
         gap = abs(pri_score - sec_score)
         gap_txt = (
@@ -2779,14 +3179,14 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             else f"主要傾向「{pri_label}（{pri_score}）」與次高「{sec_label}（{sec_score}）」僅差 {gap} 分，顯示感受具雙重交織性，解讀時不宜只看單一標籤。"
         )
         reply = (
-            "【判斷依據與多元替代詮釋（實證核對）】\n"
+            "【判斷依據與多元替代詮釋（29 篇國際實證核對）】\n"
             f"• 目前結論與差距：{gap_txt}（證據收斂：{conv_label}；常模：{age_label}）\n"
-            f"• 模型推理摘要：{root_summary or stroke_insight or '系統採圖形內容優先，其次結合介面筆觸、空間比例與去偏色彩。'}\n"
-            f"• 非情緒替代解釋（Thomas & Jolley, 1998; Skybo et al., 2007）：{alt_note}\n"
+            f"• 模型推理摘要：{root_summary or stroke_insight or '系統採完整圖形與表情優先，並已調降數位操作權重與移除空間方位心理推論。'}\n"
+            f"• 非情緒替代解釋（Thomas & Jolley, 1998; Skybo et al., 2007; Ivashkevich, 2009）：{alt_note}\n"
             f"• 正向資源檢視（Pénzes, 2020; Bat Or et al., 2022）：{strengths_note or '畫面仍展現創作者運用視覺媒介主動表達與整理經驗的彈性。'}\n"
-            "• 實務建議：依 Joiner (1996)、Catte & Cox (1999) 與 Pace 等人（2022）整體量表原則，請把上述分數視為『假設清單』，搭配後續訪談紀錄再按重新解析檢核。"
+            "• 實務建議：依 Joiner (1996)、Catte & Cox (1999) 與 Pace 等人（2022）整體量表原則，請把上述分數視為『假設清單』，並可先播放上方作畫縮時回放再進行訪談。"
         )
-    # 3. Child is silent, says "不知道", or avoids answering
+    # 4. Child is silent, says "不知道", or avoids answering
     elif any(k in question for k in ("不知道", "不想說", "沉默", "不講", "抗拒", "逃避", "怎麼接", "怎麼問", "下一步", "接話", "沒嘴巴", "沒門窗")):
         focus_obj = verified_objects[0] if verified_objects else (figures_list[0] if figures_list else "畫裡最顯眼的那個形狀")
         reply = (
@@ -2795,27 +3195,27 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
             "建議改用『降壓＋第三人稱投射』三步驟：\n"
             "1. 先接納沉默：「沒關係喔，不用急著想答案，你願意把它畫下來就已經很棒了。」\n"
             f"2. 回到具體細節而非情緒：「我看見這裡有『{focus_obj}』，如果幫這幅畫配一種聲音或背景音樂，你覺得會像什麼聲音？」\n"
-            "3. 給選擇題或共創邀約（Willis et al., 2010; Bat Or et al., 2022）：「如果你想幫畫裡加一把保護傘、秘密基地或小幫手，下次我們可以畫在旁邊嗎？」\n"
+            "3. 給選擇題或共創邀約（Willis et al., 2010; Bat Or et al., 2022）：「如果你想幫畫裡加一把保護傘、耳機、秘密基地或小幫手，下次我們可以畫在旁邊嗎？」\n"
             "• 提醒：每次只問 1 題並給足 5–10 秒靜默等待，切勿連環追問或替孩子猜情緒。"
         )
-    # 4. Summarize current notes / prepare for re-analysis
+    # 5. Summarize current notes / prepare for re-analysis
     elif any(k in question for k in ("整理", "摘要", "重點", "回填", "總結")):
         obj_txt = "、".join(verified_objects) if verified_objects else "（尚未填寫協助辨識物件）"
         note_txt = follow_up_notes if follow_up_notes else "（尚未填寫後續訪談紀錄）"
         reply = (
             "【目前輔導補充脈絡整理】\n"
-            f"• 系統原本辨識圖形：{'、'.join(figures_list) if figures_list else '無固定圖式（以筆觸動力為主）'}\n"
+            f"• 系統原本辨識圖形：{'、'.join(figures_list) if figures_list else '無固定圖式（以低權重動力與空間參考）'}\n"
             f"• 輔導員補充辨識物件：{obj_txt}\n"
             f"• 後續溝通／訪談紀錄：{note_txt}\n"
             "• 建議操作：確認上方兩欄已補上孩子實際說明的物件與反應後，點擊『納入補充資訊並重新解析』，即可同步刷新「內在情緒分析」與「圖像互動引導」兩個分頁。"
         )
-    # 5. Pure image-first framework inquiry (umbrella/barriers/encapsulation/nest/agency/omission)
+    # 6. Pure image-first / pop-culture / neurodiversity framework inquiry
     elif q_frameworks:
         fw0 = q_frameworks[0]
         suggested_obj = question.strip(" ：:，,。？?")[:70] if len(question) <= 72 else None
         suggested_note = None if suggested_obj else question[:180]
         reply = (
-            f"【純圖像實證脈絡解析：{fw0['label']}】\n"
+            f"【現代實證脈絡解析：{fw0['label']}】\n"
             f"• 對應文獻：{fw0['citation']}\n"
             f"• 圖像涵義依據：{fw0['summary']}\n"
             f"• 建議非誘導開放問法：{fw0['promptTip']}\n"
@@ -2824,12 +3224,12 @@ def consult_counselor(payload: Dict[str, Any]) -> Dict[str, Any]:
     else:
         suggested_note = question[:180] if len(question) >= 8 else None
         reply = (
-            "【本地實證諮詢摘要（免金鑰模式 A）】\n"
+            "【本地實證諮詢摘要（免金鑰模式 A・29 篇國際期刊依據）】\n"
             f"• 當前作品焦點：主要傾向「{pri_label}（{pri_score}）」、次高「{sec_label}（{sec_score}）」，收斂度為「{conv_label}」（常模：{age_label}）。\n"
-            f"• 筆觸與正向資源：{stroke_insight or '已整合軟體介面筆觸動力。'} {strengths_note}\n"
+            f"• 筆觸與正向資源：{stroke_insight or '已採數位媒材降權處理。'} {strengths_note}\n"
             "• 建議後續探索方向：\n"
-            "  1. 若畫中有模糊、框線、保護物、基地或省略部位，可直接於上方『協助辨識畫面元素』填入孩子口述的實際物體並重算。\n"
-            "  2. 對話時優先採用開放式描述（如『這裡正在發生什麼事？』），再把孩子補充的重點記於上方『後續訪談反應』。\n"
+            "  1. 可先播放上方「作畫歷程縮時回放」並開啟熱區標示，確認底層圖案與重複修改位置。\n"
+            "  2. 若畫中有動漫角色、機械細節、保護物（耳機／棉被／雨傘）或模糊元素，可填入上方『協助辨識畫面元素』並重算。\n"
             "（提示：若您已在右上角啟用方案 B 個人 Gemini API Key，本諮詢區會自動升級為可檢視完整畫作影像的開放式多模態 AI 顧問。）"
         )
 

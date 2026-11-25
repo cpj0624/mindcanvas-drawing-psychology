@@ -410,7 +410,8 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         })
         self.assertIn("face_no_mouth", {f["code"] for f in res_young["recognizedFigures"]})
         self.assertIn("face_no_mouth", {f["code"] for f in res_older["recognizedFigures"]})
-        self.assertEqual(res_young["ageNorm"]["omittedDetailScale"], 0.45)
+        self.assertEqual(res_young["ageNorm"]["omittedDetailScale"], 0.0)
+        self.assertEqual(res_older["ageGroup"], "11-13")
         self.assertEqual(res_older["ageNorm"]["omittedDetailScale"], 1.0)
         young_anx = next(e["score"] for e in res_young["emotions"] if e["key"] == "anxiety")
         older_anx = next(e["score"] for e in res_older["emotions"] if e["key"] == "anxiety")
@@ -681,11 +682,11 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
             AnalyzeRequest(counselorContext={"followUpNotes": "a" * 601})
 
     def test_v34_image_first_literature_catalog_and_groups(self):
-        """PSYCHOLOGY_REFERENCES must include all 21 categorized entries including the 7 new image-first studies."""
+        """PSYCHOLOGY_REFERENCES must include all 26 categorized entries across 8 groups (29 studies + 6 classics)."""
         from backend.knowledge_base import PSYCHOLOGY_REFERENCES
 
         ids = {r["id"] for r in PSYCHOLOGY_REFERENCES}
-        self.assertEqual(len(PSYCHOLOGY_REFERENCES), 21)
+        self.assertEqual(len(PSYCHOLOGY_REFERENCES), 26)
         for req_id in (
             "willis_2010_dapr",
             "fury_1997_pace_2022",
@@ -744,6 +745,246 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
 
         r_silent = consult_counselor({"question": "孩子說不知道不想講，怎麼接話？", "analysisSummary": summary})
         self.assertIn("Driessnack", r_silent["reply"])
+
+    def test_v35_five_new_studies_and_8_groups_no_stale_14(self):
+        """v3.5 must include all 5 new 3C/ASD studies across 8 groups and zero stale 14 篇 text."""
+        from backend.knowledge_base import PSYCHOLOGY_REFERENCES
+        from backend.server import health_check
+
+        self.assertEqual(health_check()["version"], "3.5.0")
+        by_id = {r["id"]: r for r in PSYCHOLOGY_REFERENCES}
+        groups = {r["group"] for r in PSYCHOLOGY_REFERENCES}
+        self.assertEqual(len(PSYCHOLOGY_REFERENCES), 26)
+        self.assertEqual(len(groups), 8)
+
+        expected_dois = {
+            "ivashkevich_2009_popculture": "10.1080/00393541.2009.11518790",
+            "price_2015_ipads": "10.1016/j.compedu.2015.04.003",
+            "mohd_shukri_2014_tablet": "10.1145/2559206.2581278",
+            "papangelo_2020_asd_hfd": "10.3390/brainsci10060398",
+            "kotroni_2018_asd_emotions": "10.1080/20473869.2018.1434855",
+        }
+        for ref_id, doi in expected_dois.items():
+            self.assertIn(ref_id, by_id)
+            self.assertEqual(by_id[ref_id]["doi"], doi)
+
+        res = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [_make_circle_stroke(400, 270, 80, "#2A2B30", size=6)],
+        })
+        self.assertEqual(res["engineVersion"], "3.5.0")
+        self.assertIn("29 篇", res["ethicalNotice"])
+        self.assertNotIn("14 篇", res["ethicalNotice"])
+
+    def test_v35_pulver_graphology_zeroed_objective_coords_only(self):
+        """Pulver left/right/top/bottom psychological symbolism must be completely removed (weight = 0)."""
+        top_strokes = [_make_circle_stroke(160, 120, 45, "#2A2B30", size=6, steps=28, dt_ms=35, tool="pencil")]
+        bot_strokes = [_make_circle_stroke(640, 430, 45, "#2A2B30", size=6, steps=28, dt_ms=35, tool="pencil")]
+        res_top = analyze_drawing({"canvas": {"width": 800, "height": 550}, "strokes": top_strokes})
+        res_bot = analyze_drawing({"canvas": {"width": 800, "height": 550}, "strokes": bot_strokes})
+
+        banned = ("內向回顧", "尋求依附", "面向外界", "探索環境", "想像思緒", "渴望抽離", "尋求踏實", "情緒沉重")
+        for res in (res_top, res_bot):
+            spatial_txt = res["pillars"]["spatial"]["insight"]
+            spatial_branch = next(b for b in res["reasoningTree"]["branches"] if b["id"] == "spatial")
+            center_node = next(c for c in spatial_branch["children"] if c["id"] == "spatial_center")
+            combined = spatial_txt + center_node["summary"] + center_node["detail"] + center_node["tag"]
+            for phrase in banned:
+                self.assertNotIn(phrase, combined)
+
+        self.assertIn("水平偏左", res_top["pillars"]["spatial"]["insight"])
+        self.assertIn("垂直偏上", res_top["pillars"]["spatial"]["insight"])
+        self.assertIn("水平偏右", res_bot["pillars"]["spatial"]["insight"])
+        self.assertIn("垂直偏下", res_bot["pillars"]["spatial"]["insight"])
+
+        # Bottom placement must NOT receive Pulver's old +0.18 (~+12~15 pt) sadness boost over top placement
+        sad_top = next(e["score"] for e in res_top["emotions"] if e["key"] == "sadness")
+        sad_bot = next(e["score"] for e in res_bot["emotions"] if e["key"] == "sadness")
+        self.assertLessEqual(abs(sad_bot - sad_top), 1)
+        self.assertLessEqual(sad_bot, sad_top + 1)
+
+    def test_v35_koppitz_3_6_zero_omission_and_house_closed_parity(self):
+        """At age 3-6, house_closed, face_no_mouth, and person_blank_face must all have 0.0 omission penalty."""
+        c = "#2A2B30"
+        # Closed rectangle wall + triangle roof (no doors/windows) -> house_closed
+        house_strokes = [
+            {
+                "tool": "pencil", "color": c, "size": 6,
+                "points": [
+                    {"x": 300, "y": 280, "t": 0, "p": 0.5},
+                    {"x": 500, "y": 280, "t": 100, "p": 0.5},
+                    {"x": 500, "y": 430, "t": 200, "p": 0.5},
+                    {"x": 300, "y": 430, "t": 300, "p": 0.5},
+                    {"x": 300, "y": 280, "t": 400, "p": 0.5},
+                ],
+            },
+            _make_line_stroke(285, 280, 400, 185, c, size=6, steps=12, dt_ms=30, tool="pencil"),
+            _make_line_stroke(400, 185, 515, 280, c, size=6, steps=12, dt_ms=30, tool="pencil"),
+        ]
+        res_young = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": house_strokes,
+            "userContext": {"ageGroup": "3-6"},
+        })
+        res_older = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": house_strokes,
+            "userContext": {"ageGroup": "11-13"},
+        })
+        hc_young = next((f for f in res_young["recognizedFigures"] if f["code"] == "house_closed"), None)
+        hc_older = next((f for f in res_older["recognizedFigures"] if f["code"] == "house_closed"), None)
+        self.assertIsNotNone(hc_young)
+        self.assertIsNotNone(hc_older)
+        self.assertEqual(hc_young["impact"]["anxiety"], 0.0)
+        self.assertEqual(hc_young["impact"]["loneliness"], 0.0)
+        self.assertAlmostEqual(hc_older["impact"]["anxiety"], 0.10, places=2)
+        self.assertAlmostEqual(hc_older["impact"]["loneliness"], 0.10, places=2)
+        # Blank face person at age 3-6 must also be zeroed
+        blank_person = [
+            _make_circle_stroke(400, 200, 36, c, size=5, steps=28, dt_ms=30, tool="pencil"),
+            _make_line_stroke(400, 236, 400, 360, c, size=5, steps=10, dt_ms=30, tool="pencil"),
+        ]
+        res_bp = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": blank_person,
+            "userContext": {"ageGroup": "3-6"},
+        })
+        bp_fig = next((f for f in res_bp["recognizedFigures"] if f["code"] == "person_blank_face"), None)
+        self.assertIsNotNone(bp_fig)
+        self.assertEqual(bp_fig["impact"]["loneliness"], 0.0)
+        self.assertEqual(bp_fig["impact"]["anxiety"], 0.0)
+
+    def test_v35_dynamic_attenuation_and_alschuler_device_split(self):
+        """Tablet multi-stroke + undos must not misclassify a happy face as anxiety; pressure only activates on pen_hardware."""
+        c = "#2A2B30"
+        smile_pts = [
+            {"x": 400 + 46 * math.cos(math.radians(a)), "y": 295 + 32 * math.sin(math.radians(a)), "t": i * 25.0, "p": 0.5, "w": 22.0}
+            for i, a in enumerate(range(20, 165, 10))
+        ]
+        happy_tablet_strokes = [
+            {**_make_circle_stroke(400, 270, 95, c, size=6, steps=36, dt_ms=30, tool="crayon"), "pointerType": "touch"},
+            {**_make_circle_stroke(365, 240, 8, c, size=5, steps=16, dt_ms=25, tool="crayon"), "pointerType": "touch"},
+            {**_make_circle_stroke(435, 240, 8, c, size=5, steps=16, dt_ms=25, tool="crayon"), "pointerType": "touch"},
+            {"tool": "crayon", "color": c, "size": 6, "pointerType": "touch", "points": smile_pts},
+            # Add 5 short multi-stroke decorative segments typical of tablet drawing (Mohd Shukri, 2014)
+            {**_make_line_stroke(200, 140, 224, 146, "#F5C43D", size=7, steps=5, dt_ms=25), "pointerType": "touch"},
+            {**_make_line_stroke(230, 148, 254, 152, "#F5C43D", size=7, steps=5, dt_ms=25), "pointerType": "touch"},
+            {**_make_line_stroke(560, 140, 584, 146, "#F5C43D", size=7, steps=5, dt_ms=25), "pointerType": "touch"},
+            {**_make_line_stroke(590, 148, 612, 154, "#F5C43D", size=7, steps=5, dt_ms=25), "pointerType": "touch"},
+        ]
+        res_touch = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": happy_tablet_strokes,
+            "processMetrics": {"undoCount": 3, "eraserStrokeCount": 1, "pauseCount": 2, "totalDurationMs": 18000, "inputDevices": ["touch"]},
+            "userContext": {"ageGroup": "3-6"},
+        })
+        self.assertEqual(res_touch["primaryEmotion"]["key"], "joy", f"Got {res_touch['emotions']}")
+        self.assertFalse(res_touch["pillars"]["strokes"]["penPressureEmotionActive"])
+
+        # Hardware stylus with real pressure variance activates low-weight pressure flag
+        pen_strokes = [{
+            "tool": "crayon",
+            "color": "#D62828",
+            "size": 10,
+            "pointerType": "pen",
+            "points": [
+                {"x": 150 + i * 25, "y": 240 + (i % 2) * 50, "t": i * 20.0, "p": 0.25 + (i % 5) * 0.16, "tx": 15, "ty": 10}
+                for i in range(18)
+            ],
+        }]
+        res_pen = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": pen_strokes,
+            "processMetrics": {"inputDevices": ["pen"]},
+        })
+        self.assertTrue(res_pen["pillars"]["strokes"]["penPressureEmotionActive"])
+        self.assertEqual(res_pen["pillars"]["strokes"]["sensingMode"], "pen_hardware")
+
+    def test_v35_process_highlights_dialogue_and_pydantic_validation(self):
+        """processHighlights must generate concrete Tab 2 open-ended questions and validate via FastAPI AnalyzeRequest."""
+        from pydantic import ValidationError
+        from backend.server import AnalyzeRequest
+
+        strokes = [
+            _make_circle_stroke(180, 150, 45, "#2A2B30", size=6, steps=24, dt_ms=30, tool="pencil"),
+            _make_circle_stroke(620, 410, 45, "#2A2B30", size=14, steps=24, dt_ms=30, tool="marker"),
+        ]
+        highlights_in = {
+            "repeatHotspot": {"zone": "左上", "strokeCount": 7, "bbox": {"x": 120, "y": 90, "w": 110, "h": 110}},
+            "revisionHotspot": {"zone": "中央", "count": 4, "bbox": {"x": 340, "y": 220, "w": 120, "h": 110}},
+            "sequence": {"firstZone": "左上", "lastZone": "右下", "totalDrawStrokes": 9},
+            "tempoShift": {"type": "long_pause", "zone": "右下", "pauseSec": 4.2, "detail": "", "strokeIdx": 8},
+        }
+        req = AnalyzeRequest(strokes=strokes, processHighlights=highlights_in)
+        res = analyze_drawing(req.model_dump())
+
+        s1 = res["dialogueGuide"]["stages"][0]["prompts"]
+        s3 = res["dialogueGuide"]["stages"][2]["prompts"]
+        self.assertTrue(any("左上" in q and "重複畫" in q for q in s1), f"Stage 1 prompts: {s1}")
+        self.assertTrue(any("中央" in q and "修改" in q for q in s1), f"Stage 1 prompts: {s1}")
+        self.assertTrue(any("左上" in q and "右下" in q for q in s3), f"Stage 3 prompts: {s3}")
+        self.assertEqual(res["processHighlights"]["repeatHotspot"]["zone"], "左上")
+
+        # Invalid negative count or huge zone string rejected by Pydantic
+        with self.assertRaises(ValidationError):
+            AnalyzeRequest(processHighlights={"revisionHotspot": {"zone": "x" * 40, "count": -1}})
+
+    def test_v35_age_7_10_pop_culture_debias_and_11_13_preadolescent(self):
+        """Age 7-10 pop-culture cues attenuate anger/anxiety and trigger media-source check; 11-13 adds realism-anxiety note."""
+        strokes = [
+            _make_zigzag_stroke(150, 180, 620, 360, 10, 45, "#2A2B30", size=10, dt_ms=22),
+            _make_circle_stroke(400, 260, 70, "#2A2B30", size=6, steps=30, dt_ms=30),
+        ]
+        res_7_10 = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": strokes,
+            "userContext": {"ageGroup": "7-10", "titleOrNote": "動漫裡有尖牙和武器的怪獸角色", "selectedMotifs": ["monster_storm"]},
+        })
+        self.assertTrue(len(res_7_10["popCultureHits"]) >= 2)
+        s2_prompts = res_7_10["dialogueGuide"]["stages"][1]["prompts"]
+        self.assertTrue(any("影片" in q or "漫畫" in q or "遊戲" in q for q in s2_prompts), f"s2={s2_prompts}")
+        ctx_branch = res_7_10["reasoningTree"]["branches"][4]
+        self.assertIn("ctx_pop_culture", {c["id"] for c in ctx_branch["children"]})
+
+        res_11_13 = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": [_make_circle_stroke(400, 260, 50, "#2A2B30", size=4, steps=24, dt_ms=35, tool="pencil")],
+            "processMetrics": {"undoCount": 4},
+            "userContext": {"ageGroup": "11-13"},
+        })
+        self.assertEqual(res_11_13["ageGroup"], "11-13")
+        self.assertIn("怕畫不像", res_11_13["evidenceConvergence"]["alternativeNote"])
+
+    def test_v35_modern_symbols_neurodiversity_asd_and_tablet_consult(self):
+        """Contemporary symbols (考卷/耳機/棉被), ASD guardrail (Papangelo 2020; Kotroni 2018), and tablet consultation."""
+        # Geometric repetitive straight strokes without emotional face -> triggers ASD guardrail
+        geo_strokes = [
+            _make_line_stroke(160 + i * 50, 150, 160 + i * 50, 390, "#2A2B30", size=4, steps=10, dt_ms=35, tool="pencil")
+            for i in range(9)
+        ]
+        res_asd = analyze_drawing({
+            "canvas": {"width": 800, "height": 550},
+            "strokes": geo_strokes,
+            "userContext": {"ageGroup": "7-10", "titleOrNote": "火車軌道和機械齒輪，戴耳機看考試卷"},
+        })
+        self.assertIsNotNone(res_asd["neurodiversityNote"])
+        self.assertIn("Papangelo", res_asd["neurodiversityNote"])
+        self.assertIn("Kotroni", res_asd["neurodiversityNote"])
+        ctx_ids = {c["id"] for c in res_asd["reasoningTree"]["branches"][4]["children"]}
+        self.assertIn("ctx_neurodiversity", ctx_ids)
+        # Modern symbols matched in VERBAL_LEXICON (考卷/考試卷 -> anxiety, 耳機 -> calm)
+        matched_v = res_asd["pillars"]["process"]["matchedVerbalCues"]
+        self.assertIn("考試卷", matched_v.get("anxiety", []))
+        self.assertIn("耳機", matched_v.get("calm", []))
+
+        summary = {"primaryLabel": "平靜與安全感", "primaryScore": 70, "secondaryLabel": "焦慮與壓力", "secondaryScore": 54}
+        r_tab = consult_counselor({"question": "孩子在平板上一直按復原又畫多段短筆畫，會誤判焦慮嗎？", "analysisSummary": summary})
+        self.assertIn("Price", r_tab["reply"])
+        self.assertIn("Mohd Shukri", r_tab["reply"])
+
+        r_asd = consult_counselor({"question": "畫中都是重複幾何和機械火車軌道細節，表情很少", "analysisSummary": summary})
+        self.assertIn("Papangelo", r_asd["reply"])
+        self.assertIn("Kotroni", r_asd["reply"])
 
 
 if __name__ == "__main__":

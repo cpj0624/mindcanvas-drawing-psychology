@@ -27,11 +27,11 @@ ALLOWED_ORIGINS = (
 app = FastAPI(
     title="心畫室 MindCanvas — 兒童心理學繪畫情緒分析後端",
     description=(
-        "依據 14 篇國際心理學同儕審查期刊實證與經典 HTP／Koppitz 架構，"
-        "分析使用者自由繪畫之圖形、介面筆觸動力、空間構圖與繪畫歷程，"
+        "針對 3–13 歲兒童，依據 29 篇國際心理學同儕審查期刊實證與 6 部受限經典架構（共 35 項來源），"
+        "以純圖像涵義為優先分析情緒線索、提供 3C 媒體與神經多樣性去偏護欄、作畫歷程亮點對話引導，"
         "並支援輔導人員後設圖像補充重算與實證諮詢。"
     ),
-    version="3.3.0",
+    version="3.5.0",
 )
 
 app.add_middleware(
@@ -132,10 +132,51 @@ class ClientImageStats(BaseModel):
         return value
 
 
+class HotspotBox(BaseModel):
+    x: float = Field(default=0.0, ge=-5000.0, le=10000.0, allow_inf_nan=False)
+    y: float = Field(default=0.0, ge=-5000.0, le=10000.0, allow_inf_nan=False)
+    w: float = Field(default=0.0, ge=0.0, le=10000.0, allow_inf_nan=False)
+    h: float = Field(default=0.0, ge=0.0, le=10000.0, allow_inf_nan=False)
+
+
+class RepeatHotspot(BaseModel):
+    zone: str = Field(default="", max_length=24)
+    strokeCount: int = Field(default=0, ge=0, le=5000)
+    bbox: Optional[HotspotBox] = None
+
+
+class RevisionHotspot(BaseModel):
+    zone: str = Field(default="", max_length=24)
+    count: int = Field(default=0, ge=0, le=5000)
+    bbox: Optional[HotspotBox] = None
+
+
+class DrawingSequenceHighlight(BaseModel):
+    firstZone: str = Field(default="", max_length=24)
+    lastZone: str = Field(default="", max_length=24)
+    totalDrawStrokes: int = Field(default=0, ge=0, le=5000)
+
+
+class TempoShiftHighlight(BaseModel):
+    type: str = Field(default="", max_length=32)
+    zone: str = Field(default="", max_length=24)
+    pauseSec: Optional[float] = Field(default=None, ge=0.0, le=3600.0, allow_inf_nan=False)
+    detail: str = Field(default="", max_length=80)
+    strokeIdx: int = Field(default=0, ge=0, le=5000)
+
+
+class ProcessHighlights(BaseModel):
+    repeatHotspot: Optional[RepeatHotspot] = None
+    revisionHotspot: Optional[RevisionHotspot] = None
+    sequence: Optional[DrawingSequenceHighlight] = None
+    tempoShift: Optional[TempoShiftHighlight] = None
+
+
 class AnalyzeRequest(BaseModel):
     canvas: CanvasMeta = Field(default_factory=CanvasMeta)
     strokes: List[StrokeItem] = Field(default_factory=list, max_length=2000)
     processMetrics: ProcessMetrics = Field(default_factory=ProcessMetrics)
+    processHighlights: Optional[ProcessHighlights] = None
     userContext: UserContext = Field(default_factory=UserContext)
     counselorContext: CounselorContext = Field(default_factory=CounselorContext)
     imageDataUrl: Optional[str] = Field(default=None, max_length=6_000_000)
@@ -175,7 +216,7 @@ class ConsultRequest(BaseModel):
 
 @app.get("/api/health")
 def health_check() -> Dict[str, str]:
-    return {"status": "ok", "service": "mindcanvas-child-psychology-backend", "version": "3.3.0"}
+    return {"status": "ok", "service": "mindcanvas-child-psychology-backend", "version": "3.5.0"}
 
 
 @app.get("/api/references")
