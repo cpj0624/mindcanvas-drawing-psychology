@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>心畫室 MindCanvas v3.5 — 3–13 歲兒童繪畫情緒探索 × 互動引導 × 輔導員回放諮詢</title>
+  <title>心畫室 MindCanvas v3.5.1 — 3–13 歲兒童繪畫情緒探索 × 互動引導 × 輔導員回放諮詢</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'none';" />
   <meta name="referrer" content="no-referrer" />
-  <meta name="description" content="心畫室 MindCanvas v3.5：專為 3–13 歲兒童打造，結合 8 大類別（29 篇國際期刊實證＋6 部受限經典架構，共 35 項來源）、3C 平板與神經多樣性去偏護欄、雙分頁情緒分析與 Draw & Tell 互動引導，以及輔導員專屬作畫縮時回放與 AI 諮詢重算模組。" />
+  <meta name="description" content="心畫室 MindCanvas v3.5.1：專為 3–13 歲兒童打造，結合 8 大類別（29 篇國際期刊實證＋6 部受限經典架構，共 35 項來源）、3C 平板與神經多樣性去偏護欄、雙分頁安全隔離與 Draw & Tell 互動引導，以及輔導員專屬作畫縮時回放與 AI 諮詢重算模組。" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%233A6B7C%27/%3E%3Cpath d=%27M9 22l3.5-1 10-10-2.5-2.5-10 10L9 22z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -212,7 +212,7 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-base sm:text-lg font-semibold tracking-tight leading-snug text-[var(--foreground)] truncate">
-            心畫室 MindCanvas <span class="text-xs font-medium text-[var(--muted-foreground)]">v3.5</span>
+            心畫室 MindCanvas <span class="text-xs font-medium text-[var(--muted-foreground)]">v3.5.1</span>
           </h1>
           <p class="text-xs text-[var(--muted-foreground)] truncate">
             29 篇國際期刊實證（3–13 歲圖像優先 × 3C／神經多樣性去偏）× 雙分頁引導 × 輔導員回放諮詢
@@ -503,6 +503,13 @@
 
         <!-- Analysis Report Container (Dual-Direction Primary Tabs) -->
         <div id="reportPanel" class="hidden space-y-4 fade-in">
+
+          <!-- Urgent Safety / Crisis Referral Guardrail Alert (v3.5.1 [M2]: top-level across all tabs; hidden unless triggered) -->
+          <div id="safetyAlertBox" class="hidden p-3.5 rounded-2xl bg-[var(--card)] border-2 border-[var(--error)] space-y-2 text-xs shadow-sm" role="alert">
+            <div id="safetyAlertTitle" class="font-bold text-[var(--error)]">高風險安全與專業轉介提醒（倫理護欄）</div>
+            <p id="safetyAlertMsg" class="text-[var(--foreground)] leading-relaxed"></p>
+            <ul id="safetyAlertResources" class="list-disc pl-4 space-y-0.5 text-[11px] text-[var(--foreground)]"></ul>
+          </div>
 
           <!-- TOP-LEVEL DUAL-DIRECTION TAB SWITCHER -->
           <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-1.5 grid grid-cols-2 gap-1.5" role="tablist" aria-label="雙方向分析檢視切換">
@@ -804,13 +811,6 @@
             </div>
 
             <div id="counselorConsultBody" class="p-4 sm:p-5 space-y-4">
-              <!-- Urgent Safety / Crisis Referral Guardrail Alert (hidden unless triggered) -->
-              <div id="safetyAlertBox" class="hidden p-3.5 rounded-xl bg-[var(--content)] border-2 border-[var(--error)] space-y-2 text-xs" role="alert">
-                <div id="safetyAlertTitle" class="font-bold text-[var(--error)]">高風險安全與專業轉介提醒（倫理護欄）</div>
-                <p id="safetyAlertMsg" class="text-[var(--foreground)] leading-relaxed"></p>
-                <ul id="safetyAlertResources" class="list-disc pl-4 space-y-0.5 text-[11px] text-[var(--foreground)]"></ul>
-              </div>
-
               <!-- Block 0: Counselor-Only Time-Lapse Drawing Replay Viewer (v3.5) -->
               <div id="counselorReplayCard" class="p-3.5 rounded-xl bg-[var(--content)] border border-[var(--card-border)] space-y-2.5">
                 <div class="flex flex-wrap items-center justify-between gap-1.5">
@@ -947,7 +947,7 @@
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-lg w-full overflow-hidden shadow-xl">
       <div class="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
         <div>
-          <h2 id="engineModalTitle" class="text-base font-semibold text-[var(--foreground)]">心理分析引擎設定（A + B 雙引擎 v3.5）</h2>
+          <h2 id="engineModalTitle" class="text-base font-semibold text-[var(--foreground)]">心理分析引擎設定（A + B 雙引擎 v3.5.1）</h2>
           <p class="text-xs text-[var(--muted-foreground)] mt-0.5">兩套引擎皆同步支援 29 篇期刊去偏、歷程驅動對話與輔導員諮詢重算</p>
         </div>
         <button id="closeEngineBtn" type="button" class="p-1.5 rounded-lg hover:bg-[var(--secondary)] text-[var(--muted-foreground)]" aria-label="關閉">
@@ -1033,7 +1033,7 @@
     <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl max-w-2xl w-full max-h-[84vh] flex flex-col overflow-hidden shadow-xl">
       <div class="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
         <div>
-          <h2 id="refsModalTitle" class="text-base font-semibold text-[var(--foreground)]">兒童圖像心理學國際期刊實證與理論依據（v3.5）</h2>
+          <h2 id="refsModalTitle" class="text-base font-semibold text-[var(--foreground)]">兒童圖像心理學國際期刊實證與理論依據（v3.5.1）</h2>
           <p class="text-xs text-[var(--muted-foreground)] mt-0.5">方案 A（本地）與方案 B（Gemini 視覺）共同導入之 8 大類別（29 篇國際期刊實證＋6 部受限經典架構，共 35 項來源）</p>
         </div>
         <button id="closeRefsBtn" type="button" class="p-1.5 rounded-lg hover:bg-[var(--secondary)] text-[var(--muted-foreground)]" aria-label="關閉視窗">
@@ -1725,7 +1725,18 @@
     const CRISIS_KEYWORDS = [
       "自傷", "自殺", "想死", "輕生", "割腕", "跳樓", "不想活", "結束生命",
       "傷害自己", "受暴", "家暴", "施暴", "虐待", "性侵", "猥褻", "性騷擾",
-      "被打到", "求救", "suicide", "self-harm", "self harm", "abuse"
+      "被打到", "求救", "suicide", "self-harm", "self harm", "abuse",
+      // v3.5.1: child colloquial distress, self-harm & abuse expressions
+      "打我", "被打", "打傷", "揍我", "被揍",
+      "去死", "想消失", "活著好累", "活著沒意思", "不想醒來",
+      "不敢回家", "被關起來", "把我關起來"
+    ];
+
+    const CRISIS_BENIGN_EXCLUSIONS = [
+      "被打敗", "被打斷", "被打動", "被打亂", "被打擾", "被打針",
+      "被打扮", "被打分", "被打開", "被打掃", "打遊戲", "打電動",
+      "打招呼", "全壘打", "打球", "打擾", "打開", "打掃",
+      "打鼓", "打勾", "打叉", "打雷", "打折", "打針"
     ];
 
     const COUNSELOR_OBJECT_CUES = {
@@ -2005,10 +2016,38 @@
       return matched;
     }
 
+    function scrubBenignCrisisPhrases(str) {
+      let cleaned = str;
+      for (const phrase of CRISIS_BENIGN_EXCLUSIONS) {
+        if (cleaned.includes(phrase)) {
+          cleaned = cleaned.split(phrase).join("｜");
+        }
+      }
+      return cleaned;
+    }
+
     function detectSafetyAlert(texts) {
-      const joined = (Array.isArray(texts) ? texts : []).filter(Boolean).join(" ").toLowerCase();
-      if (!joined) return null;
-      const hits = CRISIS_KEYWORDS.filter(kw => joined.includes(kw));
+      const segments = (Array.isArray(texts) ? texts : [])
+        .filter(Boolean)
+        .map(t => (typeof String(t).normalize === "function" ? String(t).normalize("NFKC") : String(t)).toLowerCase());
+      if (!segments.length) return null;
+
+      // 1. Collapsed-whitespace copy (preserves English word boundaries while normalizing tabs/fullwidth spaces)
+      const rawJoined = segments.map(s => s.replace(/[\s\u3000]+/g, " ").trim()).filter(Boolean).join("｜");
+      if (!rawJoined) return null;
+      const rawScrubbed = scrubBenignCrisisPhrases(rawJoined);
+
+      // 2. Whitespace-stripped copy per segment (catches spaced CJK like "自 殺" / "自　殺" / "打 我" without gluing fields)
+      const compactJoined = segments.map(s => s.replace(/[\s\u3000]+/g, "")).filter(Boolean).join("｜");
+      const compactScrubbed = scrubBenignCrisisPhrases(compactJoined);
+
+      const hits = CRISIS_KEYWORDS.filter(kw => {
+        if (/[a-z]/.test(kw)) {
+          const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          return new RegExp(`\\b${esc}\\b`, "i").test(rawScrubbed);
+        }
+        return rawScrubbed.includes(kw) || compactScrubbed.includes(kw);
+      });
       if (!hits.length) return null;
       return {
         level: "urgent",
@@ -3284,7 +3323,7 @@
       return {
         status: "ok",
         engineMode: "local_empirical_v3",
-        engineVersion: "3.5.0",
+        engineVersion: "3.5.1",
         engineLabel: "本地實證引擎 A",
         isMonochromeSketch,
         isCanonicalNaturePalette,
@@ -3544,35 +3583,136 @@
       return cleanFallback || "網路或金鑰異常";
     }
 
-    async function discoverGeminiVisionModels(apiKey) {
-      const resp = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100", {
-        method: "GET",
-        headers: { "x-goog-api-key": apiKey }
-      }, 15000);
-      if (!resp.ok) {
-        const err = new Error(formatGeminiFriendlyError(resp.status));
-        err.httpStatus = resp.status;
-        throw err;
-      }
-      const data = await resp.json();
-      const rawModels = Array.isArray(data.models) ? data.models : [];
-      const candidates = rawModels
-        .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
-        .map(m => String(m.name || "").replace(/^models\//, ""))
-        .filter(id => SAFE_MODEL_RE.test(id))
-        .filter(id => !/(tts|live|transcribe|embedding|imagen|veo|lyria|aqa|robotics|computer-use|image-generation|-image$|nano-banana|2\.0-flash)/i.test(id));
+    // v3.5.1 [P3]: In-memory 10-minute TTL cache for discoverGeminiVisionModels keyed by non-reversible key hash + length
+    const GEMINI_MODEL_CACHE_TTL_MS = 10 * 60 * 1000;
+    const geminiModelDiscoveryCache = {
+      keyTag: "",
+      expiresAt: 0,
+      models: null,
+      inflight: null
+    };
 
-      // Rank preferred modern Flash models first, then other gemini-3/4/2.5 models
-      candidates.sort((a, b) => {
-        const ia = PREFERRED_MODEL_ORDER.indexOf(a);
-        const ib = PREFERRED_MODEL_ORDER.indexOf(b);
-        if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-        const aFlash = /flash/i.test(a) ? 0 : 1;
-        const bFlash = /flash/i.test(b) ? 0 : 1;
-        if (aFlash !== bFlash) return aFlash - bFlash;
-        return b.localeCompare(a);
-      });
-      return candidates;
+    function buildKeyCacheTag(apiKey) {
+      const s = String(apiKey || "");
+      let h1 = 0x811c9dc5, h2 = 0x01000193;
+      for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+        h2 = Math.imul(h2 ^ (c + i), 2246822519) >>> 0;
+      }
+      return `${s.slice(0, 6)}:${s.length}:${h1.toString(16)}_${h2.toString(16)}`;
+    }
+
+    function clearGeminiModelCache() {
+      geminiModelDiscoveryCache.keyTag = "";
+      geminiModelDiscoveryCache.expiresAt = 0;
+      geminiModelDiscoveryCache.models = null;
+      geminiModelDiscoveryCache.inflight = null;
+    }
+
+    // v3.5.1 [P2]: Proportional downscale (<= 768px) & JPEG compression for fast Gemini Vision upload
+    function exportResizedCanvasDataUrl(sourceCanvas, maxSide = 768, mimeType = "image/jpeg", quality = 0.85) {
+      if (!sourceCanvas) return "";
+      const srcW = Math.max(1, Number(sourceCanvas.width) || 800);
+      const srcH = Math.max(1, Number(sourceCanvas.height) || 550);
+      const safeMax = Math.max(64, Number(maxSide) || 768);
+      const scale = Math.min(1, safeMax / Math.max(srcW, srcH));
+      const targetW = Math.max(1, Math.round(srcW * scale));
+      const targetH = Math.max(1, Math.round(srcH * scale));
+      const off = document.createElement("canvas");
+      off.width = targetW;
+      off.height = targetH;
+      const octx2 = off.getContext("2d");
+      if (!octx2 || typeof octx2.drawImage !== "function") {
+        return typeof sourceCanvas.toDataURL === "function" ? sourceCanvas.toDataURL(mimeType, quality) : "";
+      }
+      octx2.fillStyle = (typeof state === "object" && state && state.paperColor) ? state.paperColor : "#FDFBF7";
+      octx2.fillRect(0, 0, targetW, targetH);
+      octx2.imageSmoothingEnabled = true;
+      octx2.imageSmoothingQuality = "high";
+      octx2.drawImage(sourceCanvas, 0, 0, targetW, targetH);
+      const outUrl = typeof off.toDataURL === "function" ? off.toDataURL(mimeType, quality) : "";
+      return outUrl || (typeof sourceCanvas.toDataURL === "function" ? sourceCanvas.toDataURL("image/png") : "");
+    }
+
+    function parseInlineImageDataUrl(imageDataUrl, fallbackMime = "image/jpeg") {
+      const raw = String(imageDataUrl || "");
+      const m = raw.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/i);
+      if (m) {
+        const mime = m[1].toLowerCase() === "image/jpg" ? "image/jpeg" : m[1].toLowerCase();
+        return { mimeType: mime, data: m[2] };
+      }
+      const commaIdx = raw.indexOf(",");
+      return {
+        mimeType: fallbackMime,
+        data: commaIdx !== -1 ? raw.slice(commaIdx + 1) : ""
+      };
+    }
+
+    async function discoverGeminiVisionModels(apiKey, options = {}) {
+      const forceRefresh = Boolean(options && options.forceRefresh);
+      const tag = buildKeyCacheTag(apiKey);
+      const now = Date.now();
+      if (
+        !forceRefresh &&
+        geminiModelDiscoveryCache.keyTag === tag &&
+        Array.isArray(geminiModelDiscoveryCache.models) &&
+        geminiModelDiscoveryCache.models.length > 0 &&
+        now < geminiModelDiscoveryCache.expiresAt
+      ) {
+        return geminiModelDiscoveryCache.models.slice();
+      }
+      if (!forceRefresh && geminiModelDiscoveryCache.keyTag === tag && geminiModelDiscoveryCache.inflight) {
+        const shared = await geminiModelDiscoveryCache.inflight;
+        return shared.slice();
+      }
+
+      const fetchTask = (async () => {
+        const resp = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100", {
+          method: "GET",
+          headers: { "x-goog-api-key": apiKey }
+        }, 15000);
+        if (!resp.ok) {
+          const err = new Error(formatGeminiFriendlyError(resp.status));
+          err.httpStatus = resp.status;
+          throw err;
+        }
+        const data = await resp.json();
+        const rawModels = Array.isArray(data.models) ? data.models : [];
+        const candidates = rawModels
+          .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
+          .map(m => String(m.name || "").replace(/^models\//, ""))
+          .filter(id => SAFE_MODEL_RE.test(id))
+          .filter(id => !/(tts|live|transcribe|embedding|imagen|veo|lyria|aqa|robotics|computer-use|image-generation|-image$|nano-banana|2\.0-flash)/i.test(id));
+
+        // Rank preferred modern Flash models first, then other gemini-3/4/2.5 models
+        candidates.sort((a, b) => {
+          const ia = PREFERRED_MODEL_ORDER.indexOf(a);
+          const ib = PREFERRED_MODEL_ORDER.indexOf(b);
+          if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+          const aFlash = /flash/i.test(a) ? 0 : 1;
+          const bFlash = /flash/i.test(b) ? 0 : 1;
+          if (aFlash !== bFlash) return aFlash - bFlash;
+          return b.localeCompare(a);
+        });
+
+        if (candidates.length > 0) {
+          geminiModelDiscoveryCache.keyTag = tag;
+          geminiModelDiscoveryCache.models = candidates.slice();
+          geminiModelDiscoveryCache.expiresAt = Date.now() + GEMINI_MODEL_CACHE_TTL_MS;
+        }
+        return candidates;
+      })();
+
+      geminiModelDiscoveryCache.keyTag = tag;
+      geminiModelDiscoveryCache.inflight = fetchTask;
+      try {
+        return await fetchTask;
+      } finally {
+        if (geminiModelDiscoveryCache.inflight === fetchTask) {
+          geminiModelDiscoveryCache.inflight = null;
+        }
+      }
     }
 
     function extractJsonFromGeminiResponse(data) {
@@ -3598,7 +3738,7 @@
       }
     }
 
-    async function callSingleGeminiModel(safeModel, apiKey, prompt, base64Data) {
+    async function callSingleGeminiModel(safeModel, apiKey, prompt, base64Data, mimeType = "image/jpeg") {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`;
       const resp = await fetchWithTimeout(endpoint, {
         method: "POST",
@@ -3611,7 +3751,7 @@
             role: "user",
             parts: [
               { text: prompt },
-              { inlineData: { mimeType: "image/png", data: base64Data } }
+              { inlineData: { mimeType, data: base64Data } }
             ]
           }],
           generationConfig: {
@@ -3634,7 +3774,7 @@
       if (!isValidHeaderKey(cleanKey)) {
         throw new Error("API Key 包含無效字元或長度不足，請重新複製");
       }
-      const base64Data = imageDataUrl.split(",")[1];
+      const parsedImg = parseInlineImageDataUrl(imageDataUrl, "image/jpeg");
       const pSt = localBaseResult.pillars.strokes;
       const pPr = localBaseResult.pillars.process;
       const cCtx = (counselorCtx && typeof counselorCtx === "object") ? counselorCtx : {};
@@ -3760,7 +3900,7 @@
       let lastErr = null;
       for (const candidate of tryList.slice(0, 4)) {
         try {
-          parsed = await callSingleGeminiModel(candidate, cleanKey, prompt, base64Data);
+          parsed = await callSingleGeminiModel(candidate, cleanKey, prompt, parsedImg.data, parsedImg.mimeType);
           usedModel = candidate;
           break;
         } catch (err) {
@@ -4017,7 +4157,7 @@
       };
 
       const systemText = [
-        "你是『心畫室 MindCanvas v3.5』的專業兒童繪畫心理協作顧問（3–13 歲），服務對象【僅限成年輔導人員、教師或家長】，絕不直接對兒童說話。",
+        "你是『心畫室 MindCanvas v3.5.1』的專業兒童繪畫心理協作顧問（3–13 歲），服務對象【僅限成年輔導人員、教師或家長】，絕不直接對兒童說話。",
         "核心任務：",
         "1. 協助輔導人員釐清兒童畫作中抽象或模糊區塊的可能脈絡，並始終以『孩子口述＋輔導員確認』為最高準則。",
         "2. 依 29 篇國際心理學同儕審查期刊實證（圖像策略：Jolley 2004, Picard 2007/2012, Misalidi & Bonoti 2014；純圖像物件與界線：Willis 2010 DAPR 壓力與保護資源, Fury 1997 / Pace 2022 依附距離與地面支撐, Wegmann & Lusebrink 2000 KFD 包覆圈／阻隔物, Kaiser 1996 / Kaiser & Deaver 2009 鳥巢安全基地, Bat Or 2022 PPAT 主動性與工具；臉部與人物常模：Nanayama Tanaka 2020, Skybo 2007, Pénzes 2020；構圖去偏：Burkitt 2003/2004, Crawford 2012, Cao 2023；以圖引談：Gross & Hayne 1998, Driessnack 2005 d=0.95；3C 數位媒材與流行文化去偏：Ivashkevich 2009 動漫遊戲角色, Price 2015 iPad 標記特性, Mohd Shukri 2014 平板多段短筆畫與誤觸；神經多樣性護欄：Papangelo 2020 ASD 不可直套 HFD, Kotroni 2018 ASD 情緒視覺線索偏少；防過度推論：Joiner 1996, Catte & Cox 1999, Thomas & Jolley 1998）解答分析依據、說明數位媒材降權與無 Pulver 方位心理推論原則、提供非情緒替代解釋，並肯定創作者正向資源。",
@@ -4027,11 +4167,11 @@
         '請只回傳繁體中文純 JSON：{"reply": "專業、溫和且條理清晰的回覆（120-320字）", "suggestedObject": "若輔導員剛澄清了某個畫面物件則萃取精簡短句（<=60字），否則為 null", "suggestedNote": "若輔導員提供了適合回填重算的訪談重點則萃取精簡摘要（<=160字），否則為 null"}'
       ].join("\n");
 
-      // Turn 0: inject static finished drawing snapshot + compact analysis context
-      const base64Data = (imageDataUrl && imageDataUrl.includes(",")) ? imageDataUrl.split(",")[1] : "";
+      // Turn 0: inject static resized JPEG/PNG drawing snapshot + compact analysis context
+      const parsedImg = parseInlineImageDataUrl(imageDataUrl, "image/jpeg");
       const initParts = [{ text: "以下是已完成畫作的靜態影像與本次實證分析摘要（僅供本次諮詢脈絡參考）：\n" + JSON.stringify(reportBrief) }];
-      if (base64Data) {
-        initParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+      if (parsedImg.data) {
+        initParts.push({ inlineData: { mimeType: parsedImg.mimeType, data: parsedImg.data } });
       }
       const contents = [
         { role: "user", parts: initParts },
@@ -4091,7 +4231,8 @@
     // 4. INTERACTIVE FREEHAND CANVAS & FIGURE OVERLAY RENDERER
     // =========================================================================
     const canvas = document.getElementById("drawingCanvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    // v3.5.1 [P1]: Keep GPU hardware acceleration enabled on #drawingCanvas (pixel sampling uses offscreen canvas)
+    const ctx = canvas.getContext("2d");
     const overlayCanvas = document.getElementById("overlayCanvas");
     const octx = overlayCanvas.getContext("2d");
 
@@ -4235,6 +4376,11 @@
     function drawFigureOverlay(figures) {
       clearOverlay();
       const btn = document.getElementById("toggleOverlayBtn");
+      // v3.5.1 [M1]: Never display figure analysis overlay or toggle button in Tab 2 ("dialogue" child co-viewing mode)
+      if (state.reportMode === "dialogue") {
+        if (btn) btn.classList.add("hidden");
+        return;
+      }
       const boxFigs = (figures || []).filter(f => f && f.bbox);
       if (boxFigs.length === 0) {
         btn.classList.add("hidden");
@@ -4278,6 +4424,11 @@
     }
 
     document.getElementById("toggleOverlayBtn").addEventListener("click", () => {
+      if (state.reportMode === "dialogue") {
+        clearOverlay();
+        document.getElementById("toggleOverlayBtn")?.classList.add("hidden");
+        return;
+      }
       state.showOverlay = !state.showOverlay;
       if (state.lastAnalysis) {
         drawFigureOverlay(state.lastAnalysis.overlayFigures || state.lastAnalysis.recognizedFigures);
@@ -4668,7 +4819,7 @@
       btn.disabled = true;
       setModalStatus("正在連線 Google Gemini API 並偵測此金鑰可用的最新視覺模型…", "info");
       try {
-        const models = await discoverGeminiVisionModels(key);
+        const models = await discoverGeminiVisionModels(key, { forceRefresh: true });
         if (!models.length) {
           setModalStatus("金鑰已通過驗證，但此專案未查到可用的視覺生成模型，請至 Google AI Studio 確認專案設定。", "err");
         } else {
@@ -4686,6 +4837,7 @@
     });
 
     document.getElementById("clearGeminiKeyBtn").addEventListener("click", () => {
+      clearGeminiModelCache();
       try {
         sessionStorage.removeItem(SESSION_KEY_NAME);
         sessionStorage.setItem(SESSION_MODE_NAME, "local");
@@ -4695,7 +4847,7 @@
       setModalStatus("");
       syncEngineHeaderUI();
       engineModal.classList.add("hidden");
-      showInlineAlert("已安全清除金鑰並切換回「方案 A 本地圖形引擎」。");
+      showInlineAlert("已安全清除金鑰與模型快取，並切換回「方案 A 本地圖形引擎」。");
     });
 
     document.getElementById("saveEngineBtn").addEventListener("click", () => {
@@ -4710,6 +4862,7 @@
         setModalStatus("金鑰格式不正確（含非法字元或長度過短），請重新至 Google AI Studio 複製。", "err");
         return;
       }
+      clearGeminiModelCache();
       try {
         if (key) sessionStorage.setItem(SESSION_KEY_NAME, key); else sessionStorage.removeItem(SESSION_KEY_NAME);
         sessionStorage.setItem(SESSION_MODE_NAME, wantGemini ? "gemini" : "local");
@@ -5317,14 +5470,18 @@
     }
 
     function setCounselorPanelOpen(open) {
-      state.counselorPanelOpen = Boolean(open);
+      // v3.5.1 [M1]: Never allow counselorConsultBody to open while in Tab 2 ("dialogue" child co-viewing mode)
+      const isDialogueMode = state.reportMode === "dialogue";
+      state.counselorPanelOpen = isDialogueMode ? false : Boolean(open);
       if (!state.counselorPanelOpen) stopReplayPlayback();
       const body = document.getElementById("counselorConsultBody");
       const btn = document.getElementById("toggleCounselorBtn");
       if (body) body.classList.toggle("hidden", !state.counselorPanelOpen);
       if (btn) {
         btn.setAttribute("aria-expanded", String(state.counselorPanelOpen));
-        btn.textContent = state.counselorPanelOpen ? "收合諮詢區" : "展開諮詢區";
+        btn.textContent = isDialogueMode
+          ? "限分頁 1 展開（保護共看）"
+          : (state.counselorPanelOpen ? "收合諮詢區" : "展開諮詢區");
       }
     }
 
@@ -5344,8 +5501,12 @@
         li.textContent = String(r || "");
         list.appendChild(li);
       });
+      // v3.5.1 [M2]: safetyAlertBox sits at top of #reportPanel, so it is 100% visible in both Tab 1 & Tab 2
+      document.getElementById("reportPanel")?.classList.remove("hidden");
       box.classList.remove("hidden");
-      setCounselorPanelOpen(true);
+      if (state.reportMode === "emotion") {
+        setCounselorPanelOpen(true);
+      }
     }
 
     function renderCounselorContextUI() {
@@ -5495,18 +5656,23 @@
       if (emoPanel) emoPanel.classList.toggle("hidden", nextMode !== "emotion");
       if (dlgPanel) dlgPanel.classList.toggle("hidden", nextMode !== "dialogue");
 
-      // Keep Tab 2 100% child-safe: hide history strip, canvas overlay, and auto-collapse adult consultation body
+      // v3.5.1 [M1]: Keep Tab 2 100% child-safe — hide history strip, canvas overlay + #toggleOverlayBtn, and lock adult consultation collapsed
       const histSec = document.getElementById("historySection");
       if (histSec) {
         histSec.classList.toggle("hidden", nextMode === "dialogue" || !state.history.length);
       }
+      const overlayBtn = document.getElementById("toggleOverlayBtn");
       if (nextMode === "dialogue") {
         clearOverlay();
+        if (overlayBtn) overlayBtn.classList.add("hidden");
         setCounselorPanelOpen(false);
       } else {
+        setCounselorPanelOpen(state.counselorPanelOpen);
         if (state.lastAnalysis) {
           drawFigureOverlay(state.lastAnalysis.overlayFigures || state.lastAnalysis.recognizedFigures || []);
           renderRadarChart(state.lastAnalysis.emotions);
+        } else if (overlayBtn) {
+          overlayBtn.classList.add("hidden");
         }
       }
     }
@@ -5863,7 +6029,12 @@
 
       // Render Mode 2: Pure Non-Diagnostic Draw & Tell Interactive Dialogue Guide
       renderDialogueGuide(res.dialogueGuide, res.engineLabel);
-      renderSafetyAlert(res.safetyAlert);
+      const fullDialogueSafety = state.dialogueNotes.length
+        ? detectSafetyAlert(state.dialogueNotes.map(n => n.text))
+        : null;
+      const effectiveSafety = res.safetyAlert || fullDialogueSafety || null;
+      res.safetyAlert = effectiveSafety;
+      renderSafetyAlert(effectiveSafety);
       renderCounselorContextUI();
       syncReplayWidget(state.strokes, state.paperColor, res.processHighlights || buildClientProcessHighlights());
 
@@ -5892,7 +6063,7 @@
         card.type = "button";
         card.className = "tool-btn shrink-0 w-28 text-left rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--content)] hover:border-[var(--primary)]";
         const rawThumb = String(item.thumbUrl || "");
-        const safeThumb = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(rawThumb) ? rawThumb : "";
+        const safeThumb = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(rawThumb) ? rawThumb : "";
         card.innerHTML = `
           <img src="${safeThumb}" alt="${escapeHtml(item.result.primaryEmotion.label)}" class="w-full h-16 object-cover border-b border-[var(--card-border)]" />
           <div class="p-1.5">
@@ -5901,10 +6072,21 @@
           </div>
         `;
         card.addEventListener("click", () => {
+          // v3.5.1 [M3]: Reset redo stack, revision/pause counters, and process tracking to prevent cross-drawing contamination
+          stopPresetAnimation();
           state.strokes = JSON.parse(JSON.stringify(item.strokesCopy));
+          state.redoStack = [];
+          state.undoCount = 0;
+          state.eraserStrokeCount = 0;
+          state.pauseCount = 0;
+          resetProcessTracking();
           state.paperColor = item.paperColor;
+          document.querySelectorAll(".paper-btn").forEach(b => {
+            b.classList.toggle("ring-2", b.dataset.paper === state.paperColor);
+            b.classList.toggle("ring-[var(--primary)]", b.dataset.paper === state.paperColor);
+          });
           redrawAll();
-          state.lastCanvasSnapshotUrl = canvas.toDataURL("image/png");
+          state.lastCanvasSnapshotUrl = exportResizedCanvasDataUrl(canvas, 768, "image/jpeg", 0.85);
           renderReport(item.result, false);
         });
         strip.appendChild(card);
@@ -5933,7 +6115,8 @@
       const userNote = document.getElementById("noteInput").value.trim();
       const selMotifs = Array.from(state.selectedMotifs);
       const counselorCtx = getCurrentCounselorContext();
-      const snapshotDataUrl = canvas.toDataURL("image/png");
+      // v3.5.1 [P2]: Export lightweight resized JPEG (<= 768px) for Gemini Vision & Counselor Chat
+      const snapshotDataUrl = exportResizedCanvasDataUrl(canvas, 768, "image/jpeg", 0.85);
       state.lastCanvasSnapshotUrl = snapshotDataUrl;
 
       const cleanStrokesForApi = state.strokes.map(s => ({
@@ -5979,10 +6162,13 @@
       const isStaticHost = location.protocol === "file:" || location.hostname.endsWith(".github.io");
       if (!isStaticHost) {
         try {
+          // v3.5.1 [P4]: Omit multi-MB imageDataUrl when clientImageStats (pixelStats) is already present
+          const hasClientStats = Boolean(pixelStats && typeof pixelStats === "object" && Array.isArray(pixelStats.grid3x3));
+          const apiBody = hasClientStats ? payload : { ...payload, imageDataUrl: snapshotDataUrl };
           const resp = await fetchWithTimeout("/api/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...payload, imageDataUrl: snapshotDataUrl })
+            body: JSON.stringify(apiBody)
           }, 15000);
           if (resp.ok) {
             localResult = await resp.json();
@@ -6050,6 +6236,11 @@
       if (state.dialogueNotes.length > 20) state.dialogueNotes.shift();
       inp.value = "";
       renderDialogueNotes();
+      // v3.5.1 [M2]: Immediately check child's spoken reply for crisis cues without waiting for re-analysis
+      const immediateAlert = detectSafetyAlert([text]);
+      if (immediateAlert) {
+        renderSafetyAlert(immediateAlert);
+      }
     }
     document.getElementById("addChildReplyBtn").addEventListener("click", addChildReplyFromInput);
     document.getElementById("childReplyInput").addEventListener("keydown", e => {
@@ -6057,7 +6248,13 @@
     });
     document.getElementById("syncRepliesAnalyzeBtn").addEventListener("click", () => {
       if (!state.dialogueNotes.length) return;
-      const combined = state.dialogueNotes.map(n => n.text).join("；").slice(0, 280);
+      // v3.5.1 [M2]: Run detectSafetyAlert across ALL full dialogueNotes BEFORE 280-char slice
+      const allNoteTexts = state.dialogueNotes.map(n => n.text);
+      const preSliceAlert = detectSafetyAlert(allNoteTexts);
+      if (preSliceAlert) {
+        renderSafetyAlert(preSliceAlert);
+      }
+      const combined = allNoteTexts.join("；").slice(0, 280);
       document.getElementById("noteInput").value = combined;
       runAnalysisAndRender();
     });
@@ -6072,6 +6269,13 @@
 
     // Counselor-Only Consultation Studio & Post-Analysis Re-Analysis Handlers
     document.getElementById("toggleCounselorBtn").addEventListener("click", () => {
+      // v3.5.1 [M1]: Keep counselor consultation & replay locked closed during Tab 2 child co-viewing
+      if (state.reportMode === "dialogue") {
+        setCounselorPanelOpen(false);
+        showInlineAlert("目前處於「分頁 2｜圖像互動引導（陪孩子共看）」模式，為避免孩子誤觸看見回放熱區與情緒分數，請先切回「分頁 1｜內在情緒分析」再展開輔導員專區。");
+        document.getElementById("inlineAlert")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
       setCounselorPanelOpen(!state.counselorPanelOpen);
     });
 
@@ -6156,8 +6360,10 @@
       try {
         if (cfg.mode === "gemini" && cfg.apiKey) {
           try {
+            const consultSnapshot = state.lastCanvasSnapshotUrl || exportResizedCanvasDataUrl(canvas, 768, "image/jpeg", 0.85);
+            state.lastCanvasSnapshotUrl = consultSnapshot;
             respObj = await callGeminiCounselorChat(
-              q, priorHistory, state.lastCanvasSnapshotUrl || canvas.toDataURL("image/png"),
+              q, priorHistory, consultSnapshot,
               state.lastAnalysis, counselorCtx, cfg.apiKey, cfg.model
             );
             engineTag = respObj.usedModel ? `Gemini 顧問 B（${respObj.usedModel}）` : "Gemini 多模態顧問 B";
@@ -6282,11 +6488,12 @@
       });
     }
 
-    // Privacy cleanup on tab close / unload (wipes replay strokes, revision hotspots & counselor session)
+    // Privacy cleanup on tab close / unload (wipes replay strokes, revision hotspots, model cache & counselor session)
     window.addEventListener("beforeunload", () => {
       stopPresetAnimation();
       resetProcessTracking();
       resetReplayViewer();
+      clearGeminiModelCache();
       state.strokes = [];
       state.redoStack = [];
       state.history = [];

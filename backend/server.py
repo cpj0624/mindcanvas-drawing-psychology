@@ -31,7 +31,7 @@ app = FastAPI(
         "以純圖像涵義為優先分析情緒線索、提供 3C 媒體與神經多樣性去偏護欄、作畫歷程亮點對話引導，"
         "並支援輔導人員後設圖像補充重算與實證諮詢。"
     ),
-    version="3.5.0",
+    version="3.5.1",
 )
 
 app.add_middleware(
@@ -216,7 +216,7 @@ class ConsultRequest(BaseModel):
 
 @app.get("/api/health")
 def health_check() -> Dict[str, str]:
-    return {"status": "ok", "service": "mindcanvas-child-psychology-backend", "version": "3.5.0"}
+    return {"status": "ok", "service": "mindcanvas-child-psychology-backend", "version": "3.5.1"}
 
 
 @app.get("/api/references")

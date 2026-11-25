@@ -751,7 +751,7 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         from backend.knowledge_base import PSYCHOLOGY_REFERENCES
         from backend.server import health_check
 
-        self.assertEqual(health_check()["version"], "3.5.0")
+        self.assertEqual(health_check()["version"], "3.5.1")
         by_id = {r["id"]: r for r in PSYCHOLOGY_REFERENCES}
         groups = {r["group"] for r in PSYCHOLOGY_REFERENCES}
         self.assertEqual(len(PSYCHOLOGY_REFERENCES), 26)
@@ -772,7 +772,7 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
             "canvas": {"width": 800, "height": 550},
             "strokes": [_make_circle_stroke(400, 270, 80, "#2A2B30", size=6)],
         })
-        self.assertEqual(res["engineVersion"], "3.5.0")
+        self.assertEqual(res["engineVersion"], "3.5.1")
         self.assertIn("29 篇", res["ethicalNotice"])
         self.assertNotIn("14 篇", res["ethicalNotice"])
 
@@ -985,6 +985,93 @@ class TestChildPsychologyAnalyzer(unittest.TestCase):
         r_asd = consult_counselor({"question": "畫中都是重複幾何和機械火車軌道細節，表情很少", "analysisSummary": summary})
         self.assertIn("Papangelo", r_asd["reply"])
         self.assertIn("Kotroni", r_asd["reply"])
+
+    def test_v351_colloquial_and_spaced_crisis_detection_no_false_positives(self):
+        """v3.5.1 [M4]: Child colloquial & whitespace-spaced crisis phrases must trigger safetyAlert without benign false positives."""
+        base_strokes = [_make_circle_stroke(400, 270, 65, "#2A2B30", size=6)]
+        crisis_cases = [
+            "爸爸打我",
+            "在學校一直被打",
+            "手被打傷了",
+            "我想消失",
+            "活著好累",
+            "好想去死",
+            "下課後不敢回家",
+            "昨天被關起來",
+            "自 殺",
+            "自　殺",
+            "爸 爸 打 我",
+            "不　敢　回　家",
+            "爸爸打球回來就打我",
+        ]
+        for phrase in crisis_cases:
+            res = analyze_drawing({
+                "canvas": {"width": 800, "height": 550},
+                "strokes": base_strokes,
+                "userContext": {"titleOrNote": phrase},
+            })
+            self.assertIsNotNone(res["safetyAlert"], f"Expected crisis alert for: {phrase!r}")
+            self.assertEqual(res["safetyAlert"]["level"], "urgent")
+            joined_res = " ".join(res["safetyAlert"]["resources"])
+            self.assertIn("1925", joined_res)
+            self.assertIn("1995", joined_res)
+            self.assertIn("113", joined_res)
+
+            c_res = consult_counselor({"question": phrase, "analysisSummary": {}})
+            self.assertIsNotNone(c_res["safetyAlert"], f"Expected consult crisis alert for: {phrase!r}")
+
+        benign_cases = [
+            "下課去打球很開心",
+            "不好意思打擾了",
+            "不想被打擾畫畫",
+            "跟好朋友打遊戲、打招呼",
+            "在遊戲裡被打敗了",
+            "全壘打我們班贏了",
+            "Riding a bus every day to school",
+        ]
+        for phrase in benign_cases:
+            res = analyze_drawing({
+                "canvas": {"width": 800, "height": 550},
+                "strokes": base_strokes,
+                "userContext": {"titleOrNote": phrase},
+            })
+            self.assertIsNone(res["safetyAlert"], f"Unexpected false positive for: {phrase!r}")
+            c_res = consult_counselor({"question": phrase, "analysisSummary": {}})
+            self.assertIsNone(c_res["safetyAlert"], f"Unexpected consult false positive for: {phrase!r}")
+
+    def test_v351_client_image_stats_prioritized_without_decoding_png(self):
+        """v3.5.1 [P4]: When valid clientImageStats is provided, analyze_drawing skips _analyze_image_buffer decoding."""
+        from unittest.mock import patch
+
+        strokes = [_make_circle_stroke(400, 275, 80, "#E8A838", size=8, steps=28, dt_ms=30)]
+        valid_client_stats = {
+            "inkCoverageRatio": 0.14,
+            "grid3x3": [0.05, 0.12, 0.05, 0.12, 0.32, 0.12, 0.05, 0.12, 0.05],
+            "colorHistogram": {
+                "warmBright": 0.88,
+                "intenseRed": 0.0,
+                "gentlePinkPurple": 0.04,
+                "freshGreen": 0.04,
+                "coolBlue": 0.0,
+                "darkMuted": 0.0,
+                "neutralGrey": 0.04,
+            },
+            "meanSaturation": 0.72,
+            "meanLuminance": 0.68,
+            "pixelCenter": [0.5, 0.5],
+        }
+        dummy_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+        with patch("backend.analyzer._analyze_image_buffer") as mock_decode:
+            res = analyze_drawing({
+                "canvas": {"width": 800, "height": 550, "backgroundColor": "#FDFBF7"},
+                "strokes": strokes,
+                "clientImageStats": valid_client_stats,
+                "imageDataUrl": dummy_data_url,
+            })
+            self.assertEqual(res["status"], "ok")
+            mock_decode.assert_not_called()
+            self.assertAlmostEqual(res["pillars"]["spatial"]["inkCoverage"], 0.14, places=2)
 
 
 if __name__ == "__main__":

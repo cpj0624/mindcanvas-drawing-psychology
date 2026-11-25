@@ -1,4 +1,4 @@
-"""Multi-dimensional child drawing psychology analysis engine (v3.5 Empirical).
+"""Multi-dimensional child drawing psychology analysis engine (v3.5.1 Empirical).
 
 Targets children aged 3–13 (pre-adolescent) using 29 peer-reviewed international
 empirical studies (image-first, 3C/tablet debiasing, pop-culture debiasing, and
@@ -11,6 +11,8 @@ import base64
 import colorsys
 import io
 import math
+import re
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image
@@ -29,6 +31,18 @@ CRISIS_KEYWORDS: Tuple[str, ...] = (
     "自傷", "自殺", "想死", "輕生", "割腕", "跳樓", "不想活", "結束生命",
     "傷害自己", "受暴", "家暴", "施暴", "虐待", "性侵", "猥褻", "性騷擾",
     "被打到", "求救", "suicide", "self-harm", "self harm", "abuse",
+    # v3.5.1: child colloquial distress, self-harm & abuse expressions
+    "打我", "被打", "打傷", "揍我", "被揍",
+    "去死", "想消失", "活著好累", "活著沒意思", "不想醒來",
+    "不敢回家", "被關起來", "把我關起來",
+)
+
+# Longest-first benign daily phrases so colloquial crisis tokens ("打我"/"被打") never misfire
+CRISIS_BENIGN_EXCLUSIONS: Tuple[str, ...] = (
+    "被打敗", "被打斷", "被打動", "被打亂", "被打擾", "被打針",
+    "被打扮", "被打分", "被打開", "被打掃", "打遊戲", "打電動",
+    "打招呼", "全壘打", "打球", "打擾", "打開", "打掃",
+    "打鼓", "打勾", "打叉", "打雷", "打折", "打針",
 )
 
 COUNSELOR_OBJECT_CUES: Dict[str, Tuple[str, ...]] = {
@@ -349,12 +363,39 @@ def _match_image_first_frameworks(texts: List[str]) -> List[Dict[str, Any]]:
     return matched
 
 
+def _scrub_benign_crisis_phrases(text: str) -> str:
+    cleaned = text
+    for phrase in CRISIS_BENIGN_EXCLUSIONS:
+        if phrase in cleaned:
+            cleaned = cleaned.replace(phrase, "｜")
+    return cleaned
+
+
 def _detect_safety_alert(texts: List[str]) -> Optional[Dict[str, Any]]:
-    """Detect urgent self-harm or abuse cues and return a formal referral guardrail."""
-    joined = " ".join(t for t in texts if t).lower()
-    if not joined:
+    """Detect urgent self-harm or abuse cues (including whitespace-spaced colloquial child expressions)."""
+    segments = [unicodedata.normalize("NFKC", str(t)).lower() for t in texts if t]
+    if not segments:
         return None
-    hits = [kw for kw in CRISIS_KEYWORDS if kw in joined]
+
+    # 1. Collapsed-whitespace copy (preserves English word boundaries while normalizing tabs/fullwidth spaces)
+    raw_joined = "｜".join(re.sub(r"[\s\u3000]+", " ", seg).strip() for seg in segments if seg.strip())
+    if not raw_joined:
+        return None
+    raw_scrubbed = _scrub_benign_crisis_phrases(raw_joined)
+
+    # 2. Whitespace-stripped copy per segment (catches spaced CJK like "自 殺" / "自　殺" / "打 我" without gluing fields)
+    compact_joined = "｜".join(re.sub(r"[\s\u3000]+", "", seg) for seg in segments if seg.strip())
+    compact_scrubbed = _scrub_benign_crisis_phrases(compact_joined)
+
+    hits: List[str] = []
+    for kw in CRISIS_KEYWORDS:
+        if re.search(r"[a-z]", kw):
+            if re.search(rf"\b{re.escape(kw)}\b", raw_scrubbed):
+                hits.append(kw)
+        else:
+            if kw in raw_scrubbed or kw in compact_scrubbed:
+                hits.append(kw)
+
     if not hits:
         return None
     return {
@@ -1601,9 +1642,14 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     # --- 2. Combine Vector Telemetry with Pixel Stats & Detect Monochrome / Canonical Color ---
-    pixel_stats = _analyze_image_buffer(str(payload.get("imageDataUrl") or ""), bg_hex)
-    if not pixel_stats and payload.get("clientImageStats"):
-        pixel_stats = _sanitize_pixel_stats(payload.get("clientImageStats"))
+    # v3.5.1 [P4]: Prefer sanitized clientImageStats; decode imageDataUrl only on fallback
+    pixel_stats = (
+        _sanitize_pixel_stats(payload.get("clientImageStats"))
+        if payload.get("clientImageStats")
+        else None
+    )
+    if not pixel_stats and payload.get("imageDataUrl"):
+        pixel_stats = _analyze_image_buffer(str(payload.get("imageDataUrl") or ""), bg_hex)
 
     vec_total_area = max(1.0, sum(vec_buckets.values()))
     vec_hist = {k: round(v / vec_total_area, 4) for k, v in vec_buckets.items()}
@@ -2967,7 +3013,7 @@ def analyze_drawing(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "status": "ok",
         "engineMode": "local_empirical_v3",
-        "engineVersion": "3.5.0",
+        "engineVersion": "3.5.1",
         "isMonochromeSketch": is_monochrome_sketch,
         "isCanonicalNaturePalette": is_canonical_nature_palette,
         "ageGroup": age_group,
